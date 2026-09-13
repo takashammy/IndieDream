@@ -1,7 +1,9 @@
 import { isListedArtist, whatsappHref } from "@/lib/data";
 import { useCue, type Notice } from "@/lib/store";
 import { Button } from "@/components/ui/button";
+import { coverImage } from "@/lib/r2";
 import { Sheet } from "./chrome";
+import { SongPreview } from "./r2-audio";
 
 export function labelFor(kind: Notice["kind"]) {
   if (kind === "verify") return "Artist";
@@ -20,9 +22,7 @@ export function NoticeList({
   empty: string;
   onOpen: (id: string) => void;
 }) {
-  if (notices.length === 0) {
-    return <p className="px-5 text-sm italic text-muted">{empty}</p>;
-  }
+  if (notices.length === 0) return <p className="px-5 text-sm italic text-muted">{empty}</p>;
   return (
     <ul>
       {notices.map((n) => (
@@ -60,7 +60,6 @@ export function NoticeSheet({
         : null;
   const song = artist?.songs.find((s) => s.id === notice.refId);
   const event = notice.kind === "event" ? events.find((e) => e.id === notice.refId) : null;
-  const listed = artists.filter(isListedArtist);
   const fields = notice.fields ? Object.entries(notice.fields) : [];
 
   return (
@@ -73,9 +72,7 @@ export function NoticeSheet({
               <dt className="text-muted">{k}</dt>
               <dd className="text-fg">
                 {k === "WhatsApp" && whatsappHref(v) ? (
-                  <a href={whatsappHref(v)} target="_blank" rel="noreferrer" className="text-accent underline-offset-2 hover:underline">
-                    {v}
-                  </a>
+                  <a href={whatsappHref(v)} target="_blank" rel="noreferrer" className="text-accent underline-offset-2 hover:underline">{v}</a>
                 ) : (
                   v
                 )}
@@ -89,61 +86,30 @@ export function NoticeSheet({
           <img src={artist.photo} alt="" className="size-14 rounded-md object-cover" />
           <div>
             <p className="font-medium">{artist.name}</p>
-            <p className="text-xs text-muted">
-              {artist.role} · {artist.area}
-            </p>
-            <p className="mt-1 text-xs text-muted">
-              {artist.songs.length} track{artist.songs.length === 1 ? "" : "s"} · {artist.label}
-            </p>
+            <p className="text-xs text-muted">{artist.role} · {artist.area}</p>
           </div>
         </div>
       ) : null}
       {song ? (
         <div className="mt-4 rounded-md bg-surface p-3">
           <div className="flex items-center gap-3">
-            <img src={song.cover} alt="" className="size-12 shrink-0 rounded-md object-cover" />
+            <img src={coverImage(song.cover)} alt="" className="size-12 shrink-0 rounded-md object-cover" />
             <div className="min-w-0">
               <p className="truncate font-medium">{song.title}</p>
-              <p className="text-xs text-muted">
-                {song.duration} · {song.status}
-              </p>
+              <p className="text-xs text-muted">{song.duration} · {song.status}</p>
             </div>
           </div>
-          {song.audioUrl ? (
-            <audio className="mt-3 w-full" controls preload="metadata" src={song.audioUrl}>
-              Your browser cannot play this preview.
-            </audio>
-          ) : (
-            <p className="mt-3 text-sm leading-6 text-muted">
-              No preview file on this desk yet. If the artist linked Spotify or YouTube, use that while R2 is being connected.
-            </p>
-          )}
-          {song.spotify || song.youtube ? (
-            <p className="mt-2 text-xs text-muted">
-              {song.spotify ? (
-                <a href={song.spotify} target="_blank" rel="noreferrer" className="text-accent">Spotify</a>
-              ) : null}
-              {song.spotify && song.youtube ? " · " : null}
-              {song.youtube ? (
-                <a href={song.youtube} target="_blank" rel="noreferrer" className="text-accent">YouTube</a>
-              ) : null}
-            </p>
-          ) : null}
+          <SongPreview song={song} />
         </div>
       ) : null}
       {event ? (
         <div className="mt-4 text-sm leading-6">
           <p className="font-medium">{event.title}</p>
-          <p className="text-muted">
-            {event.weekday} {event.date} · {event.time}
-          </p>
-          <p className="text-muted">
-            {event.venue}, {event.area}
-          </p>
+          <p className="text-muted">{event.weekday} {event.date} · {event.time}</p>
+          <p className="text-muted">{event.venue}, {event.area}</p>
           <p className="mt-2">{event.blurb}</p>
         </div>
       ) : null}
-
       {enquiry || notice.kind === "enquiry" ? (
         readonly || notice.status === "completed" ? (
           <Button className="mt-6 w-full" variant="ghost" onClick={onClose}>Close</Button>
