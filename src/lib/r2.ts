@@ -14,70 +14,66 @@ export function withR2Cover(cover: string | undefined, key: string) {
   return `${coverImage(cover)}#r2=${encodeURIComponent(key)}`;
 }
 
-export const requestTrackUpload = createServerFn({ method: "POST" })
-  .validator(z.object({ artistId: z.string().min(1), filename: z.string().min(1), contentType: z.string().optional() }))
-  .handler(async ({ data }) => {
-    try {
-      const { r2Configured, presign, safeTrackKey } = await import("@/lib/r2.server");
-      if (!r2Configured()) return { ok: false as const, error: "R2 is not configured on the server." };
-      const type = data.contentType || "audio/mpeg";
-      const key = safeTrackKey(data.artistId, data.filename);
-      const signed = await presign("PUT", key, type, 600);
-      return { ok: true as const, key: signed.key, uploadUrl: signed.url, contentType: type };
-    } catch (err) {
-      return { ok: false as const, error: err instanceof Error ? err.message : "Could not sign the upload." };
-    }
-  });
-
 export const requestTrackPlay = createServerFn({ method: "POST" })
   .validator(z.object({ key: z.string().min(1) }))
   .handler(async ({ data }) => {
     try {
       const { r2Configured, presign, assertTrackKey } = await import("@/lib/r2.server");
       if (!r2Configured()) return { ok: false as const, error: "R2 is not configured on the server." };
-      const key = assertTrackKey(data.key);
-      const signed = await presign("GET", key, undefined, 3600);
+      const signed = await presign("GET", assertTrackKey(data.key), undefined, 3600);
       return { ok: true as const, url: signed.url };
     } catch (err) {
       return { ok: false as const, error: err instanceof Error ? err.message : "Could not sign playback." };
     }
   });
 
+export const uploadTrackBytes = createServerFn({ method: "POST" })
+  .validator(
+    z.object({
+      artistId: z.string().min(1),
+      filename: z.string().min(1),
+      contentType: z.string().optional(),
+      base64: z.string().min(1),
+    }),
+  )
+  .handler(async ({ data }) => {
+    try {
+      const { r2Configured, putObject, safeTrackKey } = await import("@/lib/r2.server");
+      if (!r2Configured()) return { ok: false as const, error: "R2 is not configured on the server." };
+      const raw = Buffer.from(data.base64, "base64");
+      if (!raw.length) return { ok: false as const, error: "Empty audio file." };
+      if (raw.length > 5 * 1024 * 1024) return { ok: false as const, error: "File is over 5 MB." };
+      const key = safeTrackKey(data.artistId, data.filename);
+      await putObject(key, raw, data.contentType || "audio/mpeg");
+      return { ok: true as const, key };
+    } catch (err) {
+      return { ok: false as const, error: err instanceof Error ? err.message : "Server could not store the track." };
+    }
+  });
+
+async function fileToBase64(file: File) {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  let bin = "";
+  const step = 0x8000;
+  for (let i = 0; i < bytes.length; i += step) bin += String.fromCharCode(...bytes.subarray(i, i + step));
+  return btoa(bin);
+}
+
 export async function putTrackFile(file: File, artistId: string) {
   try {
-    const signed = await requestTrackUpload({
-      data: { artistId, filename: file.name, contentType: file.type || "audio/mpeg" },
+    const uploaded = await uploadTrackBytes({
+      data: {
+        artistId,
+        filename: file.name,
+        contentType: file.type || "audio/mpeg",
+        base64: await fileToBase64(file),
+      },
     });
-    if (!signed.ok) return signed;
-    const ctrl = new AbortController();
-    const timer = window.setTimeout(() => ctrl.abort(), 25000);
-    let put: Response;
-    try {
-      put = await fetch(signed.uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": signed.contentType },
-        body: file,
-        signal: ctrl.signal,
-      });
-    } finally {
-      window.clearTimeout(timer);
-    }
-    if (!put.ok) {
-      return {
-        ok: false as const,
-        error: `Upload failed (${put.status}). Replace the bucket CORS with the JSON I sent, then try again.`,
-      };
-    }
-    return { ok: true as const, key: signed.key };
+    return uploaded;
   } catch (err) {
-    const aborted = err instanceof DOMException && err.name === "AbortError";
     return {
       ok: false as const,
-      error: aborted
-        ? "Upload timed out. R2 CORS is blocking the browser PUT — paste the updated CORS JSON, save, then retry."
-        : err instanceof Error
-          ? err.message
-          : "Upload did not reach R2.",
+      error: err instanceof Error ? `Sign/upload request failed: ${err.message}` : "Upload did not reach the server.",
     };
   }
 }
