@@ -27,11 +27,7 @@ export function NoticeList({
     <ul>
       {notices.map((n) => (
         <li key={n.id} className="border-t border-line">
-          <button
-            type="button"
-            onClick={() => onOpen(n.id)}
-            className="w-full px-5 py-4 text-left"
-          >
+          <button type="button" onClick={() => onOpen(n.id)} className="w-full px-5 py-4 text-left">
             <p className="cue-kicker text-xs text-accent">{labelFor(n.kind)}</p>
             <p className="mt-1 font-medium leading-snug">{n.title}</p>
             <p className="mt-1 line-clamp-2 text-sm text-muted">{n.body}</p>
@@ -77,12 +73,7 @@ export function NoticeSheet({
               <dt className="text-muted">{k}</dt>
               <dd className="text-fg">
                 {k === "WhatsApp" && whatsappHref(v) ? (
-                  <a
-                    href={whatsappHref(v)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-accent underline-offset-2 hover:underline"
-                  >
+                  <a href={whatsappHref(v)} target="_blank" rel="noreferrer" className="text-accent underline-offset-2 hover:underline">
                     {v}
                   </a>
                 ) : (
@@ -108,9 +99,37 @@ export function NoticeSheet({
         </div>
       ) : null}
       {song ? (
-        <p className="mt-3 text-sm">
-          {song.title} · {song.status}
-        </p>
+        <div className="mt-4 rounded-md bg-surface p-3">
+          <div className="flex items-center gap-3">
+            <img src={song.cover} alt="" className="size-12 shrink-0 rounded-md object-cover" />
+            <div className="min-w-0">
+              <p className="truncate font-medium">{song.title}</p>
+              <p className="text-xs text-muted">
+                {song.duration} · {song.status}
+              </p>
+            </div>
+          </div>
+          {song.audioUrl ? (
+            <audio className="mt-3 w-full" controls preload="metadata" src={song.audioUrl}>
+              Your browser cannot play this preview.
+            </audio>
+          ) : (
+            <p className="mt-3 text-sm leading-6 text-muted">
+              No preview file on this desk yet. If the artist linked Spotify or YouTube, use that while R2 is being connected.
+            </p>
+          )}
+          {song.spotify || song.youtube ? (
+            <p className="mt-2 text-xs text-muted">
+              {song.spotify ? (
+                <a href={song.spotify} target="_blank" rel="noreferrer" className="text-accent">Spotify</a>
+              ) : null}
+              {song.spotify && song.youtube ? " · " : null}
+              {song.youtube ? (
+                <a href={song.youtube} target="_blank" rel="noreferrer" className="text-accent">YouTube</a>
+              ) : null}
+            </p>
+          ) : null}
+        </div>
       ) : null}
       {event ? (
         <div className="mt-4 text-sm leading-6">
@@ -122,38 +141,22 @@ export function NoticeSheet({
             {event.venue}, {event.area}
           </p>
           <p className="mt-2">{event.blurb}</p>
-          <p className="mt-2 text-xs text-muted">
-            Lineup:{" "}
-            {event.artistIds
-              .map((id) => listed.find((a) => a.id === id)?.name ?? artists.find((a) => a.id === id)?.name ?? id)
-              .join(", ")}
-          </p>
         </div>
       ) : null}
 
       {enquiry || notice.kind === "enquiry" ? (
         readonly || notice.status === "completed" ? (
-          <Button className="mt-6 w-full" variant="ghost" onClick={onClose}>
-            Close
-          </Button>
+          <Button className="mt-6 w-full" variant="ghost" onClick={onClose}>Close</Button>
         ) : (
           <div className="mt-6 flex gap-2">
-            <Button className="flex-1" onClick={() => resolveNotice(notice.id, "completed")}>
-              Tick as completed
-            </Button>
-            <Button variant="ghost" className="flex-1" onClick={onClose}>
-              Cancel
-            </Button>
+            <Button className="flex-1" onClick={() => resolveNotice(notice.id, "completed")}>Tick as completed</Button>
+            <Button variant="ghost" className="flex-1" onClick={onClose}>Cancel</Button>
           </div>
         )
       ) : (
         <div className="mt-6 flex gap-2">
-          <Button className="flex-1" onClick={() => resolveNotice(notice.id, "approved")}>
-            Approve
-          </Button>
-          <Button variant="outline" className="flex-1" onClick={() => resolveNotice(notice.id, "declined")}>
-            Decline
-          </Button>
+          <Button className="flex-1" onClick={() => resolveNotice(notice.id, "approved")}>Approve</Button>
+          <Button variant="outline" className="flex-1" onClick={() => resolveNotice(notice.id, "declined")}>Decline</Button>
         </div>
       )}
     </Sheet>
