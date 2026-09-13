@@ -1,0 +1,13 @@
+node_modules
+dist
+.output
+.vinxi
+.nitro
+.vercel
+.DS_Store
+*.log
+.env
+.env.local
+.env*.local
+.turbo
+.vscode
