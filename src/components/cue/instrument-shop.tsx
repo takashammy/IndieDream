@@ -8,8 +8,8 @@ export function InstrumentShop({ onBack }: { onBack?: () => void }) {
   const openService = useCue((s) => s.openService);
   const [picked, setPicked] = useState<ShopInstrument | null>(null);
   return (
-    <div className="cue-enter pb-10 pt-3">
-      <div className="px-5">
+    <div className="cue-enter pb-10">
+      <div className="px-5 pt-3">
         <button type="button" onClick={() => (onBack ? onBack() : openService(null))} className="-ml-2 flex h-11 items-center gap-1 text-sm text-muted">
           ← Services
         </button>
@@ -19,14 +19,16 @@ export function InstrumentShop({ onBack }: { onBack?: () => void }) {
       </div>
       <div className="mt-5 grid grid-cols-2 gap-px bg-line">
         {INNER_SOUL_INSTRUMENTS.map((item) => (
-          <button key={item.id} type="button" onClick={() => setPicked(item)} className="bg-bg p-3 text-left">
+          <button key={item.id} type="button" onClick={() => setPicked(item)} className="bg-bg text-left">
             <div className="aspect-[3/4] overflow-hidden">
               <img src={item.photo} alt="" className="size-full object-cover" />
             </div>
-            <p className="mt-3 cue-kicker text-xs text-accent">{item.kind}</p>
-            <p className="cue-name mt-1 font-display text-xl leading-tight">{item.name}</p>
-            <p className="mt-1 text-xs italic text-muted">{item.woods}</p>
-            <p className="mt-2 font-display text-lg text-accent">{item.price}</p>
+            <div className="p-3">
+              <p className="cue-kicker text-xs text-accent">{item.kind}</p>
+              <p className="cue-name mt-1 font-display text-xl leading-tight">{item.name}</p>
+              <p className="mt-1 text-xs italic text-muted">{item.woods}</p>
+              <p className="mt-2 font-display text-lg text-accent">{item.price}</p>
+            </div>
           </button>
         ))}
       </div>

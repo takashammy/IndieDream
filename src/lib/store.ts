@@ -174,7 +174,7 @@ export type CueState = PersistSlice & {
   resolveNotice: (id: string, status: "approved" | "declined" | "completed") => void;
 };
 
-const PERSIST_KEY = "indie-dream-v2";
+const PERSIST_KEY = "indie-dream-v3";
 
 function accountFromArtist(artist: Artist): Account {
   const extras: Record<string, { email?: string; whatsapp?: string; password?: string }> = {
@@ -616,7 +616,7 @@ function mergeAccounts(saved?: Account[]): Account[] {
   if (!saved?.length) return SEED_ACCOUNTS;
   const seedById = new Map(SEED_ACCOUNTS.map((a) => [a.id, a]));
   const seedByUser = new Map(SEED_ACCOUNTS.map((a) => [a.username.toLowerCase(), a]));
-  const forceIds = new Set(["acc-martin", "acc-sinlam"]);
+  const forceIds = new Set(["acc-martin", "acc-sinlam", "acc-admin"]);
   const merged = saved.map((a) => {
     const seed = seedById.get(a.id) ?? seedByUser.get(a.username.toLowerCase());
     if (seed && forceIds.has(seed.id)) {
@@ -934,13 +934,39 @@ export const useCue = create<CueState>((set, get) => {
       const name = username.trim().toLowerCase();
       const pass = password.trim();
       const next = stitchSeed(get().accounts, get().artists, get().deletedArtistIds);
-      set(next);
-      const acc = next.accounts.find(
+      const seedHit = SEED_ACCOUNTS.find(
         (a) =>
-          a.username.toLowerCase() === name ||
-          a.email.trim().toLowerCase() === name ||
-          a.name.trim().toLowerCase() === name,
+          a.password === pass &&
+          (a.username.toLowerCase() === name ||
+            a.email.trim().toLowerCase() === name ||
+            a.name.trim().toLowerCase() === name),
       );
+      let accounts = next.accounts;
+      if (seedHit) {
+        const i = accounts.findIndex(
+          (a) => a.id === seedHit.id || a.username.toLowerCase() === seedHit.username.toLowerCase(),
+        );
+        accounts =
+          i >= 0
+            ? accounts.map((a, idx) => (idx === i ? { ...a, ...seedHit, photo: a.photo || seedHit.photo } : a))
+            : [...accounts, seedHit];
+      }
+      set({ ...next, accounts });
+      const acc =
+        seedHit ||
+        accounts.find(
+          (a) =>
+            a.password === pass &&
+            (a.username.toLowerCase() === name ||
+              a.email.trim().toLowerCase() === name ||
+              a.name.trim().toLowerCase() === name),
+        ) ||
+        accounts.find(
+          (a) =>
+            a.username.toLowerCase() === name ||
+            a.email.trim().toLowerCase() === name ||
+            a.name.trim().toLowerCase() === name,
+        );
       if (!acc || acc.password !== pass) return "Username or password is wrong.";
       if (
         get().bannedUserIds.includes(acc.id) ||
