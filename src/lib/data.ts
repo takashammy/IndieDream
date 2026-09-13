@@ -1,10 +1,923 @@
+export type LocationArea = "HK Island" | "Kowloon" | "New Territories";
+
 export type AccountKind = "admin" | "artist" | "explorer" | "business";
-export type TabId = "home" | "artists" | "discover" | "events" | "board" | "services" | "me";
-export type PostCategory = "seeking" | "collab" | "gear" | "session";
-export type EventStatus = "pending" | "live" | "past";
-export type NoticeKind = "register" | "artist" | "event" | "post" | "booking" | "reset";
-export type BookingStatus = "open" | "completed";
-export type ServiceKind = "mix" | "photo" | "rehearsal" | "press";
+
+export type SongStatus = "approved" | "pending" | "declined";
+
+export type Song = {
+  id: string;
+  title: string;
+  duration: string;
+  plays: string;
+  cover: string;
+  uploadedAt: string;
+  status: SongStatus;
+  spotify?: string;
+  youtube?: string;
+};
+
+export type Artist = {
+  id: string;
+  name: string;
+  role: string;
+  city: string;
+  area: LocationArea;
+  photo: string;
+  genres: string[];
+  bio: string;
+  songs: Song[];
+  label: string;
+  labelApproved: boolean;
+  verified: boolean;
+  spotify?: string;
+  youtube?: string;
+};
+
+export type CueEvent = {
+  id: string;
+  title: string;
+  date: string;
+  weekday: string;
+  time: string;
+  venue: string;
+  area: string;
+  photo: string;
+  artistIds: string[];
+  blurb: string;
+  isoDate: string;
+  status: "approved" | "pending" | "declined";
+  postedBy?: string;
+};
+
+export type BoardCategory = "seeking" | "gear" | "collab" | "session";
+
+export type BoardReply = {
+  id: string;
+  author: string;
+  authorId?: string;
+  role: string;
+  body: string;
+  createdAt: string;
+};
+
+export type BoardPost = {
+  id: string;
+  author: string;
+  authorId?: string;
+  role: string;
+  category: BoardCategory;
+  title: string;
+  body: string;
+  time: string;
+  thread: BoardReply[];
+  createdAt: string;
+};
+
+export const ISR_LABEL = "Inner Soul Records";
+export const LOCATIONS: LocationArea[] = ["HK Island", "Kowloon", "New Territories"];
+export const GENRE_OPTIONS = [
+  "Jazz",
+  "Soul",
+  "Indie",
+  "Folk",
+  "Rock",
+  "Electronic",
+  "Ambient",
+  "Hip-hop",
+  "R&B",
+  "Classical",
+  "Contemporary",
+  "Cantopop",
+  "Pop",
+];
+
+export const PUBLISH_PACKAGES = [
+  {
+    id: "music",
+    name: "Publish music only",
+    price: "$800",
+    note: "Distribution, metadata, and a clean release sheet.",
+  },
+  {
+    id: "art",
+    name: "Publish music and cover art",
+    price: "$1,500",
+    note: "Release plus a designed sleeve from Inner Soul Records.",
+  },
+  {
+    id: "prod",
+    name: "Publish music and professional production",
+    price: "$8,000",
+    note: "Tracking, mix, master, and a full Inner Soul release.",
+  },
+] as const;
+
+function sp(q: string) {
+  return `https://open.spotify.com/search/${encodeURIComponent(q)}`;
+}
+function yt(q: string) {
+  return `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
+}
+
+export const ARTISTS: Artist[] = [
+  {
+    id: "mei",
+    name: "Mei Ling Chan",
+    role: "Jazz vocalist",
+    city: "Sheung Wan",
+    area: "HK Island",
+    photo: "/media/artists/mei.jpg",
+    genres: ["Jazz", "Soul"],
+    bio: "Sings standards like they still owe her something. Residencies at small rooms off Hollywood Road, a voice that sits just behind the beat.",
+    label: ISR_LABEL,
+    labelApproved: true,
+    verified: true,
+    spotify: sp("Mei Ling Chan jazz"),
+    youtube: yt("Mei Ling Chan jazz vocal"),
+    songs: [
+      {
+        id: "mei-1",
+        title: "After Hours on Hollywood Road",
+        duration: "4:12",
+        plays: "8.4k",
+        cover: "/media/covers/silk.jpg",
+        uploadedAt: "2026-08-12T20:00:00+08:00",
+        status: "approved",
+        spotify: sp("After Hours on Hollywood Road"),
+        youtube: yt("After Hours on Hollywood Road"),
+      },
+      {
+        id: "mei-2",
+        title: "Smoke Over the Harbour",
+        duration: "3:48",
+        plays: "12.1k",
+        cover: "/media/covers/vinyl.jpg",
+        uploadedAt: "2026-08-28T18:00:00+08:00",
+        status: "approved",
+        spotify: sp("Smoke Over the Harbour"),
+      },
+      {
+        id: "mei-3",
+        title: "Last Call in Sheung Wan",
+        duration: "5:02",
+        plays: "6.7k",
+        cover: "/media/covers/silk.jpg",
+        uploadedAt: "2026-09-04T21:00:00+08:00",
+        status: "approved",
+      },
+    ],
+  },
+  {
+    id: "kai",
+    name: "Kai Rivera",
+    role: "Indie guitarist",
+    city: "Sham Shui Po",
+    area: "Kowloon",
+    photo: "/media/artists/kai.jpg",
+    genres: ["Indie", "Rock"],
+    bio: "Writes songs in the back of a rehearsal warehouse and plays them like the walls might answer. Looking for a rhythm section that actually listens.",
+    label: "Independent",
+    labelApproved: false,
+    verified: true,
+    youtube: yt("Kai Rivera indie"),
+    songs: [
+      {
+        id: "kai-1",
+        title: "Sham Shui Nights",
+        duration: "3:21",
+        plays: "15.2k",
+        cover: "/media/covers/guitar.jpg",
+        uploadedAt: "2026-09-05T16:00:00+08:00",
+        status: "approved",
+        spotify: sp("Sham Shui Nights"),
+        youtube: yt("Sham Shui Nights"),
+      },
+      {
+        id: "kai-2",
+        title: "Leave the Amp On",
+        duration: "2:54",
+        plays: "9.8k",
+        cover: "/media/covers/drums.jpg",
+        uploadedAt: "2026-08-18T16:00:00+08:00",
+        status: "approved",
+      },
+      {
+        id: "kai-3",
+        title: "Brick and Wire",
+        duration: "4:07",
+        plays: "4.3k",
+        cover: "/media/covers/guitar.jpg",
+        uploadedAt: "2026-07-30T16:00:00+08:00",
+        status: "approved",
+      },
+    ],
+  },
+  {
+    id: "amina",
+    name: "Amina Hassan",
+    role: "Electronic producer",
+    city: "Kennedy Town",
+    area: "HK Island",
+    photo: "/media/artists/amina.jpg",
+    genres: ["Electronic", "Ambient"],
+    bio: "Builds tracks from field recordings and a stubborn analogue synth. Available for film cues, late rooftops, and anyone who still likes a long intro.",
+    label: "Independent",
+    labelApproved: false,
+    verified: true,
+    spotify: sp("Amina Hassan electronic"),
+    songs: [
+      {
+        id: "amina-1",
+        title: "Patch Bay 04",
+        duration: "5:44",
+        plays: "21.0k",
+        cover: "/media/covers/synth.jpg",
+        uploadedAt: "2026-08-02T22:00:00+08:00",
+        status: "approved",
+        youtube: yt("Patch Bay 04"),
+      },
+      {
+        id: "amina-2",
+        title: "West Island Drift",
+        duration: "6:18",
+        plays: "11.6k",
+        cover: "/media/covers/rain.jpg",
+        uploadedAt: "2026-08-21T22:00:00+08:00",
+        status: "approved",
+      },
+      {
+        id: "amina-3",
+        title: "Cyan After Midnight",
+        duration: "4:33",
+        plays: "7.9k",
+        cover: "/media/covers/synth.jpg",
+        uploadedAt: "2026-09-01T22:00:00+08:00",
+        status: "approved",
+        spotify: sp("Cyan After Midnight"),
+      },
+    ],
+  },
+  {
+    id: "jun",
+    name: "Jun Park",
+    role: "MC / writer",
+    city: "Mong Kok",
+    area: "Kowloon",
+    photo: "/media/artists/jun.jpg",
+    genres: ["Hip-hop", "R&B"],
+    bio: "Writes in two languages and performs in one breath. Night-market cadence, studio discipline. Open to features that don’t sand him down.",
+    label: "Independent",
+    labelApproved: false,
+    verified: true,
+    spotify: sp("Jun Park hip hop"),
+    youtube: yt("Jun Park MC"),
+    songs: [
+      {
+        id: "jun-1",
+        title: "Neon Stall",
+        duration: "2:48",
+        plays: "34.5k",
+        cover: "/media/covers/rain.jpg",
+        uploadedAt: "2026-09-06T19:00:00+08:00",
+        status: "approved",
+        spotify: sp("Neon Stall Jun Park"),
+        youtube: yt("Neon Stall Jun Park"),
+      },
+      {
+        id: "jun-2",
+        title: "Second Language",
+        duration: "3:16",
+        plays: "18.2k",
+        cover: "/media/covers/vinyl.jpg",
+        uploadedAt: "2026-08-14T19:00:00+08:00",
+        status: "approved",
+      },
+      {
+        id: "jun-3",
+        title: "After the Last Train",
+        duration: "3:02",
+        plays: "9.1k",
+        cover: "/media/covers/rain.jpg",
+        uploadedAt: "2026-07-22T19:00:00+08:00",
+        status: "approved",
+      },
+    ],
+  },
+  {
+    id: "sofia",
+    name: "Sofia Berg",
+    role: "Cellist",
+    city: "Mid-Levels",
+    area: "HK Island",
+    photo: "/media/artists/sofia.jpg",
+    genres: ["Classical", "Contemporary"],
+    bio: "Recital hall by afternoon, session work by night. Interested in electronic pairings and scores that leave the cello some air.",
+    label: "Independent",
+    labelApproved: false,
+    verified: true,
+    songs: [
+      {
+        id: "sofia-1",
+        title: "Window Study in C",
+        duration: "6:05",
+        plays: "5.4k",
+        cover: "/media/covers/cello.jpg",
+        uploadedAt: "2026-08-08T11:00:00+08:00",
+        status: "approved",
+      },
+      {
+        id: "sofia-2",
+        title: "Dust in the Light",
+        duration: "4:41",
+        plays: "3.8k",
+        cover: "/media/covers/cello.jpg",
+        uploadedAt: "2026-08-25T11:00:00+08:00",
+        status: "approved",
+        youtube: yt("Dust in the Light cello"),
+      },
+    ],
+  },
+  {
+    id: "leo",
+    name: "Leo Tam",
+    role: "Cantopop vocalist",
+    city: "Tsim Sha Tsui",
+    area: "Kowloon",
+    photo: "/media/artists/leo.jpg",
+    genres: ["Cantopop", "Pop"],
+    bio: "Rooftop sessions and tight live bands. Writes in Cantonese first. Looking for players who can hold a chorus without crowding it.",
+    label: ISR_LABEL,
+    labelApproved: true,
+    verified: true,
+    spotify: sp("Leo Tam cantopop"),
+    youtube: yt("Leo Tam 譚"),
+    songs: [
+      {
+        id: "leo-1",
+        title: "Golden Hour, TST",
+        duration: "3:37",
+        plays: "42.0k",
+        cover: "/media/covers/vinyl.jpg",
+        uploadedAt: "2026-09-07T20:00:00+08:00",
+        status: "approved",
+        spotify: sp("Golden Hour TST"),
+        youtube: yt("Golden Hour TST Leo Tam"),
+      },
+      {
+        id: "leo-2",
+        title: "Leave the Blazer On",
+        duration: "3:11",
+        plays: "19.7k",
+        cover: "/media/covers/silk.jpg",
+        uploadedAt: "2026-08-16T20:00:00+08:00",
+        status: "approved",
+      },
+      {
+        id: "leo-3",
+        title: "Last Ferry",
+        duration: "4:00",
+        plays: "8.6k",
+        cover: "/media/covers/rain.jpg",
+        uploadedAt: "2026-07-19T20:00:00+08:00",
+        status: "approved",
+      },
+    ],
+  },
+  {
+    id: "nia",
+    name: "Nia Okonkwo",
+    role: "Soul singer",
+    city: "Wan Chai",
+    area: "HK Island",
+    photo: "/media/artists/nia.jpg",
+    genres: ["Soul", "Jazz"],
+    bio: "A voice built for small rooms and long notes. Sundays at The Wanch, weekdays in session. Will not do a click-track ballad unless it earns it.",
+    label: ISR_LABEL,
+    labelApproved: true,
+    verified: true,
+    youtube: yt("Nia Okonkwo soul"),
+    songs: [
+      {
+        id: "nia-1",
+        title: "Velvet Jacket",
+        duration: "4:28",
+        plays: "16.3k",
+        cover: "/media/covers/silk.jpg",
+        uploadedAt: "2026-08-11T17:00:00+08:00",
+        status: "approved",
+        spotify: sp("Velvet Jacket Nia"),
+      },
+      {
+        id: "nia-2",
+        title: "Keep the Lights Low",
+        duration: "3:55",
+        plays: "10.4k",
+        cover: "/media/covers/vinyl.jpg",
+        uploadedAt: "2026-09-02T17:00:00+08:00",
+        status: "approved",
+        youtube: yt("Keep the Lights Low Nia"),
+      },
+    ],
+  },
+  {
+    id: "ryo",
+    name: "Ryo Nakamura",
+    role: "Drummer",
+    city: "Kwun Tong",
+    area: "Kowloon",
+    photo: "/media/artists/ryo.jpg",
+    genres: ["Rock", "Jazz"],
+    bio: "For hire, not for decoration. Pocket first, fills second. Available for residencies, records, and anyone tired of a drum machine.",
+    label: "Independent",
+    labelApproved: false,
+    verified: true,
+    songs: [
+      {
+        id: "ryo-1",
+        title: "Warehouse Take 3",
+        duration: "3:09",
+        plays: "6.2k",
+        cover: "/media/covers/drums.jpg",
+        uploadedAt: "2026-08-06T15:00:00+08:00",
+        status: "approved",
+      },
+      {
+        id: "ryo-2",
+        title: "Left Hand Ride",
+        duration: "2:41",
+        plays: "4.9k",
+        cover: "/media/covers/drums.jpg",
+        uploadedAt: "2026-08-29T15:00:00+08:00",
+        status: "approved",
+      },
+    ],
+  },
+  {
+    id: "tess",
+    name: "Tess Wong",
+    role: "Folk songwriter",
+    city: "Sai Ying Pun",
+    area: "HK Island",
+    photo: "/media/covers/silk.jpg",
+    genres: ["Indie", "Folk"],
+    bio: "Quiet songs about leaving and coming back. Plays open tunings in rooms that still have ceiling fans.",
+    label: "Independent",
+    labelApproved: false,
+    verified: true,
+    spotify: sp("Tess Wong folk"),
+    youtube: yt("Tess Wong songwriter"),
+    songs: [
+      {
+        id: "tess-1",
+        title: "Tin Hau After Rain",
+        duration: "3:44",
+        plays: "2.1k",
+        cover: "/media/covers/rain.jpg",
+        uploadedAt: "2026-09-03T19:00:00+08:00",
+        status: "approved",
+        spotify: sp("Tin Hau After Rain"),
+      },
+      {
+        id: "tess-2",
+        title: "Borrowed Light",
+        duration: "4:08",
+        plays: "1.4k",
+        cover: "/media/covers/silk.jpg",
+        uploadedAt: "2026-08-20T19:00:00+08:00",
+        status: "approved",
+      },
+    ],
+  },
+  {
+    id: "hassan",
+    name: "Hassan Malik",
+    role: "Saxophonist",
+    city: "Jordan",
+    area: "Kowloon",
+    photo: "/media/covers/vinyl.jpg",
+    genres: ["Jazz", "Soul"],
+    bio: "Horns for hire, charts on request. Prefers small rooms and players who leave space.",
+    label: "Independent",
+    labelApproved: false,
+    verified: true,
+    youtube: yt("Hassan Malik saxophone"),
+    songs: [
+      {
+        id: "hassan-1",
+        title: "Last Set at Hidden Agenda",
+        duration: "5:16",
+        plays: "3.6k",
+        cover: "/media/covers/vinyl.jpg",
+        uploadedAt: "2026-08-27T21:00:00+08:00",
+        status: "approved",
+        youtube: yt("Last Set at Hidden Agenda"),
+      },
+    ],
+  },
+  {
+    id: "yuki",
+    name: "Yuki Cheung",
+    role: "DJ / producer",
+    city: "Tuen Mun",
+    area: "New Territories",
+    photo: "/media/covers/synth.jpg",
+    genres: ["Electronic", "Hip-hop"],
+    bio: "Warehouse edits and late buses home. First upload is sitting with Inner Soul for review.",
+    label: "Independent",
+    labelApproved: false,
+    verified: false,
+    songs: [
+      {
+        id: "yuki-1",
+        title: "Warehouse Edit 07",
+        duration: "4:22",
+        plays: "0",
+        cover: "/media/covers/synth.jpg",
+        uploadedAt: "2026-09-07T23:10:00+08:00",
+        status: "pending",
+      },
+    ],
+  },
+  {
+    id: "daniel",
+    name: "Daniel Ho",
+    role: "Beatmaker",
+    city: "Sham Shui Po",
+    area: "Kowloon",
+    photo: "/media/covers/rain.jpg",
+    genres: ["Hip-hop", "R&B"],
+    bio: "Makes beats in a subdivided flat and names them after minibus routes. Open to Cantonese features.",
+    label: "Independent",
+    labelApproved: false,
+    verified: true,
+    spotify: sp("Daniel Ho beats"),
+    songs: [
+      {
+        id: "daniel-1",
+        title: "Night Bus 1A",
+        duration: "2:37",
+        plays: "8.8k",
+        cover: "/media/covers/rain.jpg",
+        uploadedAt: "2026-09-04T18:00:00+08:00",
+        status: "approved",
+        spotify: sp("Night Bus 1A"),
+        youtube: yt("Night Bus 1A Daniel Ho"),
+      },
+      {
+        id: "daniel-2",
+        title: "Mong Kok Grid",
+        duration: "3:05",
+        plays: "5.2k",
+        cover: "/media/covers/synth.jpg",
+        uploadedAt: "2026-08-15T18:00:00+08:00",
+        status: "approved",
+      },
+    ],
+  },
+  {
+    id: "clara",
+    name: "Clara Ip",
+    role: "Violinist",
+    city: "Mid-Levels",
+    area: "HK Island",
+    photo: "/media/covers/cello.jpg",
+    genres: ["Classical", "Contemporary"],
+    bio: "Session strings, quartet work, and the occasional pop overdub. Will not play over a loop that is already doing her job.",
+    label: "Independent",
+    labelApproved: false,
+    verified: true,
+    songs: [
+      {
+        id: "clara-1",
+        title: "Harbour Harmonic",
+        duration: "4:51",
+        plays: "1.9k",
+        cover: "/media/covers/cello.jpg",
+        uploadedAt: "2026-08-30T11:00:00+08:00",
+        status: "approved",
+      },
+    ],
+  },
+];
+
+export const EVENTS: CueEvent[] = [
+  {
+    id: "wanch-mei",
+    title: "Late Set with Mei Ling Chan",
+    date: "12 Sep",
+    weekday: "Sat",
+    time: "22:30",
+    venue: "The Wanch",
+    area: "Wan Chai",
+    photo: "/media/events/jazz.jpg",
+    artistIds: ["mei", "nia"],
+    blurb: "Two voices, one room, no interval. Doors at ten, first note when the bar goes quiet.",
+    isoDate: "2026-09-12",
+    status: "approved",
+  },
+  {
+    id: "pmq-amina",
+    title: "West Island Drift — rooftop",
+    date: "19 Sep",
+    weekday: "Sat",
+    time: "21:00",
+    venue: "PMQ Roof",
+    area: "Central",
+    photo: "/media/events/rooftop.jpg",
+    artistIds: ["amina"],
+    blurb: "Amina Hassan plays the long versions. Skyline, analogue synth, no encore speeches.",
+    isoDate: "2026-09-19",
+    status: "approved",
+  },
+  {
+    id: "kt-kai",
+    title: "Brick and Wire",
+    date: "26 Sep",
+    weekday: "Sat",
+    time: "20:00",
+    venue: "Unit 12, Kwun Tong",
+    area: "Kwun Tong",
+    photo: "/media/events/warehouse.jpg",
+    artistIds: ["kai", "ryo"],
+    blurb: "Warehouse floor, fairy lights, a four-piece that still faces the drummer. Bring earplugs you actually like.",
+    isoDate: "2026-09-26",
+    status: "approved",
+  },
+  {
+    id: "cityhall-sofia",
+    title: "Window Studies",
+    date: "4 Oct",
+    weekday: "Sun",
+    time: "15:00",
+    venue: "City Hall Recital Hall",
+    area: "Central",
+    photo: "/media/events/recital.jpg",
+    artistIds: ["sofia"],
+    blurb: "Afternoon light, a cello, and two new works written for this room.",
+    isoDate: "2026-10-04",
+    status: "approved",
+  },
+  {
+    id: "ssp-open",
+    title: "Warehouse open mic",
+    date: "20 Sep",
+    weekday: "Sun",
+    time: "19:00",
+    venue: "Unit 12, Kwun Tong",
+    area: "Kwun Tong",
+    photo: "/media/events/warehouse.jpg",
+    artistIds: ["kai", "ryo"],
+    blurb: "An extra night if Inner Soul clears it. Same floor, shorter set, no encore speeches.",
+    isoDate: "2026-09-20",
+    status: "pending",
+    postedBy: "kai",
+  },
+];
+
+export const POSTS: BoardPost[] = [
+  {
+    id: "p7",
+    author: "Tess Wong",
+    authorId: "tess",
+    role: "Folk songwriter",
+    category: "seeking",
+    title: "Double bass for a Tuesday residency",
+    body: "Sai Ying Pun wine bar, six Tuesdays, original folk with a little jazz in the corners. Acoustic, no amp wars. Paid, dinner included, charts on Sunday.",
+    time: "45m ago",
+    thread: [
+      {
+        id: "p7-r1",
+        author: "Hassan Malik",
+        authorId: "hassan",
+        role: "Saxophone",
+        body: "I know a bassist in Jordan who prefers acoustic rooms. I’ll send her this.",
+        createdAt: "2026-09-13T06:55:00+08:00",
+      },
+    ],
+    createdAt: "2026-09-13T06:40:00+08:00",
+  },
+  {
+    id: "p8",
+    author: "Marlowe House",
+    authorId: "acc-marlowe",
+    role: "Business",
+    category: "seeking",
+    title: "House trio, Thursday to Saturday",
+    body: "Bar in Sai Ying Pun. Need a piano / bass / drums three nights a week, 8pm–11pm. Standards and quiet originals. We feed you and we don’t talk over the ballads.",
+    time: "3h ago",
+    thread: [
+      {
+        id: "p8-r1",
+        author: "Hassan Malik",
+        authorId: "hassan",
+        role: "Saxophone",
+        body: "I can do Thursday if you want a horn instead of piano one night. Or I can bring a pianist.",
+        createdAt: "2026-09-13T05:20:00+08:00",
+      },
+    ],
+    createdAt: "2026-09-13T04:10:00+08:00",
+  },
+  {
+    id: "p9",
+    author: "Daniel Ho",
+    authorId: "daniel",
+    role: "Beatmaker",
+    category: "collab",
+    title: "Cantonese feature on a night-bus beat",
+    body: "Track is done, needs a verse that actually lives in the city. Not looking for English-for-export. Send four bars if you’ve got them.",
+    time: "6h ago",
+    thread: [
+      {
+        id: "p9-r1",
+        author: "Jun Park",
+        authorId: "jun",
+        role: "MC / writer",
+        body: "Send the beat. If the pocket’s honest I’ll write tonight.",
+        createdAt: "2026-09-13T02:40:00+08:00",
+      },
+    ],
+    createdAt: "2026-09-13T01:00:00+08:00",
+  },
+  {
+    id: "p10",
+    author: "Hassan Malik",
+    authorId: "hassan",
+    role: "Saxophone",
+    category: "session",
+    title: "Horn charts available this month",
+    body: "Two weeks free in September. Jazz, soul, the odd Cantopop overdub. I bring the horn and I write the parts. Jordan pickup or I come to you.",
+    time: "8h ago",
+    thread: [],
+    createdAt: "2026-09-12T22:00:00+08:00",
+  },
+  {
+    id: "p11",
+    author: "Clara Ip",
+    authorId: "clara",
+    role: "Violin",
+    category: "gear",
+    title: "Carbon fibre bow, Mid-Levels pickup",
+    body: "Arcus M6, barely used, kept in the case. Selling because I went back to pernambuco. Not shipping, not meeting in a mall.",
+    time: "1d ago",
+    thread: [],
+    createdAt: "2026-09-12T14:00:00+08:00",
+  },
+  {
+    id: "p12",
+    author: "Bee Chan",
+    authorId: "acc-bee",
+    role: "Explorer",
+    category: "collab",
+    title: "Have a lyric, need a songwriter",
+    body: "A poem about the last ferry from Central. I’m not a singer. If you write folk or quiet pop and want words that already exist, write me.",
+    time: "2d ago",
+    thread: [
+      {
+        id: "p12-r1",
+        author: "Tess Wong",
+        authorId: "tess",
+        role: "Folk songwriter",
+        body: "Send the poem. If it sits in an open tuning I’ll sketch something this week.",
+        createdAt: "2026-09-11T21:10:00+08:00",
+      },
+    ],
+    createdAt: "2026-09-11T18:00:00+08:00",
+  },
+  {
+    id: "p1",
+    author: "Kai Rivera",
+    authorId: "kai",
+    role: "Guitar",
+    category: "seeking",
+    title: "Bassist for a Saturday residency",
+    body: "Four-week run in Kwun Tong, original material, indie/rock pocket. Must be able to learn ten songs in a week and not fill every bar. Paid, not famous.",
+    time: "2h ago",
+    thread: [
+      {
+        id: "p1-r1",
+        author: "Ryo Nakamura",
+        authorId: "ryo",
+        role: "Drums",
+        body: "I know a bassist in Kwun Tong who can learn ten songs. I’ll pass your post on.",
+        createdAt: "2026-09-13T01:10:00+08:00",
+      },
+      {
+        id: "p1-r2",
+        author: "Leo Tam",
+        authorId: "leo",
+        role: "Vocal",
+        body: "If they can sing a little, even better. Ping me if you still need a voice.",
+        createdAt: "2026-09-13T02:00:00+08:00",
+      },
+      {
+        id: "p1-r3",
+        author: "Owen Lam",
+        authorId: "acc-owen",
+        role: "Explorer",
+        body: "I don’t play, but I know a bassist from PolyU who sits in on Tuesdays. I can introduce you.",
+        createdAt: "2026-09-13T07:05:00+08:00",
+      },
+    ],
+    createdAt: "2026-09-13T00:40:00+08:00",
+  },
+  {
+    id: "p2",
+    author: "Sofia Berg",
+    authorId: "sofia",
+    role: "Cello",
+    category: "collab",
+    title: "Electronic producer for a cello record",
+    body: "I have six sketches that want space, not a beat dropped on top. If you work with field recordings or analogue synth, write me.",
+    time: "5h ago",
+    thread: [
+      {
+        id: "p2-r1",
+        author: "Amina Hassan",
+        authorId: "amina",
+        role: "Production",
+        body: "I work with field recordings. Send me a sketch and I’ll try a pass this week.",
+        createdAt: "2026-09-13T00:10:00+08:00",
+      },
+    ],
+    createdAt: "2026-09-12T23:20:00+08:00",
+  },
+  {
+    id: "p3",
+    author: "Ryo Nakamura",
+    authorId: "ryo",
+    role: "Drums",
+    category: "gear",
+    title: "Selling a 1966 Ludwig snare",
+    body: "Chrome over brass, kept dry, no pits. Kwun Tong pickup. Not in a hurry, not negotiating with strangers who open with a lowball.",
+    time: "1d ago",
+    thread: [],
+    createdAt: "2026-09-12T10:00:00+08:00",
+  },
+  {
+    id: "p4",
+    author: "Leo Tam",
+    authorId: "leo",
+    role: "Vocal",
+    category: "seeking",
+    title: "Harmony vocalist, Cantonese leads",
+    body: "Need a second voice for a rooftop session next month. Blend over belt. Chart provided, dinner included.",
+    time: "1d ago",
+    thread: [
+      {
+        id: "p4-r1",
+        author: "Mei Ling Chan",
+        authorId: "mei",
+        role: "Vocal",
+        body: "I can blend on Cantonese leads. Send the chart.",
+        createdAt: "2026-09-12T12:00:00+08:00",
+      },
+    ],
+    createdAt: "2026-09-12T09:00:00+08:00",
+  },
+  {
+    id: "p5",
+    author: "Amina Hassan",
+    authorId: "amina",
+    role: "Production",
+    category: "session",
+    title: "Looking for a live drummer who can play quietly",
+    body: "Studio in Kennedy Town. Two days, click optional, brushes welcome. I’ll feed you and I won’t make you trigger samples.",
+    time: "3d ago",
+    thread: [],
+    createdAt: "2026-09-10T14:00:00+08:00",
+  },
+  {
+    id: "p6",
+    author: "Nia Okonkwo",
+    authorId: "nia",
+    role: "Vocal",
+    category: "gear",
+    title: "Need a SM7B for a week",
+    body: "Mine is in the shop. Short-term borrow or cheap rental, Wan Chai. I’ll return it cleaner than you handed it over.",
+    time: "4d ago",
+    thread: [],
+    createdAt: "2026-09-09T11:00:00+08:00",
+  },
+  {
+    id: "p-old",
+    author: "Kai Rivera",
+    authorId: "kai",
+    role: "Guitar",
+    category: "seeking",
+    title: "July drummer wanted (closed)",
+    body: "This posting has aged out of the live board.",
+    time: "45d ago",
+    thread: [],
+    createdAt: "2026-07-20T12:00:00+08:00",
+  },
+];
+
+export const CATEGORY_LABEL: Record<BoardCategory, string> = {
+  seeking: "Seeking",
+  gear: "Gear",
+  collab: "Collab",
+  session: "Session",
+};
 
 export const KIND_LABEL: Record<AccountKind, string> = {
   admin: "Admin",
@@ -13,231 +926,131 @@ export const KIND_LABEL: Record<AccountKind, string> = {
   business: "Business",
 };
 
-export const CATEGORY_LABEL: Record<PostCategory, string> = {
-  seeking: "Seeking",
-  collab: "Collab",
-  gear: "Gear",
-  session: "Session",
-};
-
-export function todayISO(tz = "Asia/Hong_Kong"): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: tz,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-}
-
-export function ageLabel(iso: string): string {
-  const then = new Date(iso).getTime();
-  const now = Date.now();
-  const mins = Math.max(0, Math.round((now - then) / 60000));
-  if (mins < 1) return "now";
-  if (mins < 60) return `${mins}m`;
-  const hrs = Math.round(mins / 60);
-  if (hrs < 24) return `${hrs}h`;
-  const days = Math.round(hrs / 24);
-  if (days < 14) return `${days}d`;
-  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
-}
-
 export function migrateAccountKind(kind: string | undefined): AccountKind {
   if (kind === "listener") return "explorer";
   if (kind === "admin" || kind === "artist" || kind === "explorer" || kind === "business") return kind;
   return "explorer";
 }
 
-export function initials(name: string): string {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase() ?? "")
-    .join("");
+export function ageLabel(iso: string, now = Date.now()) {
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "";
+  const ms = Math.max(0, now - then);
+  const m = Math.floor(ms / 60000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h`;
+  const d = Math.floor(h / 24);
+  if (d < 30) return `${d}d`;
+  return `${Math.floor(d / 30)}mo`;
 }
 
-export type Account = {
-  id: string;
-  name: string;
-  email: string;
-  password: string;
-  kind: AccountKind;
-  city: string;
-  whatsapp?: string;
-  banned?: boolean;
-  artistId?: string;
-  createdAt: string;
+export function isISR(artist: Artist) {
+  return artist.labelApproved && artist.label.trim().toLowerCase() === ISR_LABEL.toLowerCase();
+}
+
+export function claimsISR(label: string) {
+  return label.trim().toLowerCase() === ISR_LABEL.toLowerCase();
+}
+
+export function isListedArtist(artist: Artist) {
+  return artist.verified && artist.songs.some((s) => s.status === "approved");
+}
+
+export function liveSongs(artist: Artist) {
+  return artist.songs.filter((s) => s.status === "approved");
+}
+
+export function artistById(id: string, list: Artist[] = ARTISTS) {
+  return list.find((a) => a.id === id);
+}
+
+export function genresFromCatalog(list: Artist[] = ARTISTS) {
+  const set = new Set<string>();
+  for (const artist of list) {
+    if (!isListedArtist(artist)) continue;
+    for (const genre of artist.genres) set.add(genre);
+  }
+  return [...set].sort();
+}
+
+export function artistsByGenre(genre: string, list: Artist[] = ARTISTS) {
+  return list.filter((a) => isListedArtist(a) && a.genres.includes(genre));
+}
+
+export function eventsForArtist(artistId: string, events: CueEvent[] = EVENTS) {
+  return events.filter((e) => e.status === "approved" && e.artistIds.includes(artistId));
+}
+
+export function shufflePick<T>(items: T[], n: number) {
+  const copy = [...items];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy.slice(0, n);
+}
+
+export function formatEventDate(iso: string) {
+  const d = new Date(`${iso}T12:00:00+08:00`);
+  const weekday = d.toLocaleDateString("en-GB", { weekday: "short", timeZone: "Asia/Hong_Kong" });
+  const date = d.toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "Asia/Hong_Kong" });
+  return { weekday, date };
+}
+
+export function todayISO(now = new Date()) {
+  return now.toLocaleDateString("en-CA", { timeZone: "Asia/Hong_Kong" });
+}
+
+export const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+
+export function isPostExpired(post: BoardPost, now = Date.now()) {
+  return now - new Date(post.createdAt).getTime() > THIRTY_DAYS_MS;
+}
+
+export type TrackHit = {
+  song: Song;
+  artist: Artist;
 };
 
-export type Song = {
-  id: string;
-  title: string;
-  year: number;
-  cover?: string;
-};
+export function recentTracks(list: Artist[], n = 3): TrackHit[] {
+  const hits: TrackHit[] = [];
+  for (const artist of list) {
+    if (!isListedArtist(artist)) continue;
+    for (const song of liveSongs(artist)) hits.push({ song, artist });
+  }
+  hits.sort((a, b) => +new Date(b.song.uploadedAt) - +new Date(a.song.uploadedAt));
+  return hits.slice(0, n);
+}
 
-export type Artist = {
-  id: string;
-  accountId: string;
-  name: string;
-  city: string;
-  instruments: string[];
-  bio: string;
-  photo?: string;
-  verified: boolean;
-  songs: Song[];
-};
+export function randomLiveTrack(list: Artist[]): TrackHit | null {
+  const hits: TrackHit[] = [];
+  for (const artist of list) {
+    if (!isListedArtist(artist)) continue;
+    for (const song of liveSongs(artist)) hits.push({ song, artist });
+  }
+  if (hits.length === 0) return null;
+  return hits[Math.floor(Math.random() * hits.length)] ?? null;
+}
 
-export type Reply = {
-  id: string;
-  authorId: string;
-  body: string;
-  createdAt: string;
-};
+export function upcomingEvents(events: CueEvent[], n = 3, now = new Date()) {
+  const today = todayISO(now);
+  return events
+    .filter((e) => e.status === "approved" && e.isoDate >= today)
+    .sort((a, b) => a.isoDate.localeCompare(b.isoDate))
+    .slice(0, n);
+}
 
-export type Post = {
-  id: string;
-  authorId: string;
-  category: PostCategory;
-  title: string;
-  body: string;
-  createdAt: string;
-  archived?: boolean;
-  replies: Reply[];
-};
+export function validEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
 
-export type Gig = {
-  id: string;
-  title: string;
-  venue: string;
-  date: string;
-  time: string;
-  city: string;
-  hostId: string;
-  status: EventStatus;
-  blurb: string;
-};
+export function validWhatsapp(value: string) {
+  return value.replace(/\D/g, "").length >= 8;
+}
 
-export type ServiceOffer = {
-  id: string;
-  kind: ServiceKind;
-  title: string;
-  providerId: string;
-  price: string;
-  detail: string;
-};
-
-export type Booking = {
-  id: string;
-  serviceId: string;
-  fromId: string;
-  whatsapp: string;
-  note: string;
-  status: BookingStatus;
-  createdAt: string;
-};
-
-export type Notice = {
-  id: string;
-  kind: NoticeKind;
-  title: string;
-  body: string;
-  refId?: string;
-  createdAt: string;
-  resolved?: boolean;
-};
-
-const T = "2026-09-13T01:00:00+08:00";
-
-export const SEED_ACCOUNTS: Account[] = [
-  { id: "u-admin", name: "Maya Chen", email: "admin@indiedream.hk", password: "inner-soul", kind: "admin", city: "Hong Kong", createdAt: "2026-06-01T10:00:00+08:00" },
-  { id: "u-tess", name: "Tess Lau", email: "tess@indiedream.hk", password: "cello", kind: "artist", city: "Hong Kong", whatsapp: "85290001111", artistId: "a-tess", createdAt: "2026-07-12T10:00:00+08:00" },
-  { id: "u-kai", name: "Kai Wong", email: "kai@indiedream.hk", password: "strings", kind: "artist", city: "Kowloon", whatsapp: "85290002222", artistId: "a-kai", createdAt: "2026-07-18T10:00:00+08:00" },
-  { id: "u-yuki", name: "Yuki Nakamura", email: "yuki@indiedream.hk", password: "voice", kind: "artist", city: "Wan Chai", whatsapp: "85290003333", artistId: "a-yuki", createdAt: "2026-07-22T10:00:00+08:00" },
-  { id: "u-owen", name: "Owen Ng", email: "owen@indiedream.hk", password: "drums", kind: "artist", city: "Sham Shui Po", artistId: "a-owen", createdAt: "2026-08-01T10:00:00+08:00" },
-  { id: "u-bee", name: "Bee Tran", email: "bee@indiedream.hk", password: "keys", kind: "artist", city: "Tai Po", whatsapp: "85290004444", artistId: "a-bee", createdAt: "2026-08-04T10:00:00+08:00" },
-  { id: "u-rina", name: "Rina Ho", email: "rina@indiedream.hk", password: "bass", kind: "artist", city: "Jordan", artistId: "a-rina", createdAt: "2026-08-08T10:00:00+08:00" },
-  { id: "u-leo", name: "Leo Park", email: "leo@indiedream.hk", password: "mix", kind: "artist", city: "Kwun Tong", whatsapp: "85290005555", artistId: "a-leo", createdAt: "2026-08-11T10:00:00+08:00" },
-  { id: "u-sora", name: "Sora Chan", email: "sora@indiedream.hk", password: "folk", kind: "artist", city: "Sai Ying Pun", artistId: "a-sora", createdAt: "2026-08-14T10:00:00+08:00" },
-  { id: "u-mina", name: "Mina Cruz", email: "mina@indiedream.hk", password: "indie", kind: "artist", city: "Mong Kok", whatsapp: "85290006666", artistId: "a-mina", createdAt: "2026-08-16T10:00:00+08:00" },
-  { id: "u-jun", name: "Jun Wei", email: "jun@indiedream.hk", password: "tape", kind: "artist", city: "Tsuen Wan", artistId: "a-jun", createdAt: "2026-08-20T10:00:00+08:00" },
-  { id: "u-ada", name: "Ada Ferreira", email: "ada@indiedream.hk", password: "stage", kind: "artist", city: "Central", whatsapp: "85290007777", artistId: "a-ada", createdAt: "2026-08-24T10:00:00+08:00" },
-  { id: "u-iris", name: "Iris Mak", email: "iris@explore.hk", password: "listen", kind: "explorer", city: "Causeway Bay", createdAt: "2026-08-26T10:00:00+08:00" },
-  { id: "u-tom", name: "Tom Ellis", email: "tom@explore.hk", password: "listen", kind: "explorer", city: "Sheung Wan", createdAt: "2026-08-28T10:00:00+08:00" },
-  { id: "u-priya", name: "Priya Shah", email: "priya@explore.hk", password: "listen", kind: "explorer", city: "Kennedy Town", whatsapp: "85290008888", createdAt: "2026-09-01T10:00:00+08:00" },
-  { id: "u-haven", name: "Haven Rooms", email: "bookings@haven.hk", password: "venue", kind: "business", city: "Wan Chai", whatsapp: "85290009999", createdAt: "2026-07-02T10:00:00+08:00" },
-  { id: "u-press", name: "South Island Press", email: "desk@southpress.hk", password: "ink", kind: "business", city: "Aberdeen", createdAt: "2026-07-09T10:00:00+08:00" },
-];
-
-export const SEED_ARTISTS: Artist[] = [
-  { id: "a-tess", accountId: "u-tess", name: "Tess Lau", city: "Hong Kong", instruments: ["Cello", "Voice"], bio: "Chamber-pop cellist writing for small rooms and late ferries.", verified: true, songs: [{ id: "s-tess-1", title: "Harbour Wire", year: 2025 }, { id: "s-tess-2", title: "Second Sitting", year: 2026 }] },
-  { id: "a-kai", accountId: "u-kai", name: "Kai Wong", city: "Kowloon", instruments: ["Guitar", "Pedals"], bio: "Textural guitar, tape loops, and one reliable delay.", verified: true, songs: [{ id: "s-kai-1", title: "Sodium Light", year: 2025 }] },
-  { id: "a-yuki", accountId: "u-yuki", name: "Yuki Nakamura", city: "Wan Chai", instruments: ["Voice", "Synth"], bio: "Night-shift vocals over spare electronics.", verified: true, songs: [{ id: "s-yuki-1", title: "Last Train East", year: 2026 }] },
-  { id: "a-owen", accountId: "u-owen", name: "Owen Ng", city: "Sham Shui Po", instruments: ["Drums"], bio: "Keeps time for rooms that refuse a click.", verified: false, songs: [{ id: "s-owen-1", title: "Tin Roof", year: 2024 }] },
-  { id: "a-bee", accountId: "u-bee", name: "Bee Tran", city: "Tai Po", instruments: ["Keys", "Rhodes"], bio: "Warm keys, church-hall decay, patient voicings.", verified: true, songs: [{ id: "s-bee-1", title: "Green Line", year: 2025 }] },
-  { id: "a-rina", accountId: "u-rina", name: "Rina Ho", city: "Jordan", instruments: ["Bass"], bio: "Low-end for live bands who still look at each other.", verified: false, songs: [{ id: "s-rina-1", title: "Underpass", year: 2026 }] },
-  { id: "a-leo", accountId: "u-leo", name: "Leo Park", city: "Kwun Tong", instruments: ["Mix", "Guitar"], bio: "Mixes in a converted unit above a print shop.", verified: true, songs: [{ id: "s-leo-1", title: "Proof Copy", year: 2025 }] },
-  { id: "a-sora", accountId: "u-sora", name: "Sora Chan", city: "Sai Ying Pun", instruments: ["Acoustic", "Voice"], bio: "Folk songs that refuse to be busked.", verified: false, songs: [{ id: "s-sora-1", title: "Western Street", year: 2026 }] },
-  { id: "a-mina", accountId: "u-mina", name: "Mina Cruz", city: "Mong Kok", instruments: ["Voice", "Guitar"], bio: "Sharp hooks, thrifted jackets, no chorus wasted.", verified: true, songs: [{ id: "s-mina-1", title: "Neon Alter", year: 2025 }] },
-  { id: "a-jun", accountId: "u-jun", name: "Jun Wei", city: "Tsuen Wan", instruments: ["Field recording", "Tape"], bio: "Collects rooms more than notes.", verified: false, songs: [{ id: "s-jun-1", title: "Platform 5", year: 2024 }] },
-  { id: "a-ada", accountId: "u-ada", name: "Ada Ferreira", city: "Central", instruments: ["Voice", "Piano"], bio: "Art-song leaning into club hours.", verified: true, songs: [{ id: "s-ada-1", title: "Ledger", year: 2026 }] },
-];
-
-export const SEED_POSTS: Post[] = [
-  { id: "p1", authorId: "u-tess", category: "seeking", title: "Cellist for a quiet Saturday bill", body: "Looking for a singer or guitar who can sit still. Two songs, no click, Wan Chai room.", createdAt: "2026-09-12T20:10:00+08:00", replies: [{ id: "r1", authorId: "u-yuki", body: "I can do late. Send the keys.", createdAt: "2026-09-12T21:02:00+08:00" }] },
-  { id: "p2", authorId: "u-kai", category: "collab", title: "Need a second guitar for Sodium Light live", body: "One night at Haven. Bring a volume knob and patience.", createdAt: "2026-09-12T16:40:00+08:00", replies: [] },
-  { id: "p3", authorId: "u-bee", category: "session", title: "Rhodes + room, Tuesday mornings", body: "Tai Po. Tea included. No metal through the floor.", createdAt: "2026-09-11T09:15:00+08:00", replies: [{ id: "r2", authorId: "u-owen", body: "Drums in cases only. Interested.", createdAt: "2026-09-11T11:00:00+08:00" }, { id: "r3", authorId: "u-iris", body: "Can I sit in and record atmosphere?", createdAt: "2026-09-11T12:22:00+08:00" }] },
-  { id: "p4", authorId: "u-owen", category: "gear", title: "Lending a spare snare this month", body: "Maple, no dents that matter. Collect in Sham Shui Po.", createdAt: "2026-09-10T18:00:00+08:00", replies: [] },
-  { id: "p5", authorId: "u-mina", category: "seeking", title: "Bass for a four-song EP", body: "Mong Kok nights. Bring a quiet amp.", createdAt: "2026-09-10T14:30:00+08:00", replies: [] },
-  { id: "p6", authorId: "u-sora", category: "collab", title: "Harmony on Western Street", body: "Need one high voice that does not decorate too much.", createdAt: "2026-09-09T19:45:00+08:00", replies: [{ id: "r4", authorId: "u-ada", body: "Send a worktape.", createdAt: "2026-09-09T20:10:00+08:00" }] },
-  { id: "p7", authorId: "u-leo", category: "session", title: "Mix notes while you wait", body: "Kwun Tong unit. Bring stems labelled like adults.", createdAt: "2026-09-08T11:00:00+08:00", replies: [] },
-  { id: "p8", authorId: "u-jun", category: "gear", title: "Broken Walkman, working motor", body: "Free to a tape person. Pickup Tsuen Wan.", createdAt: "2026-09-07T15:20:00+08:00", replies: [] },
-  { id: "p9", authorId: "u-rina", category: "seeking", title: "Band that still counts off out loud", body: "Tired of backing tracks. Jordan rehearsals.", createdAt: "2026-09-13T07:10:00+08:00", replies: [] },
-  { id: "p10", authorId: "u-tom", category: "collab", title: "Zine page for October shows", body: "Explorer putting ink on cheap paper. Send one photo, one sentence.", createdAt: "2026-09-12T08:00:00+08:00", replies: [{ id: "r5", authorId: "u-mina", body: "Photo tomorrow.", createdAt: "2026-09-12T09:40:00+08:00" }, { id: "r6", authorId: "u-kai", body: "Sentence: delay until it hurts.", createdAt: "2026-09-12T10:05:00+08:00" }] },
-];
-
-export const SEED_EVENTS: Gig[] = [
-  { id: "e1", title: "Harbour Wire evening", venue: "Haven Rooms", date: "2026-09-20", time: "20:00", city: "Wan Chai", hostId: "u-tess", status: "live", blurb: "Cello, voice, no chatter between songs." },
-  { id: "e2", title: "Sodium Light duo", venue: "Backstair", date: "2026-09-27", time: "21:30", city: "Jordan", hostId: "u-kai", status: "live", blurb: "Two guitars and a borrowed PA." },
-  { id: "e3", title: "Warehouse open mic", venue: "Unit 19", date: "2026-09-18", time: "19:00", city: "Kwun Tong", hostId: "u-leo", status: "pending", blurb: "Sign-up list on the door. Twelve minutes each." },
-  { id: "e4", title: "Ledger preview", venue: "South Island Press", date: "2026-10-04", time: "18:00", city: "Aberdeen", hostId: "u-ada", status: "live", blurb: "Piano, voice, newsprint on the chairs." },
-  { id: "e5", title: "Green Line listening", venue: "Tai Po hall", date: "2026-09-05", time: "16:00", city: "Tai Po", hostId: "u-bee", status: "past", blurb: "Afternoon keys. Already happened." },
-];
-
-export const SEED_SERVICES: ServiceOffer[] = [
-  { id: "sv1", kind: "mix", title: "Stem mix, two revisions", providerId: "u-leo", price: "HK$1,800", detail: "Stereo mix from labelled stems. No mastering." },
-  { id: "sv2", kind: "photo", title: "Studio stills, half day", providerId: "u-press", price: "HK$2,200", detail: "Three looks, edited set of twelve." },
-  { id: "sv3", kind: "rehearsal", title: "Haven evening lockout", providerId: "u-haven", price: "HK$600", detail: "19:00–23:00. Backline listed on request." },
-  { id: "sv4", kind: "press", title: "One-sheet + quote", providerId: "u-press", price: "HK$900", detail: "400 words, one pull quote, print-ready." },
-];
-
-export const SEED_BOOKINGS: Booking[] = [
-  { id: "b1", serviceId: "sv3", fromId: "u-mina", whatsapp: "85290006666", note: "Need a quiet Thursday if the calendar allows.", status: "open", createdAt: "2026-09-11T13:00:00+08:00" },
-  { id: "b2", serviceId: "sv1", fromId: "u-tess", whatsapp: "85290001111", note: "Cello + voice stems ready.", status: "open", createdAt: "2026-09-12T09:20:00+08:00" },
-  { id: "b3", serviceId: "sv2", fromId: "u-yuki", whatsapp: "85290003333", note: "Black shirt, no flash if possible.", status: "completed", createdAt: "2026-09-01T16:00:00+08:00" },
-];
-
-export const SEED_NOTICES: Notice[] = [
-  { id: "n1", kind: "artist", title: "Roster review — Owen Ng", body: "Drums. No WhatsApp on file.", refId: "a-owen", createdAt: "2026-09-12T10:00:00+08:00" },
-  { id: "n2", kind: "artist", title: "Roster review — Rina Ho", body: "Bass. Awaiting first live date.", refId: "a-rina", createdAt: "2026-09-12T10:05:00+08:00" },
-  { id: "n3", kind: "event", title: "Date pending — Warehouse open mic", body: "Unit 19, 18 Sep.", refId: "e3", createdAt: "2026-09-10T08:00:00+08:00" },
-  { id: "n4", kind: "booking", title: "Lockout request — Mina Cruz", body: "Haven evening.", refId: "b1", createdAt: "2026-09-11T13:01:00+08:00" },
-];
-
-export const TAGLINE = "A platform for musicians chasing dreams.";
-
-export function accountFromArtist(artist: Artist, existing?: Account): Account {
-  return (
-    existing ?? {
-      id: artist.accountId,
-      name: artist.name,
-      email: `${artist.id.replace("a-", "")}@indiedream.hk`,
-      password: "preview",
-      kind: "artist",
-      city: artist.city,
-      artistId: artist.id,
-      createdAt: T,
-    }
-  );
+export function whatsappHref(value: string) {
+  const digits = value.replace(/\D/g, "");
+  return digits ? `https://wa.me/${digits}` : undefined;
 }

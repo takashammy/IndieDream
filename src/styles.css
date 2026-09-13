@@ -1,0 +1,131 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-elevated: var(--elevated);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --font-sans: var(--font-body-family);
+  --font-display: var(--font-display-family);
+  --radius-sm: var(--r-sm);
+  --radius-md: var(--r-md);
+  --radius-lg: var(--r-lg);
+  --radius-xl: var(--r-xl);
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  img {
+    outline: 1px solid color-mix(in oklab, var(--fg) 10%, transparent);
+    outline-offset: -1px;
+  }
+}
+
+:root {
+  --bg: #f3eadb;
+  --surface: #fff8ee;
+  --elevated: #efe4d2;
+  --fg: #1c1612;
+  --muted: #6b5e52;
+  --subtle: #8a7b6d;
+  --accent: #9a3b2f;
+  --accent-fg: #fff8ee;
+  --line: color-mix(in oklab, var(--fg) 14%, transparent);
+  --ink: #1c1612;
+  --font-display-family: "Fraunces", serif;
+  --font-body-family: "Source Serif 4", serif;
+  --r-sm: 2px;
+  --r-md: 2px;
+  --r-lg: 4px;
+  --r-xl: 8px;
+  --kicker-transform: uppercase;
+  --kicker-tracking: 0.22em;
+  --name-transform: none;
+  --name-tracking: -0.02em;
+  --shadow-border:
+    0px 0px 0px 1px rgba(28, 22, 18, 0.08),
+    0px 1px 2px -1px rgba(28, 22, 18, 0.06),
+    0px 2px 4px 0px rgba(28, 22, 18, 0.04);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.cue-kicker {
+  text-transform: var(--kicker-transform, uppercase);
+  letter-spacing: var(--kicker-tracking, 0.18em);
+}
+
+.cue-name {
+  text-transform: var(--name-transform, none);
+  letter-spacing: var(--name-tracking, -0.03em);
+}
+
+.cue-enter {
+  animation: cueIn 400ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes cueIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+.rule-double {
+  border-top: 1px solid var(--fg);
+  border-bottom: 1px solid var(--fg);
+  padding-top: 3px;
+}
+
+.indie-nav-label {
+  font-size: 0.625rem;
+  letter-spacing: 0.04em;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+.scrollbar-none {
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
