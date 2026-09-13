@@ -1,14 +1,5 @@
 import { useEffect } from "react";
-import {
-  Briefcase,
-  Calendar,
-  Compass,
-  House,
-  LayoutDashboard,
-  MessageSquare,
-  UserRound,
-  Users,
-} from "lucide-react";
+import { Briefcase, Calendar, Compass, House, LayoutDashboard, MessageSquare, UserRound, Users } from "lucide-react";
 import { currentAccount, useCue, type TabId } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { ArtistsScreen } from "./artists";
@@ -40,15 +31,10 @@ export function AppShell() {
   const setTab = useCue((s) => s.setTab);
   const hydrate = useCue((s) => s.hydrate);
   const session = useCue((s) => currentAccount(s));
-  const inboxPending = useCue((s) =>
-    s.notices.reduce((n, x) => n + (x.status === "pending" && x.kind !== "enquiry" ? 1 : 0), 0),
-  );
-  const enquiryPending = useCue((s) =>
-    s.notices.reduce((n, x) => n + (x.status === "pending" && x.kind === "enquiry" ? 1 : 0), 0),
-  );
+  const inboxPending = useCue((s) => s.notices.reduce((n, x) => n + (x.status === "pending" && x.kind !== "enquiry" ? 1 : 0), 0));
+  const enquiryPending = useCue((s) => s.notices.reduce((n, x) => n + (x.status === "pending" && x.kind === "enquiry" ? 1 : 0), 0));
   const admin = session?.kind === "admin";
   const masthead = tab === "home";
-  const nowPlaying = useCue((s) => s.nowPlaying);
 
   useEffect(() => {
     hydrate();
@@ -70,20 +56,19 @@ export function AppShell() {
       ) : (
         <header className="sticky top-0 z-30 border-b border-line bg-bg/95 px-5 py-3 backdrop-blur-md">
           <div className="flex items-center justify-between gap-3">
-            <button
-              type="button"
-              className="font-display text-xl leading-none tracking-tight"
-              onClick={() => setTab("home")}
-            >
+            <button type="button" className="font-display text-xl leading-none tracking-tight" onClick={() => setTab("home")}>
               Indie Dream
             </button>
             <PoweredBy />
           </div>
         </header>
       )}
+      <div className="sticky top-0 z-40">
+        <Player />
+      </div>
 
       <main className="relative mx-auto flex min-h-0 w-full max-w-lg flex-1 flex-col">
-        <div className={nowPlaying ? "flex-1 overflow-y-auto pb-20" : "flex-1 overflow-y-auto pb-2"}>
+        <div className="flex-1 overflow-y-auto pb-2">
           {tab === "home" ? <HomeScreen /> : null}
           {tab === "artists" && artistId ? <ArtistProfile id={artistId} /> : null}
           {tab === "artists" && !artistId ? <ArtistsScreen /> : null}
@@ -94,30 +79,20 @@ export function AppShell() {
           {tab === "me" || tab === "inbox" ? <MeScreen /> : null}
         </div>
 
-        <Player />
-
         {tab === "events" && !eventId ? <EventsFab /> : null}
         {tab === "board" && !postId ? <BoardFab /> : null}
 
         <nav
           className="sticky bottom-0 z-40 border-t border-line bg-bg/95 pb-[max(0.4rem,env(safe-area-inset-bottom))] pt-1 backdrop-blur-md"
           aria-label="Primary"
-          style={{
-            display: "grid",
-            gridTemplateColumns: `repeat(${TABS.length}, minmax(0, 1fr))`,
-          }}
+          style={{ display: "grid", gridTemplateColumns: `repeat(${TABS.length}, minmax(0, 1fr))` }}
         >
           {TABS.map((item) => {
             const Icon = item.id === "me" && admin ? LayoutDashboard : item.icon;
             const label = item.id === "me" && admin ? "Desk" : item.label;
             const active = tab === item.id || (tab === "inbox" && item.id === "me");
             const isHome = item.id === "home";
-            const badge =
-              admin && item.id === "me"
-                ? inboxPending
-                : admin && item.id === "services"
-                  ? enquiryPending
-                  : 0;
+            const badge = admin && item.id === "me" ? inboxPending : admin && item.id === "services" ? enquiryPending : 0;
             return (
               <button
                 key={item.id}
@@ -133,9 +108,7 @@ export function AppShell() {
                 <Icon className={cn("size-5", isHome && "size-6")} strokeWidth={active || isHome ? 2.2 : 1.7} />
                 <span className="indie-nav-label">{label}</span>
                 {badge > 0 ? (
-                  <span className="absolute right-1 top-0 flex size-4 items-center justify-center rounded-full bg-accent text-xs text-accent-fg">
-                    {badge}
-                  </span>
+                  <span className="absolute right-1 top-0 flex size-4 items-center justify-center rounded-full bg-accent text-xs text-accent-fg">{badge}</span>
                 ) : null}
               </button>
             );
