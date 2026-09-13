@@ -85,6 +85,7 @@ export function BoardScreen() {
   const [filter, setFilter] = useState<BoardFilter>("all");
   const [sort, setSort] = useState<BoardSort>("latest");
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(0);
   const [composing, setComposing] = useState(false);
   const [reply, setReply] = useState("");
   const [ban, setBan] = useState<BanTarget | null>(null);
@@ -145,6 +146,15 @@ export function BoardScreen() {
     });
     return ranked;
   }, [active, filter, query, session, sort]);
+
+  useEffect(() => {
+    setPage(0);
+  }, [filter, query, sort]);
+
+  const PAGE = 10;
+  const pageCount = Math.max(1, Math.ceil(visible.length / PAGE));
+  const safePage = Math.min(page, pageCount - 1);
+  const paged = visible.slice(safePage * PAGE, safePage * PAGE + PAGE);
 
   function runBan(target: BanTarget) {
     if (target.kind === "reply" && target.replyId) {
@@ -339,6 +349,7 @@ export function BoardScreen() {
       <div className="flex items-center justify-between gap-3 px-5 pb-2">
         <p className="text-xs tabular-nums text-subtle">
           {visible.length} {visible.length === 1 ? "thread" : "threads"}
+          {visible.length > PAGE ? ` · ${safePage * PAGE + 1}–${Math.min(visible.length, safePage * PAGE + PAGE)}` : ""}
         </p>
         <div className="flex">
           <button
@@ -360,8 +371,9 @@ export function BoardScreen() {
       {visible.length === 0 ? (
         <p className="px-5 pt-6 text-sm italic text-muted">{emptyCopy}</p>
       ) : (
+        <>
         <ul>
-          {visible.map((post) => {
+          {paged.map((post) => {
             const face = resolveAuthor(post.authorId, artists, accounts);
             const open = post.thread.length === 0;
             const busy = post.thread.length >= 3;
@@ -409,6 +421,30 @@ export function BoardScreen() {
             );
           })}
         </ul>
+        {visible.length > PAGE ? (
+          <div className="flex items-center justify-between gap-3 px-5 py-4">
+            <button
+              type="button"
+              className={cn("h-11 px-2 text-sm", safePage === 0 ? "text-subtle" : "text-accent")}
+              disabled={safePage === 0}
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+            >
+              Previous
+            </button>
+            <p className="text-xs tabular-nums text-subtle">
+              {safePage + 1} / {pageCount}
+            </p>
+            <button
+              type="button"
+              className={cn("h-11 px-2 text-sm", safePage >= pageCount - 1 ? "text-subtle" : "text-accent")}
+              disabled={safePage >= pageCount - 1}
+              onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+            >
+              Next
+            </button>
+          </div>
+        ) : null}
+        </>
       )}
 
       {ban ? (
@@ -424,7 +460,6 @@ export function BoardScreen() {
 }
 
 export function BoardFab() {
-  const nowPlaying = useCue((s) => s.nowPlaying);
   const postId = useCue((s) => s.postId);
   const [hidden, setHidden] = useState(false);
 
@@ -450,11 +485,7 @@ export function BoardFab() {
       type="button"
       onClick={onPost}
       className="fixed right-4 z-50 flex h-12 items-center gap-2 rounded-full bg-accent px-4 text-sm text-accent-fg shadow-md"
-      style={{
-        bottom: nowPlaying
-          ? "calc(env(safe-area-inset-bottom) + 9.25rem)"
-          : "calc(env(safe-area-inset-bottom) + 5.5rem)",
-      }}
+      style={{ bottom: "calc(env(safe-area-inset-bottom) + 4.15rem)" }}
     >
       <Plus className="size-4" />
       New post

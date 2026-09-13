@@ -1203,7 +1203,9 @@ export const useCue = create<CueState>((set, get) => {
 
     addPendingSong: (title, extra) => {
       const artist = currentArtist(get());
+      const acc = currentAccount(get());
       if (!artist) return;
+      const live = acc?.kind === "admin";
       const song: Song = {
         id: uid("song"),
         title: title.trim(),
@@ -1211,7 +1213,7 @@ export const useCue = create<CueState>((set, get) => {
         plays: "0",
         cover: extra?.cover ?? "/media/covers/vinyl.jpg",
         uploadedAt: new Date().toISOString(),
-        status: "pending",
+        status: live ? "approved" : "pending",
         spotify: cleanUrl(extra?.spotify),
         youtube: cleanUrl(extra?.youtube),
       };
@@ -1219,18 +1221,20 @@ export const useCue = create<CueState>((set, get) => {
         artists: get().artists.map((a) =>
           a.id === artist.id ? { ...a, songs: [song, ...a.songs] } : a,
         ),
-        notices: [
-          {
-            id: uid("n"),
-            kind: "song",
-            title: `Track — ${song.title}`,
-            body: `${artist.name} uploaded “${song.title}” for review.`,
-            status: "pending",
-            refId: song.id,
-            createdAt: new Date().toISOString(),
-          },
-          ...get().notices,
-        ],
+        notices: live
+          ? get().notices
+          : [
+              {
+                id: uid("n"),
+                kind: "song",
+                title: `Track — ${song.title}`,
+                body: `${artist.name} uploaded “${song.title}” for review.`,
+                status: "pending",
+                refId: song.id,
+                createdAt: new Date().toISOString(),
+              },
+              ...get().notices,
+            ],
       });
       persist();
     },

@@ -137,7 +137,6 @@ export function EventsFab() {
   const meArtist = useCue((s) => currentArtist(s));
   const setGate = useCue((s) => s.setGate);
   const setEventComposer = useCue((s) => s.setEventComposer);
-  const nowPlaying = useCue((s) => s.nowPlaying);
 
   function onPost() {
     if (!session) {
@@ -156,11 +155,7 @@ export function EventsFab() {
       type="button"
       onClick={onPost}
       className="fixed right-4 z-40 flex h-12 items-center gap-2 rounded-full bg-accent px-4 text-sm text-accent-fg"
-      style={{
-        bottom: nowPlaying
-          ? "calc(env(safe-area-inset-bottom) + 9.25rem)"
-          : "calc(env(safe-area-inset-bottom) + 5.5rem)",
-      }}
+      style={{ bottom: "calc(env(safe-area-inset-bottom) + 4.15rem)" }}
     >
       <Plus className="size-4" />
       Post event
