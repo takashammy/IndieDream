@@ -16,7 +16,7 @@ function AudioLimitWarn({ reasons, onClose }: { reasons: string[]; onClose: () =
   );
 }
 
-export function ArtistMe() {
+export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
   const acc = useCue((s) => currentAccount(s))!;
   const artist = useCue((s) => currentArtist(s));
   const saveArtistProfile = useCue((s) => s.saveArtistProfile);
@@ -86,8 +86,8 @@ export function ArtistMe() {
   const live = artist?.songs.filter((s) => s.status === "approved") ?? [];
 
   return (
-    <div className="cue-enter pb-12">
-      <ScreenHead kicker="You" title="Profile" note={artist?.verified ? "Verified" : "Pending review"} />
+    <div className={embedded ? "border-t border-line pb-4 pt-2" : "cue-enter pb-12"}>
+      <ScreenHead kicker={embedded ? "Artist" : "You"} title={embedded ? "Your music" : "Profile"} note={artist?.verified ? "Verified" : "Pending review"} />
       <div className="flex items-end gap-4 px-5">
         <PhotoPick src={artist?.photo ?? acc.photo} label="Change profile picture" className="size-20 shrink-0" onChange={setProfilePhoto} />
         <div className="min-w-0">
@@ -124,7 +124,9 @@ export function ArtistMe() {
           )}
         </section>
       ) : null}
-      <div className="px-5 pt-8"><Button variant="ghost" className="w-full" onClick={logout}>Log out</Button></div>
+      {embedded ? null : (
+        <div className="px-5 pt-8"><Button variant="ghost" className="w-full" onClick={logout}>Log out</Button></div>
+      )}
       {openUpload ? (
         <Sheet title="Upload song" kicker="New track" onClose={() => setOpenUpload(false)}>
           <form onSubmit={onUpload} className="space-y-3">

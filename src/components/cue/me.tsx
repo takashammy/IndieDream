@@ -39,7 +39,9 @@ export function MeScreen() {
       </div>
     );
   }
-  if (session.kind === "admin") return <AdminMe />;
+  if (session.kind === "admin") {
+    return <AdminMe artistPanel={session.artistId ? <ArtistMe embedded /> : null} />;
+  }
   if (session.kind === "artist") return <ArtistMe />;
   return <PlainMe />;
 }
@@ -62,7 +64,7 @@ function LoginForm() {
       <Button type="submit" className="mt-5 w-full">Enter</Button>
       <Button type="button" variant="ghost" className="mt-2 w-full" onClick={() => setMeMode("reset")}>Forgot password?</Button>
       <button type="button" className="mt-3 w-full text-center text-sm text-muted" onClick={() => setMeMode("register")}>Need an account? Register</button>
-      <p className="mt-8 text-xs leading-5 text-subtle">Preview — admin / inner-soul. Verified artist — mei / melody. Explorer — patrice / patrice.</p>
+      <p className="mt-8 text-xs leading-5 text-subtle">Martin Sham — martin / Harbour88. Sin Lam — sinlam / Lantern88. Also admin / inner-soul, mei / melody, patrice / patrice.</p>
     </form>
   );
 }

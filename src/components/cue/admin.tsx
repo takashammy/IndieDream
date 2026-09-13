@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Briefcase, Calendar, Inbox, MessageSquare, Music2, Search, Trash2, Users } from "lucide-react";
 import {
   CATEGORY_LABEL,
@@ -31,7 +31,7 @@ const DESKS: Array<{ id: Exclude<DeskPage, "home" | "user">; label: string }> = 
   { id: "board", label: "Board" },
 ];
 
-export function AdminMe() {
+export function AdminMe({ artistPanel }: { artistPanel?: ReactNode }) {
   const acc = useCue((s) => currentAccount(s))!;
   const logout = useCue((s) => s.logout);
   const notices = useCue((s) => s.notices);
@@ -220,13 +220,16 @@ export function AdminMe() {
       {head ? <ScreenHead kicker={head.kicker} title={head.title} note={head.note} /> : null}
 
       {page === "home" ? (
-        <DeskHome
-          name={acc.name}
-          stats={stats}
-          counts={counts}
-          onOpen={go}
-          onOpenNotice={(id) => openNotice(id)}
-        />
+        <>
+          <DeskHome
+            name={acc.name}
+            stats={stats}
+            counts={counts}
+            onOpen={go}
+            onOpenNotice={(id) => openNotice(id)}
+          />
+          {artistPanel}
+        </>
       ) : (
         <DeskNav page={page} counts={counts} onOpen={go} />
       )}
@@ -705,7 +708,8 @@ function DeskPeople({
                       {artist?.verified ? <VerifiedMark /> : null}
                     </p>
                     <p className="truncate text-xs text-muted">
-                      @{user.username} · {KIND_LABEL[user.kind]} · {user.location}
+                      @{user.username} · {KIND_LABEL[user.kind]}
+                      {user.artistId ? " · Artist" : ""} · {user.location}
                     </p>
                   </div>
                   {!user.whatsapp && user.kind !== "admin" ? (
@@ -965,6 +969,7 @@ function AdminUserProfile({
           </p>
           <p className="text-sm text-muted">
             @{user.username} · {KIND_LABEL[user.kind]}
+            {user.artistId ? " · Artist" : ""}
           </p>
         </div>
       </div>

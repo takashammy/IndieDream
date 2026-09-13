@@ -174,7 +174,7 @@ export type CueState = PersistSlice & {
   resolveNotice: (id: string, status: "approved" | "declined" | "completed") => void;
 };
 
-const PERSIST_KEY = "indie-dream-v1";
+const PERSIST_KEY = "indie-dream-v2";
 
 function accountFromArtist(artist: Artist): Account {
   const extras: Record<string, { email?: string; whatsapp?: string; password?: string }> = {
@@ -236,6 +236,34 @@ export const SEED_ACCOUNTS: Account[] = linkArtistAccounts([
     photo: "/media/covers/vinyl.jpg",
     email: "admin@innersoulrecords.hk",
     whatsapp: "",
+  },
+  {
+    id: "acc-martin",
+    username: "martin",
+    password: "Harbour88",
+    kind: "admin",
+    name: "Martin Sham",
+    role: "Guitarist / producer",
+    location: "HK Island",
+    bio: "Runs Inner Soul Records and still writes guitar parts after the office lights go off.",
+    photo: "/media/artists/jun.jpg",
+    email: "martin@innersoulrecords.hk",
+    whatsapp: "+852 6355 3466",
+    artistId: "martin",
+  },
+  {
+    id: "acc-sinlam",
+    username: "sinlam",
+    password: "Lantern88",
+    kind: "admin",
+    name: "Sin Lam",
+    role: "Vocalist",
+    location: "Kowloon",
+    bio: "Voice first, paperwork second. Inner Soul on weekdays, small rooms on weekends.",
+    photo: "/media/artists/nia.jpg",
+    email: "sinlam@innersoulrecords.hk",
+    whatsapp: "+852 9128 8801",
+    artistId: "sinlam",
   },
   {
     id: "acc-mei",
@@ -588,8 +616,19 @@ function mergeAccounts(saved?: Account[]): Account[] {
   if (!saved?.length) return SEED_ACCOUNTS;
   const seedById = new Map(SEED_ACCOUNTS.map((a) => [a.id, a]));
   const seedByUser = new Map(SEED_ACCOUNTS.map((a) => [a.username.toLowerCase(), a]));
+  const forceIds = new Set(["acc-martin", "acc-sinlam"]);
   const merged = saved.map((a) => {
     const seed = seedById.get(a.id) ?? seedByUser.get(a.username.toLowerCase());
+    if (seed && forceIds.has(seed.id)) {
+      return {
+        ...a,
+        ...seed,
+        photo: a.photo || seed.photo,
+        bio: a.bio || seed.bio,
+        email: a.email || seed.email,
+        whatsapp: a.whatsapp || seed.whatsapp,
+      };
+    }
     const kind = migrateAccountKind(a.kind || seed?.kind);
     const roleRaw = a.role || seed?.role || "";
     const role =
@@ -611,6 +650,18 @@ function mergeAccounts(saved?: Account[]): Account[] {
     (s) => !seenId.has(s.id) && !seenUser.has(s.username.toLowerCase()),
   );
   return extras.length ? [...merged, ...extras] : merged;
+}
+
+function stitchSeed(accounts: Account[], artists: Artist[], deletedArtistIds: string[]): { accounts: Account[]; artists: Artist[] } {
+  const catalogIds = new Set(artists.map((a) => a.id));
+  const nextArtists = [
+    ...artists,
+    ...ARTISTS.filter((a) => !catalogIds.has(a.id) && !deletedArtistIds.includes(a.id)),
+  ];
+  return {
+    accounts: linkArtistAccounts(mergeAccounts(accounts), nextArtists),
+    artists: nextArtists,
+  };
 }
 
 function uid(prefix: string) {
@@ -813,20 +864,29 @@ export const useCue = create<CueState>((set, get) => {
     notices: SEED_NOTICES,
 
     hydrate: () => {
-      if (get().hydrated) return;
-      const saved = readPersist();
-      if (saved) applySaved(saved);
-      else set({ hydrated: true });
-      void loadStudio()
-        .then((remote) => {
-          if (remote) {
-            applySaved({ ...remote, sessionId: get().sessionId ?? saved?.sessionId ?? null });
-            writePersist(get());
-            return;
-          }
-          persist();
-        })
-        .catch(() => {});
+      const applyStitch = () => {
+        const next = stitchSeed(get().accounts, get().artists, get().deletedArtistIds);
+        set({ ...next, hydrated: true });
+      };
+      if (!get().hydrated) {
+        const saved = readPersist();
+        if (saved) applySaved(saved);
+        applyStitch();
+        void loadStudio()
+          .then((remote) => {
+            if (remote) {
+              applySaved({ ...remote, sessionId: get().sessionId ?? saved?.sessionId ?? null });
+              applyStitch();
+              writePersist(get());
+              persist();
+              return;
+            }
+            persist();
+          })
+          .catch(() => {});
+        return;
+      }
+      applyStitch();
     },
 
     setTab: (tab) =>
@@ -872,8 +932,16 @@ export const useCue = create<CueState>((set, get) => {
 
     login: (username, password) => {
       const name = username.trim().toLowerCase();
-      const acc = get().accounts.find((a) => a.username.toLowerCase() === name);
-      if (!acc || acc.password !== password) return "Username or password is wrong.";
+      const pass = password.trim();
+      const next = stitchSeed(get().accounts, get().artists, get().deletedArtistIds);
+      set(next);
+      const acc = next.accounts.find(
+        (a) =>
+          a.username.toLowerCase() === name ||
+          a.email.trim().toLowerCase() === name ||
+          a.name.trim().toLowerCase() === name,
+      );
+      if (!acc || acc.password !== pass) return "Username or password is wrong.";
       if (
         get().bannedUserIds.includes(acc.id) ||
         (acc.artistId && get().bannedUserIds.includes(acc.artistId))
