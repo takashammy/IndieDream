@@ -1,4 +1,5 @@
 import { useRef, useState, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
+import { createPortal } from "react-dom";
 import { ChevronLeft, ImagePlus, Music2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -243,18 +244,18 @@ export function Sheet({
   onClose: () => void;
   children: ReactNode;
 }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pb-24">
+  const frame = (
+    <div className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[calc(5rem+env(safe-area-inset-bottom))]">
       <button
         type="button"
-        className="absolute inset-0 bg-ink/45"
+        className="fixed inset-0 bg-ink/45"
         aria-label="Close"
         onClick={onClose}
       />
       <div
         role="dialog"
         aria-modal="true"
-        className="relative z-10 max-h-[88dvh] w-full max-w-lg overflow-y-auto bg-bg px-5 pb-8 pt-5"
+        className="relative z-10 mt-0 w-full max-w-lg bg-bg px-5 pb-8 pt-5"
       >
         {kicker ? <p className="cue-kicker text-xs text-muted">{kicker}</p> : null}
         <div className="mt-1 flex items-start justify-between gap-3">
@@ -272,6 +273,8 @@ export function Sheet({
       </div>
     </div>
   );
+  if (typeof document === "undefined") return frame;
+  return createPortal(frame, document.body);
 }
 
 export function Confirm({

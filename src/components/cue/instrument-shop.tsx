@@ -2,7 +2,7 @@ import { useState } from "react";
 import { INNER_SOUL_INSTRUMENTS, type ShopInstrument } from "@/lib/instruments";
 import { currentAccount, useCue } from "@/lib/store";
 import { Button } from "@/components/ui/button";
-import { AreaInput, Field, TextInput } from "./chrome";
+import { AreaInput, Field, Sheet, TextInput } from "./chrome";
 
 export function InstrumentShop({ onBack }: { onBack?: () => void }) {
   const openService = useCue((s) => s.openService);
@@ -45,12 +45,8 @@ function ShopEnquire({ item, onClose }: { item: ShopInstrument; onClose: () => v
   const [note, setNote] = useState("");
   const [sent, setSent] = useState(false);
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center p-4 pb-24 sm:items-center">
-      <button type="button" className="absolute inset-0 bg-ink/45" aria-label="Close" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-lg overflow-y-auto bg-bg px-5 pb-8 pt-5">
-        <p className="cue-kicker text-xs text-muted">{item.kind}</p>
-        <h2 className="cue-name mt-1 font-display text-3xl leading-none">{item.name}</h2>
-        <img src={item.photo} alt="" className="mt-4 h-40 w-full rounded-md object-cover" />
+    <Sheet title={item.name} kicker={item.kind} onClose={onClose}>
+        <img src={item.photo} alt="" className="h-40 w-full rounded-md object-cover" />
         <p className="mt-3 font-display text-2xl text-accent">{item.price}</p>
         <p className="mt-2 text-sm text-muted">{item.woods}</p>
         <p className="mt-2 text-sm leading-6 text-fg">{item.blurb}</p>
@@ -83,7 +79,6 @@ function ShopEnquire({ item, onClose }: { item: ShopInstrument; onClose: () => v
           <Button className="mt-5 w-full" onClick={() => setGate("register")}>Register to enquire</Button>
         )}
         <Button variant="ghost" className="mt-2 w-full" onClick={onClose}>Close</Button>
-      </div>
-    </div>
+    </Sheet>
   );
 }
