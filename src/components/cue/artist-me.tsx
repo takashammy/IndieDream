@@ -25,6 +25,7 @@ export function ArtistMe() {
   const updateSongLinks = useCue((s) => s.updateSongLinks);
   const logout = useCue((s) => s.logout);
   const [openDetails, setOpenDetails] = useState(false);
+  const [openSongs, setOpenSongs] = useState(false);
   const [openUpload, setOpenUpload] = useState(false);
   const [name, setName] = useState(artist?.name ?? acc.name);
   const [role, setRole] = useState(artist?.role ?? acc.role);
@@ -41,8 +42,6 @@ export function ArtistMe() {
   const [trackGenre, setTrackGenre] = useState(GENRE_OPTIONS[0]);
   const [writers, setWriters] = useState("");
   const [year, setYear] = useState("");
-  const [language, setLanguage] = useState("");
-  const [notes, setNotes] = useState("");
   const [trackSpotify, setTrackSpotify] = useState("");
   const [trackYoutube, setTrackYoutube] = useState("");
   const [trackCover, setTrackCover] = useState<string | null>(null);
@@ -79,7 +78,7 @@ export function ArtistMe() {
     setBusy(false);
     if (!put.ok) { setFileError(put.error); return; }
     addPendingSong(nameOf, { spotify: trackSpotify, youtube: trackYoutube, cover: withR2Cover(trackCover ?? undefined, put.key) });
-    setTitle(""); setTrackGenre(GENRE_OPTIONS[0]); setWriters(""); setYear(""); setLanguage(""); setNotes(""); setTrackSpotify(""); setTrackYoutube(""); setTrackCover(null); setFileName(null); setTrackFile(null); setOpenUpload(false);
+    setTitle(""); setTrackGenre(GENRE_OPTIONS[0]); setWriters(""); setYear(""); setTrackSpotify(""); setTrackYoutube(""); setTrackCover(null); setFileName(null); setTrackFile(null); setOpenUpload(false); setOpenSongs(true);
     if (fileRef.current) fileRef.current.value = "";
   }
 
@@ -96,8 +95,10 @@ export function ArtistMe() {
           <p className="text-sm text-muted">{artist?.role} · {artist?.area}</p>
         </div>
       </div>
-      <div className="mt-6 px-5">
+      <div className="mt-6 space-y-2 px-5">
         <Button type="button" variant="outline" className="w-full" onClick={() => setOpenDetails((v) => !v)}>{openDetails ? "Hide personal information" : "Personal information"}</Button>
+        <Button type="button" className="w-full" onClick={() => setOpenUpload(true)}>Upload song</Button>
+        <Button type="button" variant="outline" className="w-full" onClick={() => setOpenSongs((v) => !v)}>{openSongs ? "Hide uploaded songs" : "Uploaded songs"}</Button>
       </div>
       {openDetails ? (
         <form onSubmit={onSave} className="mt-4 space-y-3 px-5">
@@ -115,14 +116,14 @@ export function ArtistMe() {
           <Button type="submit" className="w-full">{saved ? "Saved" : "Save details"}</Button>
         </form>
       ) : null}
-      <section className="mt-8 px-5">
-        <h2 className="cue-kicker text-xs text-muted">Tracks</h2>
-        <p className="mt-2 text-sm text-muted">Uploads go to R2, then wait for approval. {audioLimitCopy()}</p>
-        <Button type="button" className="mt-3 w-full" onClick={() => setOpenUpload(true)}>Upload song</Button>
-        {pending.length + live.length === 0 ? <p className="mt-4 text-sm text-subtle">Nothing in the queue yet.</p> : (
-          <ul className="mt-4 divide-y divide-line border-y border-line">{[...pending, ...live].map((song) => <SongLinksRow key={song.id} song={song} onSave={(extra) => updateSongLinks(song.id, extra)} />)}</ul>
-        )}
-      </section>
+      {openSongs ? (
+        <section className="mt-4 px-5">
+          <p className="text-sm text-muted">{audioLimitCopy()}</p>
+          {pending.length + live.length === 0 ? <p className="mt-3 text-sm text-subtle">Nothing in the queue yet.</p> : (
+            <ul className="mt-3 divide-y divide-line border-y border-line">{[...pending, ...live].map((song) => <SongLinksRow key={song.id} song={song} onSave={(extra) => updateSongLinks(song.id, extra)} />)}</ul>
+          )}
+        </section>
+      ) : null}
       <div className="px-5 pt-8"><Button variant="ghost" className="w-full" onClick={logout}>Log out</Button></div>
       {openUpload ? (
         <Sheet title="Upload song" kicker="New track" onClose={() => setOpenUpload(false)}>
@@ -135,8 +136,6 @@ export function ArtistMe() {
             <Field label="Genre"><SelectInput value={trackGenre} onChange={(e) => setTrackGenre(e.target.value)}>{GENRE_OPTIONS.map((g) => <option key={g}>{g}</option>)}</SelectInput></Field>
             <Field label="Writers"><TextInput value={writers} onChange={(e) => setWriters(e.target.value)} /></Field>
             <Field label="Year"><TextInput value={year} onChange={(e) => setYear(e.target.value)} /></Field>
-            <Field label="Language"><TextInput value={language} onChange={(e) => setLanguage(e.target.value)} /></Field>
-            <Field label="Notes"><AreaInput rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} /></Field>
             <input ref={fileRef} type="file" accept="audio/*" className="hidden" onChange={onFile} />
             <button type="button" onClick={() => fileRef.current?.click()} className="flex h-11 w-full items-center justify-center truncate rounded-md bg-elevated px-3 text-sm">{fileName ?? "Choose audio file"}</button>
             {fileError ? <p className="text-sm text-accent">{fileError}</p> : null}
