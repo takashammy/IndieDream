@@ -15,7 +15,7 @@ import { ArtistsScreen } from "./artists";
 import { ArtistProfile } from "./artist-profile";
 import { DiscoverScreen } from "./discover";
 import { EventsFab, EventsScreen } from "./events";
-import { BoardScreen } from "./board";
+import { BoardFab, BoardScreen } from "./board";
 import { MeScreen } from "./me";
 import { HomeScreen } from "./home";
 import { ServicesScreen } from "./services";
@@ -36,6 +36,7 @@ export function AppShell() {
   const tab = useCue((s) => s.tab);
   const artistId = useCue((s) => s.artistId);
   const eventId = useCue((s) => s.eventId);
+  const postId = useCue((s) => s.postId);
   const setTab = useCue((s) => s.setTab);
   const hydrate = useCue((s) => s.hydrate);
   const session = useCue((s) => currentAccount(s));
@@ -96,6 +97,7 @@ export function AppShell() {
         <Player />
 
         {tab === "events" && !eventId ? <EventsFab /> : null}
+        {tab === "board" && !postId ? <BoardFab /> : null}
 
         <nav
           className="sticky bottom-0 z-40 border-t border-line bg-bg/95 pb-[max(0.4rem,env(safe-area-inset-bottom))] pt-1 backdrop-blur-md"
