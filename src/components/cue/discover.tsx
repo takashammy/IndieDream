@@ -1,12 +1,5 @@
-import { useEffect, useState } from "react";
-import { ChevronLeft, Play } from "lucide-react";
-import {
-  artistsByGenre,
-  genresFromCatalog,
-  isListedArtist,
-  randomLiveTrack,
-  type TrackHit,
-} from "@/lib/data";
+import { ChevronLeft } from "lucide-react";
+import { artistsByGenre, genresFromCatalog, isListedArtist } from "@/lib/data";
 import { useCue } from "@/lib/store";
 import { ScreenHead, VerifiedMark } from "./chrome";
 
@@ -30,30 +23,15 @@ export function DiscoverScreen() {
   const genre = useCue((s) => s.genre);
   const openGenre = useCue((s) => s.openGenre);
   const openArtist = useCue((s) => s.openArtist);
-  const play = useCue((s) => s.play);
-  const nowPlaying = useCue((s) => s.nowPlaying);
-  const playing = useCue((s) => s.playing);
   const listed = artists.filter(isListedArtist);
   const genres = genresFromCatalog(listed);
-  const [pick, setPick] = useState<TrackHit | null>(null);
-
-  useEffect(() => {
-    setPick(randomLiveTrack(listed));
-    // One random load per visit; never autoplay.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   if (genre) {
     const people = artistsByGenre(genre, listed);
     return (
       <div className="cue-enter">
         <header className="flex items-center gap-1 px-2 pt-3">
-          <button
-            type="button"
-            onClick={() => openGenre(null)}
-            className="flex size-11 items-center justify-center"
-            aria-label="All genres"
-          >
+          <button type="button" onClick={() => openGenre(null)} className="flex size-11 items-center justify-center" aria-label="All genres">
             <ChevronLeft className="size-5" />
           </button>
           <div>
@@ -67,20 +45,14 @@ export function DiscoverScreen() {
         <ul className="mt-4">
           {people.map((artist) => (
             <li key={artist.id} className="border-t border-line">
-              <button
-                type="button"
-                onClick={() => openArtist(artist.id)}
-                className="flex w-full items-center gap-3 px-5 py-3 text-left"
-              >
+              <button type="button" onClick={() => openArtist(artist.id)} className="flex w-full items-center gap-3 px-5 py-3 text-left">
                 <img src={artist.photo} alt="" className="size-14 object-cover" />
                 <div>
                   <p className="cue-name flex items-center gap-1.5 font-display text-xl leading-tight">
                     {artist.name}
                     {artist.verified ? <VerifiedMark /> : null}
                   </p>
-                  <p className="text-xs italic text-muted">
-                    {artist.role} · {artist.city}
-                  </p>
+                  <p className="text-xs italic text-muted">{artist.role} · {artist.city}</p>
                 </div>
               </button>
             </li>
@@ -90,51 +62,16 @@ export function DiscoverScreen() {
     );
   }
 
-  const active = pick && nowPlaying?.song.id === pick.song.id && playing;
-
   return (
     <div className="cue-enter">
       <ScreenHead kicker="Listen" title="By genre" note="From the roster" />
-      {pick ? (
-        <div className="px-5 pb-4">
-          <div className="flex items-center gap-3 rounded-lg bg-elevated p-3">
-            <img src={pick.song.cover} alt="" className="size-14 shrink-0 rounded-md object-cover" />
-            <div className="min-w-0 flex-1">
-              <p className="cue-kicker text-xs text-muted">Random from the roster</p>
-              <p className="truncate font-medium leading-tight">{pick.song.title}</p>
-              <p className="truncate text-xs text-muted">{pick.artist.name}</p>
-            </div>
-            <button
-              type="button"
-              onClick={() =>
-                play({
-                  song: pick.song,
-                  artistName: pick.artist.name,
-                  artistId: pick.artist.id,
-                })
-              }
-              className="flex size-11 shrink-0 items-center justify-center rounded-md bg-accent text-accent-fg"
-              aria-label={`Play ${pick.song.title}`}
-            >
-              <Play className={active ? "size-4 fill-current" : "size-4 translate-x-px"} fill="currentColor" />
-            </button>
-          </div>
-        </div>
-      ) : null}
-      <p className="px-5 pb-4 text-sm italic text-muted">
-        A genre only appears here if someone on Indie Dream actually plays it.
-      </p>
+      <p className="px-5 pb-4 text-sm italic text-muted">A genre only appears here if someone on Indie Dream actually plays it.</p>
       <div className="grid grid-cols-2 gap-px bg-line">
         {genres.map((g) => {
           const count = listed.filter((a) => a.genres.includes(g)).length;
           const cover = GENRE_COVER[g] ?? listed[0]?.photo;
           return (
-            <button
-              key={g}
-              type="button"
-              onClick={() => openGenre(g)}
-              className="bg-bg p-3 text-left"
-            >
+            <button key={g} type="button" onClick={() => openGenre(g)} className="bg-bg p-3 text-left">
               <img src={cover} alt="" className="aspect-[4/3] w-full object-cover" />
               <p className="cue-name mt-3 font-display text-2xl leading-none">{g}</p>
               <p className="mt-1 text-xs italic text-muted">{count} on roster</p>
