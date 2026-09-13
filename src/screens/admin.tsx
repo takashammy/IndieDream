@@ -197,7 +197,6 @@ function DeskPeople() {
   const [kind, setKind] = useState("all");
   const list = accounts.filter((a) => {
     if (kind !== "all" && a.kind !== kind) return false;
-    if (kind === "nowa") return !a.whatsapp;
     const s = q.toLowerCase();
     return !s || `${a.name} ${a.email} ${a.city}`.toLowerCase().includes(s);
   });
