@@ -150,7 +150,7 @@ export type CueState = PersistSlice & {
   }) => void;
   addPendingSong: (
     title: string,
-    extra?: { cover?: string; spotify?: string; youtube?: string },
+    extra?: { cover?: string; spotify?: string; youtube?: string; lyrics?: string },
   ) => void;
   updateSongLinks: (songId: string, extra: { spotify?: string; youtube?: string; cover?: string }) => void;
   setProfilePhoto: (photo: string) => void;
@@ -232,7 +232,7 @@ export const SEED_ACCOUNTS: Account[] = linkArtistAccounts([
     name: "Inner Soul Admin",
     role: "Admin",
     location: "HK Island",
-    bio: "Runs Indie Dream for Inner Soul Records.",
+    bio: "Runs Dreamin' Indie for Inner Soul Records.",
     photo: "/media/covers/vinyl.jpg",
     email: "admin@innersoulrecords.hk",
     whatsapp: "",
@@ -723,8 +723,13 @@ function queueStudioSave(s: CueState) {
 }
 
 function cleanUrl(value?: string) {
-  const v = value?.trim();
-  if (!v) return undefined;
+  const raw = value?.trim();
+  if (!raw) return undefined;
+  const v = /^https?:\/\//i.test(raw)
+    ? raw
+    : raw.startsWith("//")
+      ? `https:${raw}`
+      : `https://${raw}`;
   try {
     const u = new URL(v);
     if (u.protocol === "http:" || u.protocol === "https:") return v;
@@ -972,7 +977,7 @@ export const useCue = create<CueState>((set, get) => {
         get().bannedUserIds.includes(acc.id) ||
         (acc.artistId && get().bannedUserIds.includes(acc.artistId))
       ) {
-        return "This account has been removed from Indie Dream.";
+        return "This account has been removed from Dreamin' Indie.";
       }
       set({ sessionId: acc.id, meMode: "idle", gate: null });
       persist();
@@ -986,7 +991,7 @@ export const useCue = create<CueState>((set, get) => {
       const acc = get().accounts.find((a) => a.email.trim().toLowerCase() === em);
       if (!acc) return "No account with that email.";
       if (get().bannedUserIds.includes(acc.id) || (acc.artistId && get().bannedUserIds.includes(acc.artistId))) {
-        return "This account has been removed from Indie Dream.";
+        return "This account has been removed from Dreamin' Indie.";
       }
       set({
         accounts: get().accounts.map((a) => (a.id === acc.id ? { ...a, password: password.trim() } : a)),
@@ -1214,6 +1219,7 @@ export const useCue = create<CueState>((set, get) => {
         cover: extra?.cover ?? "/media/covers/vinyl.jpg",
         uploadedAt: new Date().toISOString(),
         status: live ? "approved" : "pending",
+        lyrics: extra?.lyrics?.trim() || undefined,
         spotify: cleanUrl(extra?.spotify),
         youtube: cleanUrl(extra?.youtube),
       };

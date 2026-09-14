@@ -1,5 +1,5 @@
 import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
-import { GENRE_OPTIONS, ISR_LABEL, LOCATIONS, claimsISR, type LocationArea, type Song } from "@/lib/data";
+import { GENRE_OPTIONS, ISR_LABEL, LOCATIONS, APP_NAME, claimsISR, type LocationArea, type Song } from "@/lib/data";
 import { currentAccount, currentArtist, useCue } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { AreaInput, Field, PhotoPick, ScreenHead, SelectInput, Sheet, TextInput, VerifiedMark } from "./chrome";
@@ -9,7 +9,7 @@ import { coverImage, putTrackFile, r2KeyFromCover, withR2Cover } from "@/lib/r2"
 function AudioLimitWarn({ reasons, onClose }: { reasons: string[]; onClose: () => void }) {
   return (
     <Sheet title="This file is over the limit" kicker="Upload" onClose={onClose}>
-      <p className="text-sm leading-6 text-muted">Indie Dream only takes streaming copies — 128 kbps or 5 MB, whichever comes first.</p>
+      <p className="text-sm leading-6 text-muted">{APP_NAME} only takes streaming copies — 128 kbps or 5 MB, whichever comes first.</p>
       <ul className="mt-4 list-disc space-y-2 pl-5 text-sm leading-6 text-fg">{reasons.map((r) => <li key={r}>{r}</li>)}</ul>
       <button type="button" className="mt-6 flex h-11 w-full items-center justify-center rounded-md bg-accent text-sm text-accent-fg" onClick={onClose}>Choose another file</button>
     </Sheet>
@@ -42,6 +42,7 @@ export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
   const [trackGenre, setTrackGenre] = useState(GENRE_OPTIONS[0]);
   const [writers, setWriters] = useState("");
   const [year, setYear] = useState("");
+  const [lyrics, setLyrics] = useState("");
   const [trackSpotify, setTrackSpotify] = useState("");
   const [trackYoutube, setTrackYoutube] = useState("");
   const [trackCover, setTrackCover] = useState<string | null>(null);
@@ -77,8 +78,8 @@ export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
     const put = await putTrackFile(trackFile, artist.id);
     setBusy(false);
     if (!put.ok) { setFileError(put.error); return; }
-    addPendingSong(nameOf, { spotify: trackSpotify, youtube: trackYoutube, cover: withR2Cover(trackCover ?? undefined, put.key) });
-    setTitle(""); setTrackGenre(GENRE_OPTIONS[0]); setWriters(""); setYear(""); setTrackSpotify(""); setTrackYoutube(""); setTrackCover(null); setFileName(null); setTrackFile(null); setOpenUpload(false); setOpenSongs(true);
+    addPendingSong(nameOf, { spotify: trackSpotify, youtube: trackYoutube, cover: withR2Cover(trackCover ?? undefined, put.key), lyrics });
+    setTitle(""); setTrackGenre(GENRE_OPTIONS[0]); setWriters(""); setYear(""); setLyrics(""); setTrackSpotify(""); setTrackYoutube(""); setTrackCover(null); setFileName(null); setTrackFile(null); setOpenUpload(false); setOpenSongs(true);
     if (fileRef.current) fileRef.current.value = "";
   }
 
@@ -96,25 +97,27 @@ export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
         </div>
       </div>
       <div className="mt-6 space-y-2 px-5">
-        <Button type="button" variant="outline" className="w-full" onClick={() => setOpenDetails((v) => !v)}>{openDetails ? "Hide personal information" : "Personal information"}</Button>
+        <Button type="button" variant="outline" className="w-full" onClick={() => setOpenDetails(true)}>Personal information</Button>
         <Button type="button" className="w-full" onClick={() => setOpenUpload(true)}>Upload song</Button>
         <Button type="button" variant="outline" className="w-full" onClick={() => setOpenSongs((v) => !v)}>{openSongs ? "Hide uploaded songs" : "Uploaded songs"}</Button>
       </div>
       {openDetails ? (
-        <form onSubmit={onSave} className="mt-4 space-y-3 px-5">
-          <Field label="Name"><TextInput value={name} onChange={(e) => setName(e.target.value)} /></Field>
-          <Field label="Role"><TextInput value={role} onChange={(e) => setRole(e.target.value)} /></Field>
-          <Field label="Location"><SelectInput value={area} onChange={(e) => setArea(e.target.value as LocationArea)}>{LOCATIONS.map((l) => <option key={l}>{l}</option>)}</SelectInput></Field>
-          <Field label="Genre"><SelectInput value={genre} onChange={(e) => setGenre(e.target.value)}>{GENRE_OPTIONS.map((g) => <option key={g}>{g}</option>)}</SelectInput></Field>
-          <Field label="Label"><TextInput value={label} onChange={(e) => setLabel(e.target.value)} /></Field>
-          {claimsISR(label) && !artist?.labelApproved ? <p className="text-sm italic text-accent">{ISR_LABEL} needs Inner Soul approval.</p> : null}
-          <Field label="Bio / About me"><AreaInput rows={4} value={bio} onChange={(e) => setBio(e.target.value)} /></Field>
-          <Field label="Email"><TextInput type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></Field>
-          <Field label="WhatsApp number"><TextInput type="tel" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} /></Field>
-          <Field label="Spotify URL"><TextInput type="url" value={spotify} onChange={(e) => setSpotify(e.target.value)} /></Field>
-          <Field label="YouTube URL"><TextInput type="url" value={youtube} onChange={(e) => setYoutube(e.target.value)} /></Field>
-          <Button type="submit" className="w-full">{saved ? "Saved" : "Save details"}</Button>
-        </form>
+        <Sheet title="Personal information" kicker="Profile" onClose={() => setOpenDetails(false)}>
+          <form onSubmit={onSave} className="space-y-3">
+            <Field label="Name"><TextInput value={name} onChange={(e) => setName(e.target.value)} /></Field>
+            <Field label="Role"><TextInput value={role} onChange={(e) => setRole(e.target.value)} /></Field>
+            <Field label="Location"><SelectInput value={area} onChange={(e) => setArea(e.target.value as LocationArea)}>{LOCATIONS.map((l) => <option key={l}>{l}</option>)}</SelectInput></Field>
+            <Field label="Genre"><SelectInput value={genre} onChange={(e) => setGenre(e.target.value)}>{GENRE_OPTIONS.map((g) => <option key={g}>{g}</option>)}</SelectInput></Field>
+            <Field label="Label"><TextInput value={label} onChange={(e) => setLabel(e.target.value)} /></Field>
+            {claimsISR(label) && !artist?.labelApproved ? <p className="text-sm italic text-accent">{ISR_LABEL} needs Inner Soul approval.</p> : null}
+            <Field label="Bio / About me"><AreaInput rows={4} value={bio} onChange={(e) => setBio(e.target.value)} /></Field>
+            <Field label="Email"><TextInput type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></Field>
+            <Field label="WhatsApp number"><TextInput type="tel" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} /></Field>
+            <Field label="Spotify URL"><TextInput type="url" value={spotify} onChange={(e) => setSpotify(e.target.value)} /></Field>
+            <Field label="YouTube URL"><TextInput type="url" value={youtube} onChange={(e) => setYoutube(e.target.value)} /></Field>
+            <Button type="submit" className="w-full">{saved ? "Saved" : "Save details"}</Button>
+          </form>
+        </Sheet>
       ) : null}
       {openSongs ? (
         <section className="mt-4 px-5">
@@ -138,6 +141,7 @@ export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
             <Field label="Genre"><SelectInput value={trackGenre} onChange={(e) => setTrackGenre(e.target.value)}>{GENRE_OPTIONS.map((g) => <option key={g}>{g}</option>)}</SelectInput></Field>
             <Field label="Writers"><TextInput value={writers} onChange={(e) => setWriters(e.target.value)} /></Field>
             <Field label="Year"><TextInput value={year} onChange={(e) => setYear(e.target.value)} /></Field>
+            <Field label="Lyrics"><AreaInput rows={6} value={lyrics} onChange={(e) => setLyrics(e.target.value)} placeholder="Optional" /></Field>
             <input ref={fileRef} type="file" accept="audio/*" className="hidden" onChange={onFile} />
             <button type="button" onClick={() => fileRef.current?.click()} className="flex h-11 w-full items-center justify-center truncate rounded-md bg-elevated px-3 text-sm">{fileName ?? "Choose audio file"}</button>
             {fileError ? <p className="text-sm text-accent">{fileError}</p> : null}

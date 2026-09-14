@@ -1,5 +1,5 @@
 import { useRef, useState, type ChangeEvent } from "react";
-import { GENRE_OPTIONS, KIND_LABEL, LOCATIONS, claimsISR, type LocationArea } from "@/lib/data";
+import { APP_NAME, GENRE_OPTIONS, KIND_LABEL, LOCATIONS, claimsISR, type LocationArea } from "@/lib/data";
 import { currentAccount, useCue } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { AreaInput, Field, PhotoPick, ScreenHead, SelectInput, Sheet, TextInput } from "./chrome";
@@ -10,7 +10,7 @@ import { ArtistMe } from "./artist-me";
 function AudioLimitWarn({ reasons, onClose }: { reasons: string[]; onClose: () => void }) {
   return (
     <Sheet title="This file is over the limit" kicker="Upload" onClose={onClose}>
-      <p className="text-sm leading-6 text-muted">Indie Dream only takes streaming copies — 128 kbps or 5 MB, whichever comes first.</p>
+      <p className="text-sm leading-6 text-muted">{APP_NAME} only takes streaming copies — 128 kbps or 5 MB, whichever comes first.</p>
       <ul className="mt-4 list-disc space-y-2 pl-5 text-sm leading-6 text-fg">{reasons.map((r) => <li key={r}>{r}</li>)}</ul>
       <button type="button" className="mt-6 flex h-11 w-full items-center justify-center rounded-md bg-accent text-sm text-accent-fg" onClick={onClose}>Choose another file</button>
     </Sheet>
@@ -142,6 +142,7 @@ function PlainMe() {
   const saveAccountProfile = useCue((s) => s.saveAccountProfile);
   const setProfilePhoto = useCue((s) => s.setProfilePhoto);
   const logout = useCue((s) => s.logout);
+  const [openDetails, setOpenDetails] = useState(false);
   const [bio, setBio] = useState(acc.bio);
   const [location, setLocation] = useState<LocationArea>(acc.location);
   const [email, setEmail] = useState(acc.email);
@@ -154,13 +155,20 @@ function PlainMe() {
         <PhotoPick src={acc.photo} label="Change profile picture" className="size-20 shrink-0" onChange={setProfilePhoto} />
         <div className="min-w-0"><p className="cue-name font-display text-2xl leading-tight">{acc.name}</p><p className="text-sm text-muted">@{acc.username}</p></div>
       </div>
-      <form className="mt-6 space-y-3 px-5" onSubmit={(e) => { e.preventDefault(); saveAccountProfile({ bio, location, email, whatsapp }); setSaved(true); window.setTimeout(() => setSaved(false), 1600); }}>
-        <Field label="Location"><SelectInput value={location} onChange={(e) => setLocation(e.target.value as LocationArea)}>{LOCATIONS.map((l) => <option key={l}>{l}</option>)}</SelectInput></Field>
-        <Field label="Bio / About me"><AreaInput rows={4} value={bio} onChange={(e) => setBio(e.target.value)} /></Field>
-        <Field label="Email"><TextInput type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></Field>
-        <Field label="WhatsApp number"><TextInput type="tel" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} /></Field>
-        <Button type="submit" className="w-full">{saved ? "Saved" : "Save details"}</Button>
-      </form>
+      <div className="mt-6 space-y-2 px-5">
+        <Button type="button" variant="outline" className="w-full" onClick={() => setOpenDetails(true)}>Personal information</Button>
+      </div>
+      {openDetails ? (
+        <Sheet title="Personal information" kicker="Profile" onClose={() => setOpenDetails(false)}>
+          <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); saveAccountProfile({ bio, location, email, whatsapp }); setSaved(true); window.setTimeout(() => setSaved(false), 1600); }}>
+            <Field label="Location"><SelectInput value={location} onChange={(e) => setLocation(e.target.value as LocationArea)}>{LOCATIONS.map((l) => <option key={l}>{l}</option>)}</SelectInput></Field>
+            <Field label="Bio / About me"><AreaInput rows={4} value={bio} onChange={(e) => setBio(e.target.value)} /></Field>
+            <Field label="Email"><TextInput type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></Field>
+            <Field label="WhatsApp number"><TextInput type="tel" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} /></Field>
+            <Button type="submit" className="w-full">{saved ? "Saved" : "Save details"}</Button>
+          </form>
+        </Sheet>
+      ) : null}
       <div className="px-5 pt-8"><Button variant="ghost" className="w-full" onClick={logout}>Log out</Button></div>
     </div>
   );

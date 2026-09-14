@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ChevronLeft, Clock, MapPin, Plus } from "lucide-react";
-import { isListedArtist, type LocationArea, LOCATIONS } from "@/lib/data";
+import { APP_NAME, isListedArtist, type LocationArea, LOCATIONS } from "@/lib/data";
 import { currentAccount, currentArtist, useCue } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { AreaInput, Confirm, Field, ScreenHead, SelectInput, TextInput, Sheet, VerifiedMark } from "./chrome";
@@ -90,7 +90,7 @@ export function EventsScreen() {
         {confirmDelete ? (
           <Confirm
             title="Delete this event?"
-            body={`Remove “${selected.title}” from Indie Dream. This cannot be undone.`}
+            body={`Remove “${selected.title}” from ${APP_NAME}. This cannot be undone.`}
             confirmLabel="Yes"
             onConfirm={() => deleteEvent(selected.id)}
             onClose={() => setConfirmDelete(false)}

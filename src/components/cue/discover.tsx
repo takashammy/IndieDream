@@ -1,5 +1,5 @@
 import { ChevronLeft } from "lucide-react";
-import { artistsByGenre, genresFromCatalog, isListedArtist } from "@/lib/data";
+import { APP_NAME, artistsByGenre, genresFromCatalog, isListedArtist } from "@/lib/data";
 import { useCue } from "@/lib/store";
 import { ScreenHead, VerifiedMark } from "./chrome";
 
@@ -65,7 +65,7 @@ export function DiscoverScreen() {
   return (
     <div className="cue-enter">
       <ScreenHead kicker="Listen" title="By genre" note="From the roster" />
-      <p className="px-5 pb-4 text-sm italic text-muted">A genre only appears here if someone on Indie Dream actually plays it.</p>
+      <p className="px-5 pb-4 text-sm italic text-muted">A genre only appears here if someone on {APP_NAME} actually plays it.</p>
       <div className="grid grid-cols-2 gap-px bg-line">
         {genres.map((g) => {
           const count = listed.filter((a) => a.genres.includes(g)).length;

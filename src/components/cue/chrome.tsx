@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { ChevronLeft, ImagePlus, Music2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import type { Song } from "@/lib/data";
 
 export function BackRow({ label, onClick }: { label: string; onClick: () => void }) {
   return (
@@ -68,6 +69,14 @@ export function YoutubeIcon({ className }: { className?: string }) {
   );
 }
 
+export function hrefOf(raw?: string) {
+  const v = raw?.trim();
+  if (!v) return "";
+  if (/^https?:\/\//i.test(v)) return v;
+  if (v.startsWith("//")) return `https:${v}`;
+  return `https://${v}`;
+}
+
 export function SocialPair({
   spotify,
   youtube,
@@ -77,17 +86,19 @@ export function SocialPair({
   youtube?: string;
   compact?: boolean;
 }) {
-  if (!spotify && !youtube) return null;
+  const sp = hrefOf(spotify);
+  const yt = hrefOf(youtube);
+  if (!sp && !yt) return null;
   const box = compact
-    ? "flex size-8 items-center justify-center rounded-md bg-bg/80 text-fg backdrop-blur-sm"
-    : "flex size-10 items-center justify-center rounded-md bg-bg/80 text-fg backdrop-blur-sm";
+    ? "relative z-20 flex size-8 items-center justify-center rounded-md bg-bg/80 text-fg backdrop-blur-sm"
+    : "relative z-20 flex size-10 items-center justify-center rounded-md bg-bg/80 text-fg backdrop-blur-sm";
   return (
-    <div className="flex gap-1">
-      {spotify ? (
+    <div className="relative z-20 flex gap-1">
+      {sp ? (
         <a
-          href={spotify}
+          href={sp}
           target="_blank"
-          rel="noreferrer"
+          rel="noopener noreferrer"
           className={box}
           aria-label="Spotify"
           onClick={(e) => e.stopPropagation()}
@@ -95,11 +106,11 @@ export function SocialPair({
           <SpotifyIcon className="size-4" />
         </a>
       ) : null}
-      {youtube ? (
+      {yt ? (
         <a
-          href={youtube}
+          href={yt}
           target="_blank"
-          rel="noreferrer"
+          rel="noopener noreferrer"
           className={box}
           aria-label="YouTube"
           onClick={(e) => e.stopPropagation()}
@@ -323,6 +334,28 @@ export function Confirm({
           {cancelLabel}
         </Button>
       </div>
+    </Sheet>
+  );
+}
+
+export function TrackSheet({
+  artistName,
+  song,
+  onClose,
+}: {
+  artistName: string;
+  song: Song;
+  onClose: () => void;
+}) {
+  const lyrics = song.lyrics?.trim();
+  return (
+    <Sheet title={artistName} kicker="Track" onClose={onClose}>
+      <p className="text-base font-medium leading-snug">{song.title}</p>
+      {lyrics ? (
+        <p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-muted">{lyrics}</p>
+      ) : (
+        <p className="mt-4 text-sm italic text-subtle">No lyrics yet.</p>
+      )}
     </Sheet>
   );
 }

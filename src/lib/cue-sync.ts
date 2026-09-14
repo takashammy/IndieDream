@@ -120,8 +120,8 @@ async function writeMirrors(sql: Sql, slice: StudioSlice) {
     for (const song of songs) {
       await sql.query(
         `insert into cue_songs (
-           id, artist_id, title, duration, plays, cover, uploaded_at, status, spotify, youtube
-         ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+           id, artist_id, title, duration, plays, cover, uploaded_at, status, spotify, youtube, lyrics
+         ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
          on conflict (id) do update set
            artist_id = excluded.artist_id,
            title = excluded.title,
@@ -131,7 +131,8 @@ async function writeMirrors(sql: Sql, slice: StudioSlice) {
            uploaded_at = excluded.uploaded_at,
            status = excluded.status,
            spotify = excluded.spotify,
-           youtube = excluded.youtube`,
+           youtube = excluded.youtube,
+           lyrics = excluded.lyrics`,
         [
           String(song.id ?? ""),
           artistId,
@@ -143,6 +144,7 @@ async function writeMirrors(sql: Sql, slice: StudioSlice) {
           String(song.status ?? "pending"),
           song.spotify ? String(song.spotify) : null,
           song.youtube ? String(song.youtube) : null,
+          song.lyrics ? String(song.lyrics) : null,
         ],
       );
     }

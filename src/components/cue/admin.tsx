@@ -2,6 +2,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { Briefcase, Calendar, Inbox, MessageSquare, Music2, Search, Trash2, Users } from "lucide-react";
 import {
   CATEGORY_LABEL,
+  APP_NAME,
   KIND_LABEL,
   ageLabel,
   isListedArtist,
@@ -128,7 +129,7 @@ export function AdminMe({ artistPanel }: { artistPanel?: ReactNode }) {
       {banConfirm ? (
         <Confirm
           title="Ban this user?"
-          body={`Remove ${banConfirm.name} from Indie Dream. Their posts, profile, and login will go.`}
+          body={`Remove ${banConfirm.name} from ${APP_NAME}. Their posts, profile, and login will go.`}
           confirmLabel="Yes"
           onConfirm={() => {
             banUser(banConfirm.id);
@@ -142,7 +143,7 @@ export function AdminMe({ artistPanel }: { artistPanel?: ReactNode }) {
       {banPost ? (
         <Confirm
           title="Delete this post?"
-          body={`Remove this post. You can also ban ${banPost.author} and take them off Indie Dream.`}
+          body={`Remove this post. You can also ban ${banPost.author} and take them off ${APP_NAME}.`}
           confirmLabel="Delete"
           onConfirm={() => deletePost(banPost.id)}
           onClose={() => setBanPostId(null)}
@@ -162,7 +163,7 @@ export function AdminMe({ artistPanel }: { artistPanel?: ReactNode }) {
       {dropEvent ? (
         <Confirm
           title="Delete this date?"
-          body={`Remove “${dropEvent.title}” from Indie Dream. This cannot be undone.`}
+          body={`Remove “${dropEvent.title}” from ${APP_NAME}. This cannot be undone.`}
           confirmLabel="Yes"
           onConfirm={() => deleteEvent(dropEvent.id)}
           onClose={() => setDropEventId(null)}
@@ -176,7 +177,7 @@ export function AdminMe({ artistPanel }: { artistPanel?: ReactNode }) {
       return (
         <div className="cue-enter px-5 py-10">
           <BackRow label="People" onClick={() => go("people")} />
-          <p className="mt-4 text-sm text-muted">That account is no longer on Indie Dream.</p>
+          <p className="mt-4 text-sm text-muted">That account is no longer on {APP_NAME}.</p>
         </div>
       );
     }
@@ -393,9 +394,7 @@ function DeskHome({
         })}
       </div>
 
-      <DeskNav page="home" counts={counts} onOpen={onOpen} />
-
-      <section className="mt-2">
+      <section className="mt-8">
         <div className="px-5 pb-2">
           <p className="cue-kicker text-xs text-muted">Needs a decision</p>
           <h2 className="cue-name font-display text-2xl leading-none">Attention</h2>

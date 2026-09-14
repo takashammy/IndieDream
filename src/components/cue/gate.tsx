@@ -1,3 +1,4 @@
+import { APP_NAME } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 import { useCue, type GateKind } from "@/lib/store";
 import { Sheet } from "./chrome";
@@ -5,7 +6,7 @@ import { Sheet } from "./chrome";
 const COPY: Record<Exclude<GateKind, null>, { title: string; body: string }> = {
   listen: {
     title: "Register to listen",
-    body: "Guests can browse Indie Dream. Playback is for people who have an account.",
+    body: `Guests can browse ${APP_NAME}. Playback is for people who have an account.`,
   },
   board: {
     title: "Register to post",
@@ -21,7 +22,7 @@ const COPY: Record<Exclude<GateKind, null>, { title: string; body: string }> = {
   },
   register: {
     title: "Register to continue",
-    body: "Listening, posting, and services all need an Indie Dream account.",
+    body: `Listening, posting, and services all need a ${APP_NAME} account.`,
   },
 };
 
@@ -32,7 +33,7 @@ export function Gate() {
   if (!gate) return null;
   const copy = COPY[gate];
   return (
-    <Sheet title={copy.title} kicker="Indie Dream" onClose={() => setGate(null)}>
+    <Sheet title={copy.title} kicker={APP_NAME} onClose={() => setGate(null)}>
       <p className="text-sm leading-6 text-muted">{copy.body}</p>
       <div className="mt-5 flex flex-col gap-2">
         <Button

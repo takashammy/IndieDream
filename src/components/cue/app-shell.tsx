@@ -45,7 +45,7 @@ export function AppShell() {
       {masthead ? (
         <header className="sticky top-0 z-30 bg-bg/95 px-5 pt-3 backdrop-blur-md">
           <div className="flex items-start justify-between gap-3">
-            <p className="font-display text-2xl leading-none tracking-tight">Indie Dream</p>
+            <p className="font-display text-2xl leading-none tracking-tight">Dreamin' Indie</p>
             <PoweredBy />
           </div>
           <div className="mx-auto max-w-lg">
@@ -57,7 +57,7 @@ export function AppShell() {
         <header className="sticky top-0 z-30 border-b border-line bg-bg/95 px-5 py-3 backdrop-blur-md">
           <div className="flex items-center justify-between gap-3">
             <button type="button" className="font-display text-xl leading-none tracking-tight" onClick={() => setTab("home")}>
-              Indie Dream
+              Dreamin' Indie
             </button>
             <PoweredBy />
           </div>
@@ -122,9 +122,14 @@ export function AppShell() {
 
 function PoweredBy() {
   return (
-    <p className="text-right text-xs leading-4 text-muted">
+    <a
+      href="https://www.instagram.com/haven.innersoulrecords"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-right text-xs leading-4 text-muted"
+    >
       <span className="cue-kicker block text-subtle">Powered by</span>
       Inner Soul Records
-    </p>
+    </a>
   );
 }

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Plus, Search, Trash2 } from "lucide-react";
 import {
   CATEGORY_LABEL,
+  APP_NAME,
   ageLabel,
   isPostExpired,
   type Artist,
@@ -634,7 +635,7 @@ function BanConfirm({
   return (
     <Confirm
       title={`Delete this ${noun}?`}
-      body={`Remove this ${noun} from the board. You can also ban ${target.author} and take them off Indie Dream.`}
+      body={`Remove this ${noun} from the board. You can also ban ${target.author} and take them off ${APP_NAME}.`}
       confirmLabel="Delete"
       cancelLabel="Cancel"
       onConfirm={onDelete}

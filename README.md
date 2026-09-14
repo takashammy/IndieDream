@@ -1,4 +1,4 @@
-# Indie Dream
+# Dreamin' Indie
 
 A platform for musicians chasing dreams — Inner Soul Records, Hong Kong.
 

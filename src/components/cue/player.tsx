@@ -4,6 +4,7 @@ import { isListedArtist, liveSongs } from "@/lib/data";
 import { useCue, type NowPlaying } from "@/lib/store";
 import { coverImage } from "@/lib/r2";
 import { useSongSrc } from "./r2-audio";
+import { TrackSheet } from "./chrome";
 
 function poolFrom(artists: ReturnType<typeof useCue.getState>["artists"], excludeId?: string) {
   const all = artists.filter(isListedArtist).flatMap((artist) =>
@@ -22,6 +23,7 @@ export function Player() {
   const play = useCue((s) => s.play);
   const togglePlay = useCue((s) => s.togglePlay);
   const [idle, setIdle] = useState<NowPlaying | null>(null);
+  const [openTrack, setOpenTrack] = useState(false);
   const shown = nowPlaying ?? idle;
   const src = useSongSrc(nowPlaying?.song);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -56,15 +58,29 @@ export function Player() {
     <div className="border-b border-line bg-bg/95 px-5 py-3 backdrop-blur-md">
       <div className="mx-auto flex max-w-lg items-center gap-3 rounded-lg bg-elevated p-3">
         {shown ? (
-          <img src={coverImage(shown.song.cover)} alt="" className="size-14 shrink-0 rounded-md object-cover" />
+          <button
+            type="button"
+            onClick={() => setOpenTrack(true)}
+            className="flex min-w-0 flex-1 items-center gap-3 text-left"
+            aria-label={`Lyrics for ${shown.song.title}`}
+          >
+            <img src={coverImage(shown.song.cover)} alt="" className="size-14 shrink-0 rounded-md object-cover" />
+            <div className="min-w-0 flex-1">
+              <p className="cue-kicker text-xs text-muted">{playing ? "Now playing" : "Random from the roster"}</p>
+              <p className="truncate font-medium leading-tight">{shown.song.title}</p>
+              <p className="truncate text-xs text-muted">{shown.artistName}</p>
+            </div>
+          </button>
         ) : (
-          <div className="size-14 shrink-0 rounded-md bg-surface" />
+          <>
+            <div className="size-14 shrink-0 rounded-md bg-surface" />
+            <div className="min-w-0 flex-1">
+              <p className="cue-kicker text-xs text-muted">Random from the roster</p>
+              <p className="truncate font-medium leading-tight">Nothing live yet</p>
+              <p className="truncate text-xs text-muted">Inner Soul Records</p>
+            </div>
+          </>
         )}
-        <div className="min-w-0 flex-1">
-          <p className="cue-kicker text-xs text-muted">{playing ? "Now playing" : "Random from the roster"}</p>
-          <p className="truncate font-medium leading-tight">{shown?.song.title ?? "Nothing live yet"}</p>
-          <p className="truncate text-xs text-muted">{shown?.artistName ?? "Inner Soul Records"}</p>
-        </div>
         <button
           type="button"
           onClick={onPlayPause}
@@ -79,6 +95,9 @@ export function Player() {
         </button>
       </div>
       {src ? <audio ref={audioRef} src={src} className="hidden" onEnded={() => { if (useCue.getState().playing) togglePlay(); }} /> : null}
+      {openTrack && shown ? (
+        <TrackSheet artistName={shown.artistName} song={shown.song} onClose={() => setOpenTrack(false)} />
+      ) : null}
     </div>
   );
 }

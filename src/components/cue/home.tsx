@@ -6,9 +6,10 @@ import {
   recentTracks,
   shufflePick,
   upcomingEvents,
+  type Song,
 } from "@/lib/data";
 import { currentAccount, useCue } from "@/lib/store";
-import { ScreenHead, VerifiedMark } from "./chrome";
+import { ScreenHead, TrackSheet, VerifiedMark } from "./chrome";
 
 export function HomeScreen() {
   const artists = useCue((s) => s.artists);
@@ -20,6 +21,7 @@ export function HomeScreen() {
   const nowPlaying = useCue((s) => s.nowPlaying);
   const playing = useCue((s) => s.playing);
   const session = useCue((s) => currentAccount(s));
+  const [openTrack, setOpenTrack] = useState<{ song: Song; artistName: string } | null>(null);
 
   const listed = artists.filter(isListedArtist);
   const [featured, setFeatured] = useState(() => listed.slice(0, 6));
@@ -94,20 +96,27 @@ export function HomeScreen() {
             const active = nowPlaying?.song.id === song.id && playing;
             return (
               <li key={song.id} className="border-t border-line">
-                <button
-                  type="button"
-                  onClick={() => play({ song, artistName: artist.name, artistId: artist.id })}
-                  className="flex w-full items-center gap-3 px-5 py-3 text-left"
-                >
-                  <img src={song.cover} alt="" className="size-12 shrink-0 rounded-sm object-cover" />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{song.title}</p>
-                    <p className="truncate text-xs text-muted">{artist.name}</p>
-                  </div>
-                  <span className="flex size-10 items-center justify-center rounded-md bg-elevated">
+                <div className="flex items-center gap-2 px-5 py-3">
+                  <button
+                    type="button"
+                    onClick={() => setOpenTrack({ song, artistName: artist.name })}
+                    className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                  >
+                    <img src={song.cover} alt="" className="size-12 shrink-0 rounded-sm object-cover" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">{song.title}</p>
+                      <p className="truncate text-xs text-muted">{artist.name}</p>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => play({ song, artistName: artist.name, artistId: artist.id })}
+                    className="flex size-10 shrink-0 items-center justify-center rounded-md bg-elevated"
+                    aria-label={`Play ${song.title}`}
+                  >
                     <Play className={active ? "size-3 fill-accent text-accent" : "size-3 translate-x-px"} />
-                  </span>
-                </button>
+                  </button>
+                </div>
               </li>
             );
           })}
@@ -143,6 +152,9 @@ export function HomeScreen() {
           ))}
         </ul>
       </section>
+      {openTrack ? (
+        <TrackSheet artistName={openTrack.artistName} song={openTrack.song} onClose={() => setOpenTrack(null)} />
+      ) : null}
     </div>
   );
 }

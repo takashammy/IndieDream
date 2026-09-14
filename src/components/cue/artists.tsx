@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { isISR, isListedArtist, shufflePick, type Artist } from "@/lib/data";
+import { APP_NAME, isISR, isListedArtist, shufflePick, type Artist } from "@/lib/data";
 import { useCue } from "@/lib/store";
 import { ScreenHead, VerifiedMark } from "./chrome";
 
@@ -32,7 +32,7 @@ export function ArtistsScreen() {
       <section>
         <div className="px-5 pb-3">
           <p className="cue-kicker text-xs text-muted">Independent & verified</p>
-          <p className="mt-1 text-sm italic text-muted">Artists with a live track on Indie Dream.</p>
+          <p className="mt-1 text-sm italic text-muted">Artists with a live track on {APP_NAME}.</p>
         </div>
         <CatalogGrid artists={independents} />
       </section>

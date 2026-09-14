@@ -12,6 +12,7 @@ export type Song = {
   cover: string;
   uploadedAt: string;
   status: SongStatus;
+  lyrics?: string;
   spotify?: string;
   youtube?: string;
   audioUrl?: string;
@@ -74,6 +75,7 @@ export type BoardPost = {
   createdAt: string;
 };
 
+export const APP_NAME = "Dreamin' Indie";
 export const ISR_LABEL = "Inner Soul Records";
 export const LOCATIONS: LocationArea[] = ["HK Island", "Kowloon", "New Territories"];
 export const GENRE_OPTIONS = [
@@ -144,6 +146,7 @@ export const ARTISTS: Artist[] = [
         cover: "/media/covers/silk.jpg",
         uploadedAt: "2026-08-12T20:00:00+08:00",
         status: "approved",
+        lyrics: "After the last tram goes\nthe harbour still holds the heat\nHollywood Road, a half-sung street\nand I stay past the beat",
         spotify: sp("After Hours on Hollywood Road"),
         youtube: yt("After Hours on Hollywood Road"),
       },
@@ -190,6 +193,7 @@ export const ARTISTS: Artist[] = [
         cover: "/media/covers/guitar.jpg",
         uploadedAt: "2026-09-05T16:00:00+08:00",
         status: "approved",
+        lyrics: "Leave the lights on in Sham Shui\nI still know every crack in the floor\namp humming like a late minibus\nwaiting for someone to walk through the door",
         spotify: sp("Sham Shui Nights"),
         youtube: yt("Sham Shui Nights"),
       },
@@ -281,6 +285,7 @@ export const ARTISTS: Artist[] = [
         cover: "/media/covers/rain.jpg",
         uploadedAt: "2026-09-06T19:00:00+08:00",
         status: "approved",
+        lyrics: "Neon stall, two languages\none breath, no translation\nMong Kok keeps the clock\nand I keep the station",
         spotify: sp("Neon Stall Jun Park"),
         youtube: yt("Neon Stall Jun Park"),
       },
@@ -476,6 +481,7 @@ export const ARTISTS: Artist[] = [
         cover: "/media/covers/rain.jpg",
         uploadedAt: "2026-09-03T19:00:00+08:00",
         status: "approved",
+        lyrics: "Tin Hau after rain\nceiling fan, borrowed light\nI left a song on the stairs\nand came back for it at night",
         spotify: sp("Tin Hau After Rain"),
       },
       {
@@ -620,6 +626,7 @@ export const ARTISTS: Artist[] = [
         cover: "/media/covers/guitar.jpg",
         uploadedAt: "2026-09-01T21:00:00+08:00",
         status: "approved",
+        lyrics: "The desk goes dark\nthe guitar still knows the room\nHarbour Road is quiet\nso I write until the morning comes through",
       },
     ],
   },
@@ -644,6 +651,7 @@ export const ARTISTS: Artist[] = [
         cover: "/media/covers/silk.jpg",
         uploadedAt: "2026-09-02T20:00:00+08:00",
         status: "approved",
+        lyrics: "Lantern over Lai Chi Kok\nvoice first, paperwork later\nI keep a small room warm\nwhile the city gets greater",
       },
     ],
   },
