@@ -4,13 +4,13 @@ import { currentAccount, useCue } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { AreaInput, Field, PhotoPick, ScreenHead, SelectInput, Sheet, TextInput } from "./chrome";
 import { AdminMe } from "./admin";
-import { audioLimitCopy, inspectAudioFile } from "@/lib/audio-limits";
+import { AUDIO_PICK_ACCEPT, inspectAudioFile } from "@/lib/audio-limits";
 import { ArtistMe } from "./artist-me";
 
 function AudioLimitWarn({ reasons, onClose }: { reasons: string[]; onClose: () => void }) {
   return (
     <Sheet title="This file is over the limit" kicker="Upload" onClose={onClose}>
-      <p className="text-sm leading-6 text-muted">{APP_NAME} only takes streaming copies — 128 kbps or 5 MB, whichever comes first.</p>
+      <p className="text-sm leading-6 text-muted">{APP_NAME} only takes MP3 files up to 5 MB.</p>
       <ul className="mt-4 list-disc space-y-2 pl-5 text-sm leading-6 text-fg">{reasons.map((r) => <li key={r}>{r}</li>)}</ul>
       <button type="button" className="mt-6 flex h-11 w-full items-center justify-center rounded-md bg-accent text-sm text-accent-fg" onClick={onClose}>Choose another file</button>
     </Sheet>
@@ -114,7 +114,7 @@ function RegisterForm() {
     if (!trackTitle.trim()) setTrackTitle(file.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " "));
   }
   return (
-    <form className="cue-enter px-5 pb-12 pt-5" onSubmit={(e) => { e.preventDefault(); if (kind === "artist" && !fileName) { setError("Upload one track at 128 kbps or under 5 MB."); return; } setError(register({ username, password, email, kind, name, role, location, genre, label, bio, trackTitle: kind === "artist" ? trackTitle : undefined })); }}>
+    <form className="cue-enter px-5 pb-12 pt-5" onSubmit={(e) => { e.preventDefault(); if (kind === "artist" && !fileName) { setError("Upload one MP3, 5 MB or under."); return; } setError(register({ username, password, email, kind, name, role, location, genre, label, bio, trackTitle: kind === "artist" ? trackTitle : undefined })); }}>
       <p className="cue-kicker text-xs text-muted">Account</p>
       <h1 className="cue-name mt-1 font-display text-4xl leading-none">Register</h1>
       <div className="mt-6 space-y-4">
@@ -127,7 +127,7 @@ function RegisterForm() {
         <Field label="Location"><SelectInput value={location} onChange={(e) => setLocation(e.target.value as LocationArea)}>{LOCATIONS.map((l) => <option key={l}>{l}</option>)}</SelectInput></Field>
         {kind === "artist" ? (<><Field label="Genre"><SelectInput value={genre} onChange={(e) => setGenre(e.target.value)}>{GENRE_OPTIONS.map((g) => <option key={g}>{g}</option>)}</SelectInput></Field><Field label="Label"><TextInput value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Independent" /></Field>{claimsISR(label) ? <p className="text-sm italic text-accent">Inner Soul Records is assigned after review.</p> : null}</>) : null}
         <Field label="Bio / About me"><AreaInput rows={4} value={bio} onChange={(e) => setBio(e.target.value)} /></Field>
-        {kind === "artist" ? (<div><p className="text-xs text-muted">Track upload — audio only</p><TextInput className="mt-2" value={trackTitle} onChange={(e) => setTrackTitle(e.target.value)} placeholder="Track title" /><input ref={fileRef} type="file" accept="audio/*" className="hidden" onChange={onFile} /><button type="button" onClick={() => fileRef.current?.click()} className="mt-2 flex h-11 w-full items-center justify-center truncate rounded-md bg-elevated px-3 text-sm">{fileName ?? "Choose audio file"}</button></div>) : null}
+        {kind === "artist" ? (<div><p className="text-xs text-muted">Track upload — MP3 only, 5 MB max</p><TextInput className="mt-2" value={trackTitle} onChange={(e) => setTrackTitle(e.target.value)} placeholder="Track title" /><label className="relative mt-2 flex h-11 w-full items-center justify-center overflow-hidden rounded-md bg-elevated px-3 text-sm"><span className="pointer-events-none truncate">{fileName ?? "Choose MP3 file"}</span><input ref={fileRef} type="file" accept={AUDIO_PICK_ACCEPT} className="absolute inset-0 cursor-pointer opacity-0" onChange={onFile} /></label></div>) : null}
         {limitWarn ? <AudioLimitWarn reasons={limitWarn} onClose={() => setLimitWarn(null)} /> : null}
       </div>
       {error ? <p className="mt-3 text-sm text-accent">{error}</p> : null}
