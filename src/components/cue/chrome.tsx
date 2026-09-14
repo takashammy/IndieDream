@@ -4,6 +4,7 @@ import { ChevronLeft, ImagePlus, Music2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Song } from "@/lib/data";
+import { useCue } from "@/lib/store";
 
 export function BackRow({ label, onClick }: { label: string; onClick: () => void }) {
   return (
@@ -95,26 +96,12 @@ export function SocialPair({
   return (
     <div className="relative z-20 flex gap-1">
       {sp ? (
-        <a
-          href={sp}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={box}
-          aria-label="Spotify"
-          onClick={(e) => e.stopPropagation()}
-        >
+        <a href={sp} target="_blank" rel="noopener noreferrer" className={box} aria-label="Spotify" onClick={(e) => e.stopPropagation()}>
           <SpotifyIcon className="size-4" />
         </a>
       ) : null}
       {yt ? (
-        <a
-          href={yt}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={box}
-          aria-label="YouTube"
-          onClick={(e) => e.stopPropagation()}
-        >
+        <a href={yt} target="_blank" rel="noopener noreferrer" className={box} aria-label="YouTube" onClick={(e) => e.stopPropagation()}>
           <YoutubeIcon className="size-4" />
         </a>
       ) : null}
@@ -122,13 +109,7 @@ export function SocialPair({
   );
 }
 
-export function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: ReactNode;
-}) {
+export function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="block text-xs text-muted">
       {label}
@@ -170,39 +151,22 @@ export function PhotoPick({
 }) {
   const ref = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
-
   return (
     <div className="shrink-0">
-      <button
-        type="button"
-        onClick={() => ref.current?.click()}
-        className={cn("relative block overflow-hidden rounded-lg bg-elevated", className)}
-        aria-label={label}
-      >
+      <button type="button" onClick={() => ref.current?.click()} className={cn("relative block overflow-hidden rounded-lg bg-elevated", className)} aria-label={label}>
         <img src={src} alt="" className="size-full object-cover" />
         <span className="absolute bottom-1 right-1 flex size-8 items-center justify-center rounded-md bg-bg/80 text-fg">
           <ImagePlus className="size-3.5" />
         </span>
       </button>
-      <input
-        ref={ref}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          e.target.value = "";
-          if (!file) return;
-          readLocalImage(file)
-            .then((url) => {
-              setError(null);
-              onChange(url);
-            })
-            .catch((err: unknown) => {
-              setError(err instanceof Error ? err.message : "Could not read image.");
-            });
-        }}
-      />
+      <input ref={ref} type="file" accept="image/*" className="hidden" onChange={(e) => {
+        const file = e.target.files?.[0];
+        e.target.value = "";
+        if (!file) return;
+        readLocalImage(file).then((url) => { setError(null); onChange(url); }).catch((err: unknown) => {
+          setError(err instanceof Error ? err.message : "Could not read image.");
+        });
+      }} />
       {error ? <p className="mt-1 text-xs text-accent">{error}</p> : null}
     </div>
   );
@@ -210,37 +174,19 @@ export function PhotoPick({
 
 export function TextInput(props: InputHTMLAttributes<HTMLInputElement>) {
   return (
-    <input
-      {...props}
-      className={cn(
-        "mt-1 h-11 w-full rounded-md bg-elevated px-3 text-sm text-fg outline-none",
-        props.className,
-      )}
-    />
+    <input {...props} className={cn("mt-1 h-11 w-full rounded-md bg-elevated px-3 text-sm text-fg outline-none", props.className)} />
   );
 }
 
 export function SelectInput(props: SelectHTMLAttributes<HTMLSelectElement>) {
   return (
-    <select
-      {...props}
-      className={cn(
-        "mt-1 h-11 w-full rounded-md bg-elevated px-3 text-sm text-fg",
-        props.className,
-      )}
-    />
+    <select {...props} className={cn("mt-1 h-11 w-full rounded-md bg-elevated px-3 text-sm text-fg", props.className)} />
   );
 }
 
 export function AreaInput(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return (
-    <textarea
-      {...props}
-      className={cn(
-        "mt-1 w-full rounded-md bg-elevated px-3 py-2 text-sm text-fg outline-none",
-        props.className,
-      )}
-    />
+    <textarea {...props} className={cn("mt-1 w-full rounded-md bg-elevated px-3 py-2 text-sm text-fg outline-none", props.className)} />
   );
 }
 
@@ -250,33 +196,19 @@ export function Sheet({
   onClose,
   children,
 }: {
-  title: string;
+  title: ReactNode;
   kicker?: string;
   onClose: () => void;
   children: ReactNode;
 }) {
   const frame = (
     <div className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[calc(5rem+env(safe-area-inset-bottom))]">
-      <button
-        type="button"
-        className="fixed inset-0 bg-ink/45"
-        aria-label="Close"
-        onClick={onClose}
-      />
-      <div
-        role="dialog"
-        aria-modal="true"
-        className="relative z-10 mt-0 w-full max-w-lg bg-bg px-5 pb-8 pt-5"
-      >
+      <button type="button" className="fixed inset-0 bg-ink/45" aria-label="Close" onClick={onClose} />
+      <div role="dialog" aria-modal="true" className="relative z-10 mt-0 w-full max-w-lg bg-bg px-5 pb-8 pt-5">
         {kicker ? <p className="cue-kicker text-xs text-muted">{kicker}</p> : null}
         <div className="mt-1 flex items-start justify-between gap-3">
           <h2 className="cue-name font-display text-3xl leading-none">{title}</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex size-11 shrink-0 items-center justify-center text-muted"
-            aria-label="Close dialog"
-          >
+          <button type="button" onClick={onClose} className="flex size-11 shrink-0 items-center justify-center text-muted" aria-label="Close dialog">
             <X className="size-4" />
           </button>
         </div>
@@ -309,30 +241,11 @@ export function Confirm({
     <Sheet title={title} kicker="Please confirm" onClose={onClose}>
       <p className="text-sm leading-6 text-muted">{body}</p>
       <div className="mt-6 flex flex-col gap-2">
-        <Button
-          className="w-full"
-          onClick={() => {
-            onConfirm();
-            onClose();
-          }}
-        >
-          {confirmLabel}
-        </Button>
+        <Button className="w-full" onClick={() => { onConfirm(); onClose(); }}>{confirmLabel}</Button>
         {extra ? (
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={() => {
-              extra.onClick();
-              onClose();
-            }}
-          >
-            {extra.label}
-          </Button>
+          <Button variant="outline" className="w-full" onClick={() => { extra.onClick(); onClose(); }}>{extra.label}</Button>
         ) : null}
-        <Button variant="ghost" className="w-full" onClick={onClose}>
-          {cancelLabel}
-        </Button>
+        <Button variant="ghost" className="w-full" onClick={onClose}>{cancelLabel}</Button>
       </div>
     </Sheet>
   );
@@ -340,16 +253,24 @@ export function Confirm({
 
 export function TrackSheet({
   artistName,
+  artistId,
   song,
   onClose,
 }: {
   artistName: string;
+  artistId?: string;
   song: Song;
   onClose: () => void;
 }) {
+  const openArtist = useCue((s) => s.openArtist);
   const lyrics = song.lyrics?.trim();
+  const title = artistId ? (
+    <button type="button" className="text-left underline decoration-1 underline-offset-4" onClick={() => { onClose(); openArtist(artistId); }}>
+      {artistName}
+    </button>
+  ) : artistName;
   return (
-    <Sheet title={artistName} kicker="Track" onClose={onClose}>
+    <Sheet title={title} kicker="Track" onClose={onClose}>
       <p className="text-base font-medium leading-snug">{song.title}</p>
       {lyrics ? (
         <p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-muted">{lyrics}</p>
