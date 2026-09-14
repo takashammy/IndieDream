@@ -27,53 +27,57 @@ export const requestTrackPlay = createServerFn({ method: "POST" })
     }
   });
 
-export const uploadTrackBytes = createServerFn({ method: "POST" })
+export const requestTrackUpload = createServerFn({ method: "POST" })
   .validator(
     z.object({
       artistId: z.string().min(1),
       filename: z.string().min(1),
-      contentType: z.string().optional(),
-      base64: z.string().min(1),
     }),
   )
   .handler(async ({ data }) => {
     try {
-      const { r2Configured, putObject, safeTrackKey } = await import("@/lib/r2.server");
+      const { r2Configured, presign, safeTrackKey, ensureUploadCors } = await import("@/lib/r2.server");
       if (!r2Configured()) return { ok: false as const, error: "R2 is not configured on the server." };
-      const raw = Buffer.from(data.base64, "base64");
-      if (!raw.length) return { ok: false as const, error: "Empty audio file." };
-      if (raw.length > 5 * 1024 * 1024) return { ok: false as const, error: "File is over 5 MB." };
+      if (!/\.mp3$/i.test(data.filename)) return { ok: false as const, error: "MP3 files only." };
+      await ensureUploadCors().catch(() => undefined);
       const key = safeTrackKey(data.artistId, data.filename);
-      await putObject(key, raw, data.contentType || "audio/mpeg");
-      return { ok: true as const, key };
+      const signed = await presign("PUT", key, "audio/mpeg", 600);
+      return { ok: true as const, url: signed.url, key };
     } catch (err) {
-      return { ok: false as const, error: err instanceof Error ? err.message : "Server could not store the track." };
+      return { ok: false as const, error: err instanceof Error ? err.message : "Could not start the upload." };
     }
   });
 
-async function fileToBase64(file: File) {
-  const bytes = new Uint8Array(await file.arrayBuffer());
-  let bin = "";
-  const step = 0x8000;
-  for (let i = 0; i < bytes.length; i += step) bin += String.fromCharCode(...bytes.subarray(i, i + step));
-  return btoa(bin);
-}
-
 export async function putTrackFile(file: File, artistId: string) {
   try {
-    const uploaded = await uploadTrackBytes({
-      data: {
-        artistId,
-        filename: file.name,
-        contentType: file.type || "audio/mpeg",
-        base64: await fileToBase64(file),
-      },
+    if (!/\.mp3$/i.test(file.name)) {
+      return { ok: false as const, error: "MP3 files only." };
+    }
+    const signed = await requestTrackUpload({
+      data: { artistId, filename: file.name },
     });
-    return uploaded;
+    if (!signed.ok) return signed;
+    try {
+      const direct = await fetch(signed.url, {
+        method: "PUT",
+        headers: { "Content-Type": "audio/mpeg" },
+        body: file,
+      });
+      if (direct.ok) return { ok: true as const, key: signed.key };
+    } catch {
+      /* CORS or network — store through the app instead */
+    }
+    const res = await fetch(
+      `/api/track-upload?artistId=${encodeURIComponent(artistId)}&filename=${encodeURIComponent(file.name)}`,
+      { method: "POST", headers: { "Content-Type": "audio/mpeg" }, body: file },
+    );
+    const json = (await res.json()) as { ok?: boolean; key?: string; error?: string };
+    if (json.ok && json.key) return { ok: true as const, key: json.key };
+    return { ok: false as const, error: json.error || "Could not store the MP3." };
   } catch (err) {
     return {
       ok: false as const,
-      error: err instanceof Error ? `Sign/upload request failed: ${err.message}` : "Upload did not reach the server.",
+      error: err instanceof Error ? `Upload did not reach storage: ${err.message}` : "Upload did not reach storage.",
     };
   }
 }
