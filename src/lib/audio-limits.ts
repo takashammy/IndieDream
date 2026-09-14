@@ -9,9 +9,8 @@ export type AudioCheck = {
   seconds: number | null;
 };
 
-function isAudioFile(file: File) {
-  if (file.type.startsWith("audio/")) return true;
-  return /\.(mp3|m4a|aac|wav|ogg|flac|mpeg)$/i.test(file.name);
+export function isMp3File(file: File) {
+  return /\.mp3$/i.test(file.name);
 }
 
 function durationOf(file: File): Promise<number | null> {
@@ -33,8 +32,8 @@ function durationOf(file: File): Promise<number | null> {
 }
 
 export async function inspectAudioFile(file: File): Promise<AudioCheck> {
-  if (!isAudioFile(file)) {
-    return { ok: false, reasons: ["Audio files only."], kbps: null, bytes: file.size, seconds: null };
+  if (!isMp3File(file)) {
+    return { ok: false, reasons: ["MP3 files only."], kbps: null, bytes: file.size, seconds: null };
   }
 
   const seconds = await durationOf(file);
@@ -56,5 +55,5 @@ export async function inspectAudioFile(file: File): Promise<AudioCheck> {
 }
 
 export function audioLimitCopy() {
-  return "MP3 or AAC, 128 kbps max, 5 MB max.";
+  return "MP3 only, 128 kbps max, 5 MB max.";
 }
