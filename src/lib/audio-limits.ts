@@ -1,59 +1,53 @@
 export const MAX_AUDIO_BYTES = 5 * 1024 * 1024;
-export const MAX_AUDIO_KBPS = 128;
+
+/** Loose enough for iOS/Android Files; we still reject non-MP3 after pick. */
+export const AUDIO_PICK_ACCEPT = "audio/*,.mp3,audio/mpeg,audio/mp3";
 
 export type AudioCheck = {
   ok: boolean;
   reasons: string[];
-  kbps: number | null;
   bytes: number;
-  seconds: number | null;
 };
 
-export function isMp3File(file: File) {
-  return /\.mp3$/i.test(file.name);
+export function mp3Filename(file: File) {
+  const raw = (file.name || "track").trim() || "track";
+  return /\.mp3$/i.test(raw) ? raw : `${raw.replace(/\.[^.]+$/, "") || "track"}.mp3`;
 }
 
-function durationOf(file: File): Promise<number | null> {
-  return new Promise((resolve) => {
-    const url = URL.createObjectURL(file);
-    const audio = document.createElement("audio");
-    audio.preload = "metadata";
-    const done = (value: number | null) => {
-      URL.revokeObjectURL(url);
-      resolve(value);
-    };
-    audio.onloadedmetadata = () => {
-      const d = audio.duration;
-      done(Number.isFinite(d) && d > 0 ? d : null);
-    };
-    audio.onerror = () => done(null);
-    audio.src = url;
-  });
+function namedOrTypedMp3(file: File) {
+  if (/\.mp3$/i.test(file.name || "")) return true;
+  const type = (file.type || "").toLowerCase();
+  return type === "audio/mpeg" || type === "audio/mp3" || type === "audio/x-mpeg" || type === "audio/x-mp3";
+}
+
+function namedNonMp3(file: File) {
+  return /\.(m4a|aac|wav|flac|ogg|oga|aiff|aif|wma|caf|amr)$/i.test(file.name || "");
+}
+
+async function headerLooksLikeMp3(file: File) {
+  try {
+    const head = new Uint8Array(await file.slice(0, 3).arrayBuffer());
+    if (head.length < 2) return false;
+    if (head[0] === 0x49 && head[1] === 0x44 && head[2] === 0x33) return true;
+    return head[0] === 0xff && (head[1] & 0xe0) === 0xe0;
+  } catch {
+    return false;
+  }
 }
 
 export async function inspectAudioFile(file: File): Promise<AudioCheck> {
-  if (!isMp3File(file)) {
-    return { ok: false, reasons: ["MP3 files only."], kbps: null, bytes: file.size, seconds: null };
-  }
-
-  const seconds = await durationOf(file);
-  const kbps =
-    seconds && seconds > 0 ? Math.round((file.size * 8) / seconds / 1000) : null;
   const reasons: string[] = [];
-
+  const mp3 = namedOrTypedMp3(file) || (!namedNonMp3(file) && (await headerLooksLikeMp3(file)));
+  if (!mp3) {
+    reasons.push("MP3 files only. Export or convert the track to MP3 first.");
+  }
   if (file.size > MAX_AUDIO_BYTES) {
     const mb = file.size / (1024 * 1024);
-    reasons.push(
-      `This file is ${mb >= 10 ? mb.toFixed(0) : mb.toFixed(1)} MB. The limit is 5 MB.`,
-    );
+    reasons.push(`This file is ${mb >= 10 ? mb.toFixed(0) : mb.toFixed(1)} MB. The limit is 5 MB.`);
   }
-  if (kbps !== null && kbps > MAX_AUDIO_KBPS) {
-    reasons.push(`This file is about ${kbps} kbps. The highest quality we take is 128 kbps.`);
-  }
-
-  return { ok: reasons.length === 0, reasons, kbps, bytes: file.size, seconds };
+  return { ok: reasons.length === 0, reasons, bytes: file.size };
 }
 
 export function audioLimitCopy() {
-  return "MP3 only, 128 kbps max, 5 MB max.";
+  return "MP3 only, 5 MB max.";
 }

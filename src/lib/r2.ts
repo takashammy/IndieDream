@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { mp3Filename } from "@/lib/audio-limits";
 
 export function coverImage(cover?: string) {
   return (cover ?? "").split("#r2=")[0] || "/media/covers/vinyl.jpg";
@@ -50,11 +51,9 @@ export const requestTrackUpload = createServerFn({ method: "POST" })
 
 export async function putTrackFile(file: File, artistId: string) {
   try {
-    if (!/\.mp3$/i.test(file.name)) {
-      return { ok: false as const, error: "MP3 files only." };
-    }
+    const filename = mp3Filename(file);
     const signed = await requestTrackUpload({
-      data: { artistId, filename: file.name },
+      data: { artistId, filename },
     });
     if (!signed.ok) return signed;
     try {
@@ -68,7 +67,7 @@ export async function putTrackFile(file: File, artistId: string) {
       /* CORS or network — store through the app instead */
     }
     const res = await fetch(
-      `/api/track-upload?artistId=${encodeURIComponent(artistId)}&filename=${encodeURIComponent(file.name)}`,
+      `/api/track-upload?artistId=${encodeURIComponent(artistId)}&filename=${encodeURIComponent(filename)}`,
       { method: "POST", headers: { "Content-Type": "audio/mpeg" }, body: file },
     );
     const json = (await res.json()) as { ok?: boolean; key?: string; error?: string };
