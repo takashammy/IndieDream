@@ -3,13 +3,13 @@ import { GENRE_OPTIONS, ISR_LABEL, LOCATIONS, APP_NAME, claimsISR, type Location
 import { currentAccount, currentArtist, useCue } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { AreaInput, Field, PhotoPick, ScreenHead, SelectInput, Sheet, TextInput, VerifiedMark } from "./chrome";
-import { audioLimitCopy, inspectAudioFile } from "@/lib/audio-limits";
+import { audioLimitCopy, AUDIO_PICK_ACCEPT, inspectAudioFile } from "@/lib/audio-limits";
 import { coverImage, putTrackFile, r2KeyFromCover, withR2Cover } from "@/lib/r2";
 
 function AudioLimitWarn({ reasons, onClose }: { reasons: string[]; onClose: () => void }) {
   return (
     <Sheet title="This file is over the limit" kicker="Upload" onClose={onClose}>
-      <p className="text-sm leading-6 text-muted">{APP_NAME} only takes streaming copies — 128 kbps or 5 MB, whichever comes first.</p>
+      <p className="text-sm leading-6 text-muted">{APP_NAME} only takes MP3 files up to 5 MB.</p>
       <ul className="mt-4 list-disc space-y-2 pl-5 text-sm leading-6 text-fg">{reasons.map((r) => <li key={r}>{r}</li>)}</ul>
       <button type="button" className="mt-6 flex h-11 w-full items-center justify-center rounded-md bg-accent text-sm text-accent-fg" onClick={onClose}>Choose another file</button>
     </Sheet>
@@ -73,7 +73,7 @@ export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
     e.preventDefault();
     const nameOf = title.trim() || fileName?.replace(/\.[^.]+$/, "") || "";
     if (!nameOf) return;
-    if (!trackFile || !artist?.id) { setFileError("Choose an audio file first. " + audioLimitCopy()); return; }
+    if (!trackFile || !artist?.id) { setFileError("Choose an MP3 first. " + audioLimitCopy()); return; }
     setBusy(true); setFileError(null);
     const put = await putTrackFile(trackFile, artist.id);
     setBusy(false);
@@ -142,8 +142,17 @@ export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
             <Field label="Writers"><TextInput value={writers} onChange={(e) => setWriters(e.target.value)} /></Field>
             <Field label="Year"><TextInput value={year} onChange={(e) => setYear(e.target.value)} /></Field>
             <Field label="Lyrics"><AreaInput rows={6} value={lyrics} onChange={(e) => setLyrics(e.target.value)} placeholder="Optional" /></Field>
-            <input ref={fileRef} type="file" accept="audio/*" className="hidden" onChange={onFile} />
-            <button type="button" onClick={() => fileRef.current?.click()} className="flex h-11 w-full items-center justify-center truncate rounded-md bg-elevated px-3 text-sm">{fileName ?? "Choose audio file"}</button>
+            <p className="text-xs leading-5 text-subtle">MP3 only, 5 MB max. On a phone, open Files and pick the track — Voice Memos and Apple Music files need to be exported as MP3 first.</p>
+            <label className="relative mt-1 flex h-11 w-full items-center justify-center overflow-hidden rounded-md bg-elevated px-3 text-sm">
+              <span className="pointer-events-none truncate">{fileName ?? "Choose MP3 file"}</span>
+              <input
+                ref={fileRef}
+                type="file"
+                accept={AUDIO_PICK_ACCEPT}
+                className="absolute inset-0 cursor-pointer opacity-0"
+                onChange={onFile}
+              />
+            </label>
             {fileError ? <p className="text-sm text-accent">{fileError}</p> : null}
             <Button type="submit" className="w-full" disabled={busy}>{busy ? "Sending…" : "Submit for approval"}</Button>
           </form>
