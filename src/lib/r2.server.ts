@@ -45,7 +45,8 @@ function amzDate(now = new Date()) {
 }
 
 export function safeTrackKey(artistId: string, filename: string) {
-  const base = filename.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80) || "track";
+  let base = filename.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80) || "track";
+  if (!/\.mp3$/i.test(base)) base = `${base.replace(/\.[^.]+$/, "")}.mp3`;
   const id = artistId.replace(/[^a-zA-Z0-9_-]+/g, "-").slice(0, 40) || "artist";
   return `tracks/${id}/${Date.now()}-${base}`;
 }
@@ -70,24 +71,34 @@ export async function presign(method: "PUT" | "GET", key: string, contentType?: 
   const host = `${account}.r2.cloudflarestorage.com`;
   const { amz, day } = amzDate();
   const credential = `${access}/${day}/auto/s3/aws4_request`;
+  const includeType = method === "PUT" && Boolean(contentType);
+  const signedHeaders = includeType ? "content-type;host" : "host";
+  const canonicalHeaders = includeType
+    ? `content-type:${contentType}\nhost:${host}\n`
+    : `host:${host}\n`;
   const query: Record<string, string> = {
     "X-Amz-Algorithm": "AWS4-HMAC-SHA256",
     "X-Amz-Content-Sha256": "UNSIGNED-PAYLOAD",
     "X-Amz-Credential": credential,
     "X-Amz-Date": amz,
     "X-Amz-Expires": String(expires),
-    "X-Amz-SignedHeaders": "host",
+    "X-Amz-SignedHeaders": signedHeaders,
   };
   const canonicalQs = Object.keys(query)
     .sort()
     .map((k) => `${encodeRfc3986(k)}=${encodeRfc3986(query[k])}`)
     .join("&");
-  const canonical = [method, `/${bucket}/${key.split("/").map(encodeRfc3986).join("/")}`, canonicalQs, `host:${host}\n`, "host", "UNSIGNED-PAYLOAD"].join("\n");
+  const path = `/${bucket}/${key.split("/").map(encodeRfc3986).join("/")}`;
+  const canonical = [method, path, canonicalQs, canonicalHeaders, signedHeaders, "UNSIGNED-PAYLOAD"].join("\n");
   const digest = await sha256Hex(canonical);
   const scope = `${day}/auto/s3/aws4_request`;
   const signature = await hmacHex(await signingKey(secret, day), `AWS4-HMAC-SHA256\n${amz}\n${scope}\n${digest}`);
   const url = `https://${host}/${bucket}/${key.split("/").map(encodeURIComponent).join("/")}?${canonicalQs}&X-Amz-Signature=${signature}`;
   return { url, key, contentType: contentType || "audio/mpeg" };
+}
+
+export async function ensureUploadCors() {
+  return;
 }
 
 export async function putObject(key: string, body: Uint8Array, contentType: string) {
