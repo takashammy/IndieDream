@@ -6,10 +6,19 @@ import {
   recentTracks,
   shufflePick,
   upcomingEvents,
+  type Artist,
   type Song,
 } from "@/lib/data";
 import { currentAccount, useCue } from "@/lib/store";
 import { ScreenHead, TrackSheet, VerifiedMark } from "./chrome";
+
+function pickHomeArtists(listed: Artist[]) {
+  const label = listed.filter(isISR);
+  const rest = listed.filter((a) => !isISR(a));
+  const isr = shufflePick(label, Math.min(2, label.length));
+  const fill = shufflePick(rest, Math.max(0, 6 - isr.length));
+  return shufflePick([...isr, ...fill], isr.length + fill.length);
+}
 
 export function HomeScreen() {
   const artists = useCue((s) => s.artists);
@@ -21,14 +30,12 @@ export function HomeScreen() {
   const nowPlaying = useCue((s) => s.nowPlaying);
   const playing = useCue((s) => s.playing);
   const session = useCue((s) => currentAccount(s));
-  const [openTrack, setOpenTrack] = useState<{ song: Song; artistName: string } | null>(null);
+  const [openTrack, setOpenTrack] = useState<{ song: Song; artistName: string; artistId: string } | null>(null);
 
   const listed = artists.filter(isListedArtist);
-  const [featured, setFeatured] = useState(() => listed.slice(0, 6));
+  const [featured, setFeatured] = useState(() => pickHomeArtists(listed));
   useEffect(() => {
-    setFeatured(shufflePick(listed, 6));
-    // listed is captured on visit; reshuffle when returning to Home (remount)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setFeatured(pickHomeArtists(listed));
   }, []);
   const tracks = recentTracks(artists, 3);
   const soon = upcomingEvents(events, 3);
@@ -99,7 +106,7 @@ export function HomeScreen() {
                 <div className="flex items-center gap-2 px-5 py-3">
                   <button
                     type="button"
-                    onClick={() => setOpenTrack({ song, artistName: artist.name })}
+                    onClick={() => setOpenTrack({ song, artistName: artist.name, artistId: artist.id })}
                     className="flex min-w-0 flex-1 items-center gap-3 text-left"
                   >
                     <img src={song.cover} alt="" className="size-12 shrink-0 rounded-sm object-cover" />
@@ -143,7 +150,7 @@ export function HomeScreen() {
                 </div>
                 <div>
                   <p className="cue-name font-display text-lg leading-tight">{event.title}</p>
-                  <p className="mt-1 text-sm text-muted">
+                  <p className="mt-1 text-sm leading-6 text-muted">
                     {event.time} · {event.venue}
                   </p>
                 </div>
@@ -153,7 +160,7 @@ export function HomeScreen() {
         </ul>
       </section>
       {openTrack ? (
-        <TrackSheet artistName={openTrack.artistName} song={openTrack.song} onClose={() => setOpenTrack(null)} />
+        <TrackSheet artistName={openTrack.artistName} artistId={openTrack.artistId} song={openTrack.song} onClose={() => setOpenTrack(null)} />
       ) : null}
     </div>
   );

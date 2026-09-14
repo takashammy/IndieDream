@@ -1,7 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { Briefcase, Calendar, Compass, House, LayoutDashboard, MessageSquare, UserRound, Users } from "lucide-react";
 import { currentAccount, useCue, type TabId } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { setMainScroller, scrollMainToTop } from "@/lib/scroll-main";
 import { ArtistsScreen } from "./artists";
 import { ArtistProfile } from "./artist-profile";
 import { DiscoverScreen } from "./discover";
@@ -28,6 +29,11 @@ export function AppShell() {
   const artistId = useCue((s) => s.artistId);
   const eventId = useCue((s) => s.eventId);
   const postId = useCue((s) => s.postId);
+  const genre = useCue((s) => s.genre);
+  const servicePanel = useCue((s) => s.servicePanel);
+  const noticeId = useCue((s) => s.noticeId);
+  const meMode = useCue((s) => s.meMode);
+  const eventComposer = useCue((s) => s.eventComposer);
   const setTab = useCue((s) => s.setTab);
   const hydrate = useCue((s) => s.hydrate);
   const session = useCue((s) => currentAccount(s));
@@ -35,10 +41,20 @@ export function AppShell() {
   const enquiryPending = useCue((s) => s.notices.reduce((n, x) => n + (x.status === "pending" && x.kind === "enquiry" ? 1 : 0), 0));
   const admin = session?.kind === "admin";
   const masthead = tab === "home";
+  const scrollerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     hydrate();
   }, [hydrate]);
+
+  useEffect(() => {
+    setMainScroller(scrollerRef.current);
+    return () => setMainScroller(null);
+  }, []);
+
+  useLayoutEffect(() => {
+    scrollMainToTop();
+  }, [tab, artistId, eventId, postId, genre, servicePanel, noticeId, meMode, eventComposer]);
 
   return (
     <div className="flex min-h-dvh flex-col bg-bg text-fg">
@@ -68,7 +84,7 @@ export function AppShell() {
       </div>
 
       <main className="relative mx-auto flex min-h-0 w-full max-w-lg flex-1 flex-col">
-        <div className="flex-1 overflow-y-auto pb-2">
+        <div ref={scrollerRef} className="flex-1 overflow-y-auto pb-2">
           {tab === "home" ? <HomeScreen /> : null}
           {tab === "artists" && artistId ? <ArtistProfile id={artistId} /> : null}
           {tab === "artists" && !artistId ? <ArtistsScreen /> : null}
