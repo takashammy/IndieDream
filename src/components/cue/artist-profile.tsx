@@ -111,7 +111,7 @@ export function ArtistProfile({ id }: { id: string }) {
       ) : null}
       {admin ? <div className="px-5 pt-8"><Button variant="outline" className="w-full" onClick={() => setConfirmDelete(true)}>Delete profile</Button></div> : null}
       {confirmDelete ? <Confirm title="Delete this profile?" body={`Remove ${artist.name} from ${APP_NAME}. This cannot be undone.`} confirmLabel="Yes" cancelLabel="Cancel" onConfirm={() => deleteArtist(artist.id)} onClose={() => setConfirmDelete(false)} /> : null}
-      {openSong ? <TrackSheet artistName={artist.name} song={openSong} onClose={() => setOpenSong(null)} /> : null}
+      {openSong ? <TrackSheet artistName={artist.name} artistId={artist.id} song={openSong} onClose={() => setOpenSong(null)} /> : null}
     </div>
   );
 }
