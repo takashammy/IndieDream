@@ -96,7 +96,7 @@ export function Player() {
       </div>
       {src ? <audio ref={audioRef} src={src} className="hidden" onEnded={() => { if (useCue.getState().playing) togglePlay(); }} /> : null}
       {openTrack && shown ? (
-        <TrackSheet artistName={shown.artistName} song={shown.song} onClose={() => setOpenTrack(false)} />
+        <TrackSheet artistName={shown.artistName} artistId={shown.artistId} song={shown.song} onClose={() => setOpenTrack(false)} />
       ) : null}
     </div>
   );
