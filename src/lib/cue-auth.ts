@@ -86,9 +86,6 @@ export const registerAccount = createServerFn({ method: "POST" })
       return { ok: false as const, error: "Password must be at least 8 characters." };
     }
     const email = data.email.trim().toLowerCase();
-    if (!/[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && !/^[\^\s@]+@[\^\s@]+\.[\^\s@]+$/.test(email)) {
-      // keep original regex below via second check replacement — use standard email regex
-    }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return { ok: false as const, error: "Enter a valid email." };
     }
