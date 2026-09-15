@@ -1,4 +1,4 @@
-const VERSION = "indie-dream-shell-v2";
+const VERSION = "indie-dream-shell-v3";
 const SHELL = [
   "/",
   "/offline.html",
