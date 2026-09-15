@@ -50,7 +50,7 @@ export function Splash() {
           alt="Inner Soul Records"
           width={1047}
           height={789}
-          className="brand-mark mt-5 w-full max-w-72"
+          className="brand-mark mt-5 w-full max-w-52"
         />
       </div>
     </div>
