@@ -14,11 +14,8 @@ import { ScreenHead, TrackSheet, VerifiedMark } from "./chrome";
 import { eventDateParts, useLocale, useT, weekdayLabel } from "@/lib/i18n";
 
 function pickHomeArtists(listed: Artist[]) {
-  const label = listed.filter(isISR);
-  const rest = listed.filter((a) => !isISR(a));
-  const isr = shufflePick(label, Math.min(2, label.length));
-  const fill = shufflePick(rest, Math.max(0, 6 - isr.length));
-  return shufflePick([...isr, ...fill], isr.length + fill.length);
+  const rest = listed.filter((a) => a.verified);
+  return shufflePick(rest, Math.min(6, rest.length));
 }
 
 export function HomeScreen() {
@@ -40,11 +37,10 @@ export function HomeScreen() {
   const [featured, setFeatured] = useState(() => listed.slice(0, 6));
   useEffect(() => {
     setFeatured(pickHomeArtists(listed));
-    // listed is captured on visit; reshuffle when returning to Home (remount)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  const tracks = recentTracks(artists, 3);
-  const soon = upcomingEvents(events, 3);
+  const tracks = recentTracks(artists, 8).filter(({ song }) => song.status === "approved").slice(0, 3);
+  const soon = upcomingEvents(events, 3).filter((event) => event.status === "approved");
 
   return (
     <div className="cue-enter pb-10">
