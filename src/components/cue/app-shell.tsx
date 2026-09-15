@@ -16,7 +16,7 @@ import { Player } from "./player";
 import { Gate } from "./gate";
 import { Splash } from "./splash";
 import { InstallBanner, OfflineBanner } from "./pwa-chrome";
-import { registerServiceWorker } from "@/lib/pwa";
+import { dropLegacyStudioCache, registerServiceWorker } from "@/lib/pwa";
 
 const TABS: Array<{ id: TabId; label: Msg; icon: typeof Users }> = [
   { id: "artists", label: "tabArtists", icon: Users },
@@ -50,6 +50,7 @@ export function AppShell() {
   const { locale, hydrateLocale } = useLocale();
 
   useEffect(() => {
+    dropLegacyStudioCache();
     hydrate();
   }, [hydrate]);
 
