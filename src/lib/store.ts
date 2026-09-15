@@ -47,6 +47,7 @@ export type Account = {
   email: string;
   whatsapp: string;
   artistId?: string;
+  acceptedUploadTerms?: boolean;
 };
 
 export type NoticeKind = "verify" | "label" | "event" | "song" | "enquiry";
@@ -153,6 +154,8 @@ export type CueState = PersistSlice & {
     extra?: { cover?: string; spotify?: string; youtube?: string; lyrics?: string },
   ) => void;
   updateSongLinks: (songId: string, extra: { spotify?: string; youtube?: string; cover?: string }) => void;
+  deleteSong: (songId: string) => void;
+  acceptUploadTerms: () => void;
   setProfilePhoto: (photo: string) => void;
   addPost: (post: Pick<BoardPost, "title" | "body" | "category">) => void;
   addReply: (postId: string, body: string) => void;
@@ -1060,6 +1063,7 @@ export const useCue = create<CueState>((set, get) => {
         email,
         whatsapp: "",
         artistId,
+        acceptedUploadTerms: input.kind === "artist" ? true : undefined,
       };
       const notices = [...get().notices];
       if (artist) {
@@ -1268,6 +1272,34 @@ export const useCue = create<CueState>((set, get) => {
               },
         ),
         nowPlaying: np && patched && np.song.id === songId ? { ...np, song: patched } : np,
+      });
+      persist();
+    },
+
+    deleteSong: (songId) => {
+      const artist = currentArtist(get());
+      if (!artist || !artist.songs.some((s) => s.id === songId)) return;
+      const np = get().nowPlaying;
+      const playingThis = np?.song.id === songId;
+      set({
+        artists: get().artists.map((a) =>
+          a.id === artist.id ? { ...a, songs: a.songs.filter((s) => s.id !== songId) } : a,
+        ),
+        notices: get().notices.filter((n) => !(n.kind === "song" && n.refId === songId)),
+        nowPlaying: playingThis ? null : np,
+        playing: playingThis ? false : get().playing,
+        noticeId: get().notices.find((n) => n.id === get().noticeId && n.refId === songId)
+          ? null
+          : get().noticeId,
+      });
+      persist();
+    },
+
+    acceptUploadTerms: () => {
+      const acc = currentAccount(get());
+      if (!acc || acc.acceptedUploadTerms) return;
+      set({
+        accounts: get().accounts.map((a) => (a.id === acc.id ? { ...a, acceptedUploadTerms: true } : a)),
       });
       persist();
     },

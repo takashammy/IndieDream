@@ -77,6 +77,8 @@ export type BoardPost = {
 
 export const APP_NAME = "Dreamin' Indie";
 export const ISR_LABEL = "Inner Soul Records";
+export const UPLOAD_TERMS =
+  "By uploading your song onto the platform, you give Inner Soul Records and Dreamin' Indie the right to promote your songs on the platform and at other venues, and in return you waive all rights to any copyright claims. You may delete your songs from the platform at any time. By continuing to upload, you automatically agree to this agreement.";
 export const LOCATIONS: LocationArea[] = ["HK Island", "Kowloon", "New Territories"];
 export const GENRE_OPTIONS = [
   "Jazz",

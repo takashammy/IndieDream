@@ -1,8 +1,8 @@
 import { useRef, useState, type ChangeEvent } from "react";
-import { APP_NAME, GENRE_OPTIONS, KIND_LABEL, LOCATIONS, claimsISR, type LocationArea } from "@/lib/data";
+import { APP_NAME, GENRE_OPTIONS, KIND_LABEL, LOCATIONS, UPLOAD_TERMS, claimsISR, type LocationArea } from "@/lib/data";
 import { currentAccount, useCue } from "@/lib/store";
 import { Button } from "@/components/ui/button";
-import { AreaInput, Field, PhotoPick, ScreenHead, SelectInput, Sheet, TextInput } from "./chrome";
+import { AreaInput, Confirm, Field, PhotoPick, ScreenHead, SelectInput, Sheet, TextInput } from "./chrome";
 import { AdminMe } from "./admin";
 import { AUDIO_PICK_ACCEPT, inspectAudioFile } from "@/lib/audio-limits";
 import { ArtistMe } from "./artist-me";
@@ -104,6 +104,7 @@ function RegisterForm() {
   const [fileName, setFileName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [limitWarn, setLimitWarn] = useState<string[] | null>(null);
+  const [termsOpen, setTermsOpen] = useState(false);
   async function onFile(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
@@ -113,8 +114,15 @@ function RegisterForm() {
     setLimitWarn(null); setError(null); setFileName(file.name);
     if (!trackTitle.trim()) setTrackTitle(file.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " "));
   }
+  function submitRegister() {
+    if (kind === "artist" && !fileName) {
+      setError("Upload one MP3, 5 MB or under.");
+      return;
+    }
+    setError(register({ username, password, email, kind, name, role, location, genre, label, bio, trackTitle: kind === "artist" ? trackTitle : undefined }));
+  }
   return (
-    <form className="cue-enter px-5 pb-12 pt-5" onSubmit={(e) => { e.preventDefault(); if (kind === "artist" && !fileName) { setError("Upload one MP3, 5 MB or under."); return; } setError(register({ username, password, email, kind, name, role, location, genre, label, bio, trackTitle: kind === "artist" ? trackTitle : undefined })); }}>
+    <form className="cue-enter px-5 pb-12 pt-5" onSubmit={(e) => { e.preventDefault(); if (kind === "artist") { if (!fileName) { setError("Upload one MP3, 5 MB or under."); return; } setTermsOpen(true); return; } submitRegister(); }}>
       <p className="cue-kicker text-xs text-muted">Account</p>
       <h1 className="cue-name mt-1 font-display text-4xl leading-none">Register</h1>
       <div className="mt-6 space-y-4">
@@ -133,6 +141,16 @@ function RegisterForm() {
       {error ? <p className="mt-3 text-sm text-accent">{error}</p> : null}
       <Button type="submit" className="mt-5 w-full">Create account</Button>
       <button type="button" className="mt-4 w-full text-center text-sm text-muted" onClick={() => setMeMode("login")}>Already registered? Log in</button>
+      {termsOpen ? (
+        <Confirm
+          title="Upload agreement"
+          body={UPLOAD_TERMS}
+          confirmLabel="Agree and continue"
+          cancelLabel="Not now"
+          onConfirm={submitRegister}
+          onClose={() => setTermsOpen(false)}
+        />
+      ) : null}
     </form>
   );
 }

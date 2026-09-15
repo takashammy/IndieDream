@@ -1,8 +1,8 @@
 import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
-import { GENRE_OPTIONS, ISR_LABEL, LOCATIONS, APP_NAME, claimsISR, type LocationArea, type Song } from "@/lib/data";
+import { GENRE_OPTIONS, ISR_LABEL, LOCATIONS, APP_NAME, UPLOAD_TERMS, claimsISR, type LocationArea, type Song } from "@/lib/data";
 import { currentAccount, currentArtist, useCue } from "@/lib/store";
 import { Button } from "@/components/ui/button";
-import { AreaInput, Field, PhotoPick, ScreenHead, SelectInput, Sheet, TextInput, VerifiedMark } from "./chrome";
+import { AreaInput, Confirm, Field, PhotoPick, ScreenHead, SelectInput, Sheet, TextInput, VerifiedMark } from "./chrome";
 import { audioLimitCopy, AUDIO_PICK_ACCEPT, inspectAudioFile } from "@/lib/audio-limits";
 import { coverImage, putTrackFile, r2KeyFromCover, withR2Cover } from "@/lib/r2";
 
@@ -23,6 +23,8 @@ export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
   const setProfilePhoto = useCue((s) => s.setProfilePhoto);
   const addPendingSong = useCue((s) => s.addPendingSong);
   const updateSongLinks = useCue((s) => s.updateSongLinks);
+  const deleteSong = useCue((s) => s.deleteSong);
+  const acceptUploadTerms = useCue((s) => s.acceptUploadTerms);
   const logout = useCue((s) => s.logout);
   const [openDetails, setOpenDetails] = useState(false);
   const [openSongs, setOpenSongs] = useState(false);
@@ -51,6 +53,8 @@ export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
   const [fileError, setFileError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [limitWarn, setLimitWarn] = useState<string[] | null>(null);
+  const [termsOpen, setTermsOpen] = useState(false);
+  const [dropSong, setDropSong] = useState<Song | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   function onSave(e: FormEvent) {
@@ -69,22 +73,52 @@ export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
     if (!title.trim()) setTitle(file.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " "));
   }
 
+  async function finishUpload() {
+    const nameOf = title.trim() || fileName?.replace(/\.[^.]+$/, "") || "";
+    if (!nameOf || !trackFile || !artist?.id) {
+      setFileError("Choose an MP3 first. " + audioLimitCopy());
+      return;
+    }
+    setBusy(true);
+    setFileError(null);
+    const put = await putTrackFile(trackFile, artist.id);
+    setBusy(false);
+    if (!put.ok) {
+      setFileError(put.error);
+      return;
+    }
+    addPendingSong(nameOf, { spotify: trackSpotify, youtube: trackYoutube, cover: withR2Cover(trackCover ?? undefined, put.key), lyrics });
+    setTitle("");
+    setTrackGenre(GENRE_OPTIONS[0]);
+    setWriters("");
+    setYear("");
+    setLyrics("");
+    setTrackSpotify("");
+    setTrackYoutube("");
+    setTrackCover(null);
+    setFileName(null);
+    setTrackFile(null);
+    setOpenUpload(false);
+    setOpenSongs(true);
+    if (fileRef.current) fileRef.current.value = "";
+  }
+
   async function onUpload(e: FormEvent) {
     e.preventDefault();
     const nameOf = title.trim() || fileName?.replace(/\.[^.]+$/, "") || "";
     if (!nameOf) return;
-    if (!trackFile || !artist?.id) { setFileError("Choose an MP3 first. " + audioLimitCopy()); return; }
-    setBusy(true); setFileError(null);
-    const put = await putTrackFile(trackFile, artist.id);
-    setBusy(false);
-    if (!put.ok) { setFileError(put.error); return; }
-    addPendingSong(nameOf, { spotify: trackSpotify, youtube: trackYoutube, cover: withR2Cover(trackCover ?? undefined, put.key), lyrics });
-    setTitle(""); setTrackGenre(GENRE_OPTIONS[0]); setWriters(""); setYear(""); setLyrics(""); setTrackSpotify(""); setTrackYoutube(""); setTrackCover(null); setFileName(null); setTrackFile(null); setOpenUpload(false); setOpenSongs(true);
-    if (fileRef.current) fileRef.current.value = "";
+    if (!trackFile || !artist?.id) {
+      setFileError("Choose an MP3 first. " + audioLimitCopy());
+      return;
+    }
+    if (!acc.acceptedUploadTerms) {
+      setTermsOpen(true);
+      return;
+    }
+    await finishUpload();
   }
 
-  const pending = artist?.songs.filter((s) => s.status === "pending") ?? [];
-  const live = artist?.songs.filter((s) => s.status === "approved") ?? [];
+  const songs = artist?.songs ?? [];
 
   return (
     <div className={embedded ? "border-t border-line pb-4 pt-2" : "cue-enter pb-12"}>
@@ -122,8 +156,8 @@ export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
       {openSongs ? (
         <section className="mt-4 px-5">
           <p className="text-sm text-muted">{audioLimitCopy()}</p>
-          {pending.length + live.length === 0 ? <p className="mt-3 text-sm text-subtle">Nothing in the queue yet.</p> : (
-            <ul className="mt-3 divide-y divide-line border-y border-line">{[...pending, ...live].map((song) => <SongLinksRow key={song.id} song={song} onSave={(extra) => updateSongLinks(song.id, extra)} />)}</ul>
+          {songs.length === 0 ? <p className="mt-3 text-sm text-subtle">Nothing in the queue yet.</p> : (
+            <ul className="mt-3 divide-y divide-line border-y border-line">{songs.map((song) => <SongLinksRow key={song.id} song={song} onSave={(extra) => updateSongLinks(song.id, extra)} onDelete={() => setDropSong(song)} />)}</ul>
           )}
         </section>
       ) : null}
@@ -159,11 +193,33 @@ export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
         </Sheet>
       ) : null}
       {limitWarn ? <AudioLimitWarn reasons={limitWarn} onClose={() => setLimitWarn(null)} /> : null}
+      {termsOpen ? (
+        <Confirm
+          title="Upload agreement"
+          body={UPLOAD_TERMS}
+          confirmLabel="Agree and upload"
+          cancelLabel="Not now"
+          onConfirm={() => {
+            acceptUploadTerms();
+            void finishUpload();
+          }}
+          onClose={() => setTermsOpen(false)}
+        />
+      ) : null}
+      {dropSong ? (
+        <Confirm
+          title="Delete this song?"
+          body={`Remove “${dropSong.title}” from ${APP_NAME}. You can upload it again later.`}
+          confirmLabel="Delete song"
+          onConfirm={() => deleteSong(dropSong.id)}
+          onClose={() => setDropSong(null)}
+        />
+      ) : null}
     </div>
   );
 }
 
-function SongLinksRow({ song, onSave }: { song: Song; onSave: (extra: { spotify?: string; youtube?: string; cover?: string }) => void }) {
+function SongLinksRow({ song, onSave, onDelete }: { song: Song; onSave: (extra: { spotify?: string; youtube?: string; cover?: string }) => void; onDelete: () => void }) {
   const [sp, setSp] = useState(song.spotify ?? "");
   const [yt, setYt] = useState(song.youtube ?? "");
   const dirty = sp !== (song.spotify ?? "") || yt !== (song.youtube ?? "");
@@ -173,13 +229,14 @@ function SongLinksRow({ song, onSave }: { song: Song; onSave: (extra: { spotify?
         <PhotoPick src={coverImage(song.cover)} label={`Change cover art for ${song.title}`} className="size-12 shrink-0" onChange={(cover) => { const key = r2KeyFromCover(song.cover); onSave({ spotify: sp, youtube: yt, cover: key ? withR2Cover(cover, key) : cover }); }} />
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium">{song.title}</p>
-          <p className="text-xs text-muted">{song.status === "approved" ? "Live" : "Awaiting approval"}</p>
+          <p className="text-xs text-muted">{song.status === "approved" ? "Live" : song.status === "declined" ? "Declined" : "Awaiting approval"}</p>
         </div>
       </div>
       <div className="mt-2 space-y-2">
         <TextInput type="url" value={sp} onChange={(e) => setSp(e.target.value)} placeholder="Spotify URL for this song" />
         <TextInput type="url" value={yt} onChange={(e) => setYt(e.target.value)} placeholder="YouTube URL for this song" />
         {dirty ? <Button type="button" variant="subtle" size="sm" className="w-full" onClick={() => onSave({ spotify: sp, youtube: yt })}>Save song links</Button> : null}
+        <Button type="button" variant="ghost" size="sm" className="w-full" onClick={onDelete}>Delete song</Button>
       </div>
     </li>
   );
