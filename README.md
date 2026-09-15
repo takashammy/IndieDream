@@ -2,12 +2,18 @@
 
 A platform for musicians chasing dreams — Inner Soul Records, Hong Kong.
 
-Press look, roster, dates, noticeboard, and three services:
+The live site is built from this repository on Vercel. Shared studio data lives in Neon Postgres.
 
-- Music publishing
-- Music as a Service
-- Music lessons
+## First admin after a wipe
 
-The live site is built from this repository on Vercel. Shared studio data (posts, approvals, bookings, profiles) lives in Neon Postgres.
+Demo staff logins are no longer in the app. After deploy:
 
-Demo desk login: `admin` / `inner-soul`
+1. In Vercel → Project → Settings → Environment Variables, add  
+   `ADMIN_SETUP_SECRET` = a long random phrase only you know.
+2. Redeploy.
+3. Open the site → **Me** → **Open the Desk**.
+4. Enter that setup key, then your name, username, email, and a new password (8+ characters).
+5. That creates the only admin. The form will not work again once an admin exists.
+6. Extra staff accounts can be added later from a signed-in Desk session (server function `createStaffAdmin`).
+
+Do not put passwords in this repository.
