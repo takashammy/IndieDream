@@ -176,23 +176,34 @@ export function renderWebManifest(hostHeader, site = {}) {
   const branded = Boolean(String(site.title ?? "").trim()) && name === String(site.title).trim();
   const theme = branded ? "#f3eadb" : pwaSurfaceColor(site);
   const background = branded ? "#1c1612" : pwaSurfaceColor(site);
+  const description = String(site.description ?? "").trim();
+  const grokIcon = {
+    src: "/__grok/icon-180.png",
+    sizes: "180x180",
+    type: "image/png",
+  };
+  const brandedIcons = [
+    { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+    { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+    { src: "/icon-512-maskable.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+    { src: "/icon-180.png", sizes: "180x180", type: "image/png" },
+  ];
   return JSON.stringify(
     {
       name,
       short_name: name,
+      description: description || undefined,
       id: "/",
       start_url: "/",
       scope: "/",
       display: "standalone",
+      display_override: ["standalone", "browser"],
+      orientation: "portrait",
+      lang: "en",
+      categories: ["music", "entertainment"],
       background_color: background,
       theme_color: theme,
-      icons: [
-        {
-          src: "/__grok/icon-180.png",
-          sizes: "180x180",
-          type: "image/png",
-        },
-      ],
+      icons: branded ? brandedIcons : [grokIcon],
     },
     null,
     2,

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#1c1612" />
+    <meta name="apple-mobile-web-app-title" content="Dreamin' Indie" />
+    <title>Dreamin' Indie</title>
+    <style>
+      :root {
+        --bg: #1c1612;
+        --fg: #f3eadb;
+        --muted: #c4b49f;
+        --accent: #9a3b2f;
+        --accent-fg: #fff8ee;
+      }
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font-family: Georgia, "Times New Roman", serif;
+      }
+      .wrap {
+        box-sizing: border-box;
+        min-height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 2.5rem 1.5rem calc(2.5rem + env(safe-area-inset-bottom));
+        text-align: center;
+      }
+      .kicker {
+        margin: 0;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        font-size: 0.7rem;
+        color: var(--muted);
+      }
+      h1 {
+        margin: 0.75rem 0 0;
+        font-size: 2.4rem;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        line-height: 1;
+      }
+      p {
+        margin: 1rem 0 0;
+        max-width: 22rem;
+        line-height: 1.6;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+      img {
+        width: min(13rem, 70vw);
+        height: auto;
+        margin-top: 1.75rem;
+      }
+      a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: 2.75rem;
+        margin-top: 1.75rem;
+        padding: 0 1.25rem;
+        background: var(--accent);
+        color: var(--accent-fg);
+        text-decoration: none;
+        font-size: 0.875rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <p class="kicker">Dreamin' Indie</p>
+      <h1>You're offline</h1>
+      <p>Home, roster, and Me still open from what's already on this device. We'll reconnect when the network's back.</p>
+      <img src="/media/inner-soul-logo.png" width="1047" height="789" alt="Inner Soul Records" />
+      <a href="/">Try again</a>
+    </main>
+  </body>
+</html>

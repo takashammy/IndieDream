@@ -15,6 +15,8 @@ import { ServicesScreen } from "./services";
 import { Player } from "./player";
 import { Gate } from "./gate";
 import { Splash } from "./splash";
+import { InstallBanner, OfflineBanner } from "./pwa-chrome";
+import { registerServiceWorker } from "@/lib/pwa";
 
 const TABS: Array<{ id: TabId; label: Msg; icon: typeof Users }> = [
   { id: "artists", label: "tabArtists", icon: Users },
@@ -50,6 +52,10 @@ export function AppShell() {
   useEffect(() => {
     hydrate();
   }, [hydrate]);
+
+  useEffect(() => {
+    registerServiceWorker();
+  }, []);
 
   useEffect(() => {
     hydrateLocale();
@@ -94,6 +100,7 @@ export function AppShell() {
       <div className="sticky top-0 z-40">
         <Player />
       </div>
+      <OfflineBanner />
 
       <main className="relative mx-auto flex min-h-0 w-full max-w-lg flex-1 flex-col">
         <div ref={scrollerRef} className="flex-1 overflow-y-auto pb-2">
@@ -109,6 +116,8 @@ export function AppShell() {
 
         {tab === "events" && !eventId ? <EventsFab /> : null}
         {tab === "board" && !postId ? <BoardFab /> : null}
+
+        <InstallBanner />
 
         <nav
           className="sticky bottom-0 z-40 border-t border-line bg-bg/95 pb-[max(0.4rem,env(safe-area-inset-bottom))] pt-1 backdrop-blur-md"
