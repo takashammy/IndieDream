@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { currentAccount, useCue } from "@/lib/store";
 import { useLocale, useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -38,6 +39,9 @@ export function LanguageToggle({ className }: { className?: string }) {
           {t("langZh")}
         </button>
       </div>
+      <Link to="/terms" className="mt-4 block text-center text-xs text-muted underline decoration-1 underline-offset-4">
+        {t("legalLink")}
+      </Link>
     </div>
   );
 }
