@@ -1,10 +1,24 @@
 import { useLocaleStore } from "@/lib/locale";
 import { EN } from "@/lib/i18n-en";
 import { ZH } from "@/lib/i18n-zh";
+import { UPLOAD_TERMS } from "@/lib/legal";
 
 export type Locale = "en" | "zh";
 
-export type Msg = keyof typeof EN;
+export type Msg = keyof typeof EN | "legalLink" | "privacyTitle";
+
+const EXTRA: Record<Locale, Record<string, string>> = {
+  en: {
+    uploadTerms: UPLOAD_TERMS.en,
+    legalLink: "Privacy & terms",
+    privacyTitle: "Privacy & terms",
+  },
+  zh: {
+    uploadTerms: UPLOAD_TERMS.zh,
+    legalLink: "私隱及條款",
+    privacyTitle: "私隱及條款",
+  },
+};
 
 function fill(s: string, vars?: Record<string, string | number>) {
   if (!vars) return s;
@@ -12,8 +26,10 @@ function fill(s: string, vars?: Record<string, string | number>) {
 }
 
 export function t(locale: Locale, key: Msg, vars?: Record<string, string | number>) {
+  const extra = EXTRA[locale]?.[key];
+  if (extra) return fill(extra, vars);
   const table = locale === "zh" ? ZH : EN;
-  const raw = table[key] ?? EN[key] ?? String(key);
+  const raw = table[key as keyof typeof EN] ?? EN[key as keyof typeof EN] ?? String(key);
   return fill(raw, vars);
 }
 
@@ -91,7 +107,6 @@ export const STORE_ERR: Record<string, Msg> = {
   "Upload one track so we can review you.": "errUploadTrack",
   "Username or password is wrong.": "errWrong",
   "No account uses that email.": "errNoAccount",
-  "No account with that email.": "errNoEmail",
   "This account has been removed.": "errRemoved",
   "This account has been removed from Dreamin' Indie.": "errRemoved",
   "Password is too short.": "errShortPass",
