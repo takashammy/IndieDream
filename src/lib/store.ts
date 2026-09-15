@@ -1,1 +1,1 @@
-SEE_LOCAL_/tmp/store.ts
+RESTORE_FROM_FILE
