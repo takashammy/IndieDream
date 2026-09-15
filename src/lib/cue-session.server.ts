@@ -216,3 +216,21 @@ export function requireAdmin(session: CueSession | null): CueSession {
   }
   return session;
 }
+
+/** Artists may only upload onto their own page. Desk staff may help any page. */
+export function canUploadToArtist(
+  session: CueSession | null,
+  artistId: string,
+): { ok: true } | { ok: false; error: string; status: number } {
+  if (!session) return { ok: false, error: "Log in first.", status: 401 };
+  const target = artistId.trim();
+  if (!target) return { ok: false, error: "Missing artist.", status: 400 };
+  if (session.kind === "admin") return { ok: true };
+  if (session.kind !== "artist") {
+    return { ok: false, error: "Only artists can upload songs.", status: 403 };
+  }
+  const mine = session.account.artistId ? String(session.account.artistId) : "";
+  if (!mine) return { ok: false, error: "No artist page on this account.", status: 403 };
+  if (mine !== target) return { ok: false, error: "That artist page is not yours.", status: 403 };
+  return { ok: true };
+}
