@@ -1,7 +1,7 @@
 export const MAX_AUDIO_BYTES = 5 * 1024 * 1024;
 
-/** Loose enough for iOS/Android Files; we still reject non-MP3 after pick. */
-export const AUDIO_PICK_ACCEPT = "audio/*,.mp3,audio/mpeg,audio/mp3";
+/** MP3 only. Broader `audio/*` picks let through files we then reject. */
+export const AUDIO_PICK_ACCEPT = ".mp3,audio/mpeg";
 
 export type AudioCheck = {
   ok: boolean;
