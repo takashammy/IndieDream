@@ -1,12 +1,14 @@
 const DISMISS_KEY = "indie-dream-install-dismissed";
-const WIPE_FLAG = "indie-dream-cache-wipe-8";
+const WIPE_FLAG = "indie-dream-cache-wipe-9";
 
 const LEGACY_STUDIO_KEYS = [
   "indie-dream-v1",
   "indie-dream-v2",
   "indie-dream-v3",
   "indie-dream-v4",
+  "indie-dream-v5",
   "indie-dream-v6",
+  "indie-dream-v7",
 ];
 
 export function dropLegacyStudioCache() {

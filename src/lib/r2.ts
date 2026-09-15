@@ -39,11 +39,8 @@ export const requestTrackUpload = createServerFn({ method: "POST" })
     try {
       const sessionMod = await import("@/lib/cue-session.server");
       const session = await sessionMod.readCueSession();
-      if (!session) return { ok: false as const, error: "Log in first." };
-      const mine = session.account.artistId ? String(session.account.artistId) : "";
-      if (session.kind !== "admin" && mine && mine !== data.artistId) {
-        return { ok: false as const, error: "That artist page is not yours." };
-      }
+      const gate = sessionMod.canUploadToArtist(session, data.artistId);
+      if (!gate.ok) return { ok: false as const, error: gate.error };
       const { r2Configured, presign, safeTrackKey, ensureUploadCors } = await import("@/lib/r2.server");
       if (!r2Configured()) return { ok: false as const, error: "R2 is not configured on the server." };
       if (!/\.mp3$/i.test(data.filename)) return { ok: false as const, error: "MP3 files only." };

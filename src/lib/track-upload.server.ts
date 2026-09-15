@@ -16,12 +16,8 @@ export async function handleTrackUpload(request: Request): Promise<Response> {
 
   const sessionMod = await import("@/lib/cue-session.server");
   const session = await sessionMod.readCueSession();
-  if (!session) return json(401, { ok: false, error: "Log in first." });
-  const mine = session.account.artistId ? String(session.account.artistId) : "";
-  if (!artistId) return json(400, { ok: false, error: "Missing artist." });
-  if (session.kind !== "admin" && mine && mine !== artistId) {
-    return json(403, { ok: false, error: "That artist page is not yours." });
-  }
+  const gate = sessionMod.canUploadToArtist(session, artistId);
+  if (!gate.ok) return json(gate.status, { ok: false, error: gate.error });
   if (!/\.mp3$/i.test(filename)) return json(400, { ok: false, error: "MP3 files only." });
 
   const buf = new Uint8Array(await request.arrayBuffer());
