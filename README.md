@@ -19,3 +19,9 @@ Demo staff logins are no longer in the app. After a full wipe (`migrations/0010_
 If the installed app still looks logged in or still shows old profiles, delete the site data / remove the home-screen app and open it again. On first load after this deploy the app deletes older local saves (`indie-dream-v1` through `v7`, including the previous test world) so an old phone cannot write that world back onto the live site.
 
 Old demo passwords (`inner-soul`, `Harbour88`, `Lantern88`) are dead. Do not put passwords in this repository.
+
+## Automatic backups
+
+Vercel calls `/api/backup` every night at 00:00 Hong Kong time. That copies the live studio row into `cue_backups` and keeps the last 14 days. If R2 is configured, the same snapshot is also stored as `backups/indie-dream-YYYY-MM-DD.json`.
+
+A signed-in admin can take a snapshot immediately by opening `/api/backup`. Optional: set `CRON_SECRET` on Vercel (same value is sent as `Authorization: Bearer …` on the cron request).
