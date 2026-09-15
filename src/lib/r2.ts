@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { mp3Filename } from "@/lib/audio-limits";
+import { inspectAudioFile, mp3Filename } from "@/lib/audio-limits";
 
 export function coverImage(cover?: string) {
   return (cover ?? "").split("#r2=")[0] || "/media/covers/vinyl.jpg";
@@ -37,6 +37,13 @@ export const requestTrackUpload = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     try {
+      const sessionMod = await import("@/lib/cue-session.server");
+      const session = await sessionMod.readCueSession();
+      if (!session) return { ok: false as const, error: "Log in first." };
+      const mine = session.account.artistId ? String(session.account.artistId) : "";
+      if (session.kind !== "admin" && mine && mine !== data.artistId) {
+        return { ok: false as const, error: "That artist page is not yours." };
+      }
       const { r2Configured, presign, safeTrackKey, ensureUploadCors } = await import("@/lib/r2.server");
       if (!r2Configured()) return { ok: false as const, error: "R2 is not configured on the server." };
       if (!/\.mp3$/i.test(data.filename)) return { ok: false as const, error: "MP3 files only." };
@@ -51,11 +58,20 @@ export const requestTrackUpload = createServerFn({ method: "POST" })
 
 export async function putTrackFile(file: File, artistId: string) {
   try {
+    const check = await inspectAudioFile(file);
+    if (!check.ok) return { ok: false as const, error: check.reasons[0] || "MP3 files only, 5 MB max." };
     const filename = mp3Filename(file);
-    const signed = await requestTrackUpload({
-      data: { artistId, filename },
-    });
-    if (!signed.ok) return signed;
+    const res = await fetch(
+      `/api/track-upload?artistId=${encodeURIComponent(artistId)}&filename=${encodeURIComponent(filename)}`,
+      { method: "POST", headers: { "Content-Type": "audio/mpeg" }, body: file },
+    );
+    if (res.ok) {
+      const json = (await res.json()) as { ok?: boolean; key?: string; error?: string };
+      if (json.ok && json.key) return { ok: true as const, key: json.key };
+      if (json.error) return { ok: false as const, error: json.error };
+    }
+    const signed = await requestTrackUpload({ data: { artistId, filename } });
+    if (!signed.ok) return { ok: false as const, error: signed.error || "Could not store the MP3." };
     try {
       const direct = await fetch(signed.url, {
         method: "PUT",
@@ -64,15 +80,9 @@ export async function putTrackFile(file: File, artistId: string) {
       });
       if (direct.ok) return { ok: true as const, key: signed.key };
     } catch {
-      /* CORS or network — store through the app instead */
+      /* CORS */
     }
-    const res = await fetch(
-      `/api/track-upload?artistId=${encodeURIComponent(artistId)}&filename=${encodeURIComponent(filename)}`,
-      { method: "POST", headers: { "Content-Type": "audio/mpeg" }, body: file },
-    );
-    const json = (await res.json()) as { ok?: boolean; key?: string; error?: string };
-    if (json.ok && json.key) return { ok: true as const, key: json.key };
-    return { ok: false as const, error: json.error || "Could not store the MP3." };
+    return { ok: false as const, error: "Could not store the MP3." };
   } catch (err) {
     return {
       ok: false as const,
