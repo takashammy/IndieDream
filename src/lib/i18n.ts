@@ -1,4 +1,4 @@
-import { useCue } from "@/lib/store";
+import { useLocaleStore } from "@/lib/locale";
 
 export type Locale = "en" | "zh";
 
@@ -115,7 +115,7 @@ const ZH: Record<Msg, string> = {
   tabMe: "我",
   tabDesk: "後台",
   poweredBy: "技術提供",
-  tagline: "俾追夢音樂人用嘅平台",
+  tagline: "係追夢音樂人用嘅平台",
   guest: "訪客",
   you: "你",
   account: "帳戶",
@@ -188,7 +188,7 @@ const ZH: Record<Msg, string> = {
   gateListenTitle: "註冊後先可以聽",
   gateListenBody: "訪客可以瀏覽 {app}。播放只限已有帳戶嘅人。",
   gateBoardTitle: "註冊後先可以發帖",
-  gateBoardBody: "留言板係俾在職音樂人用。開帳戶先可以參與討論。",
+  gateBoardBody: "留言板係係在職音樂人用。開帳戶先可以參與討論。",
   gateEventTitle: "只限已認證音樂人",
   gateEventBody: "活動由已認證音樂人發佈，再經 Inner Soul Records 審批。請以音樂人身份註冊並上載一首歌開始。",
   gateVerifyTitle: "需要認證",
@@ -209,13 +209,13 @@ export function t(locale: Locale, key: Msg, vars?: Record<string, string | numbe
 }
 
 export function useT() {
-  const locale = useCue((s) => s.locale);
+  const locale = useLocaleStore((s) => s.locale);
   return (key: Msg, vars?: Record<string, string | number>) => t(locale, key, vars);
 }
 
 export function useLocale() {
-  const locale = useCue((s) => s.locale);
-  const setLocale = useCue((s) => s.setLocale);
+  const locale = useLocaleStore((s) => s.locale);
+  const setLocale = useLocaleStore((s) => s.setLocale);
   return { locale, setLocale };
 }
 
