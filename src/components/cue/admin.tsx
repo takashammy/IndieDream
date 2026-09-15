@@ -1,10 +1,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { Briefcase, Calendar, Inbox, MessageSquare, Music2, Search, Trash2, Users } from "lucide-react";
 import {
-  CATEGORY_LABEL,
   APP_NAME,
-  KIND_LABEL,
-  ageLabel,
   isListedArtist,
   isPostExpired,
   upcomingEvents,
@@ -20,17 +17,31 @@ import { scrollMainToTop } from "@/lib/scroll-main";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { BackRow, Confirm, ScreenHead, SelectInput, TextInput, VerifiedMark } from "./chrome";
-import { NoticeSheet, labelFor } from "./inbox";
+import { NoticeSheet } from "./inbox";
+import {
+  ageText,
+  categoryLabel,
+  enquiryTypeLabel,
+  eventDateLabel,
+  genreLabel,
+  kindLabel,
+  locationLabel,
+  noticeKindLabel,
+  useLocale,
+  useT,
+  weekdayLabel,
+  type Msg,
+} from "@/lib/i18n";
 
 type DeskPage = "home" | "queue" | "bookings" | "people" | "user" | "roster" | "dates" | "board";
 
-const DESKS: Array<{ id: Exclude<DeskPage, "home" | "user">; label: string }> = [
-  { id: "queue", label: "Queue" },
-  { id: "bookings", label: "Bookings" },
-  { id: "people", label: "People" },
-  { id: "roster", label: "Roster" },
-  { id: "dates", label: "Dates" },
-  { id: "board", label: "Board" },
+const DESKS: Array<{ id: Exclude<DeskPage, "home" | "user">; label: Msg }> = [
+  { id: "queue", label: "queue" },
+  { id: "bookings", label: "bookings" },
+  { id: "people", label: "people" },
+  { id: "roster", label: "roster" },
+  { id: "dates", label: "dates" },
+  { id: "board", label: "boardKicker" },
 ];
 
 export function AdminMe({ artistPanel }: { artistPanel?: ReactNode }) {
@@ -49,6 +60,7 @@ export function AdminMe({ artistPanel }: { artistPanel?: ReactNode }) {
   const deleteEvent = useCue((s) => s.deleteEvent);
   const resolveNotice = useCue((s) => s.resolveNotice);
   const openArtist = useCue((s) => s.openArtist);
+  const t = useT();
 
   const [page, setPage] = useState<DeskPage>("home");
   const [userId, setUserId] = useState<string | null>(null);
@@ -130,9 +142,9 @@ export function AdminMe({ artistPanel }: { artistPanel?: ReactNode }) {
       ) : null}
       {banConfirm ? (
         <Confirm
-          title="Ban this user?"
-          body={`Remove ${banConfirm.name} from ${APP_NAME}. Their posts, profile, and login will go.`}
-          confirmLabel="Yes"
+          title={t("banUserQ")}
+          body={t("banUserBody", { name: banConfirm.name, app: APP_NAME })}
+          confirmLabel={t("yes")}
           onConfirm={() => {
             banUser(banConfirm.id);
             setBanId(null);
@@ -145,15 +157,15 @@ export function AdminMe({ artistPanel }: { artistPanel?: ReactNode }) {
       ) : null}
       {banPost ? (
         <Confirm
-          title="Delete this post?"
-          body={`Remove this post. You can also ban ${banPost.author} and take them off ${APP_NAME}.`}
-          confirmLabel="Delete"
+          title={t("deleteThis", { noun: t("post") })}
+          body={t("removeBoard", { noun: t("post"), author: banPost.author, app: APP_NAME })}
+          confirmLabel={t("delete")}
           onConfirm={() => deletePost(banPost.id)}
           onClose={() => setBanPostId(null)}
           extra={
             banPost.authorId
               ? {
-                  label: `Ban and remove ${banPost.author}`,
+                  label: t("banRemove", { author: banPost.author }),
                   onClick: () => {
                     deletePost(banPost.id);
                     banUser(banPost.authorId!);
@@ -165,9 +177,9 @@ export function AdminMe({ artistPanel }: { artistPanel?: ReactNode }) {
       ) : null}
       {dropEvent ? (
         <Confirm
-          title="Delete this date?"
-          body={`Remove “${dropEvent.title}” from ${APP_NAME}. This cannot be undone.`}
-          confirmLabel="Yes"
+          title={t("deleteDateQ")}
+          body={t("removeEvent", { title: dropEvent.title, app: APP_NAME })}
+          confirmLabel={t("yes")}
           onConfirm={() => deleteEvent(dropEvent.id)}
           onClose={() => setDropEventId(null)}
         />
@@ -179,8 +191,8 @@ export function AdminMe({ artistPanel }: { artistPanel?: ReactNode }) {
     if (!viewed) {
       return (
         <div className="cue-enter px-5 py-10">
-          <BackRow label="People" onClick={() => go("people")} />
-          <p className="mt-4 text-sm text-muted">That account is no longer on {APP_NAME}.</p>
+          <BackRow label={t("people")} onClick={() => go("people")} />
+          <p className="mt-4 text-sm text-muted">{t("noLonger", { app: APP_NAME })}</p>
         </div>
       );
     }
@@ -200,25 +212,25 @@ export function AdminMe({ artistPanel }: { artistPanel?: ReactNode }) {
 
   const head =
     page === "queue"
-      ? { kicker: "Review", title: "Queue", note: `${stats.queue.length} waiting` }
+      ? { kicker: t("review"), title: t("queue"), note: t("nWaiting", { n: stats.queue.length }) }
       : page === "bookings"
-        ? { kicker: "Services", title: "Bookings", note: `${stats.bookingsOpen.length} open` }
+        ? { kicker: t("services"), title: t("bookings"), note: t("nOpen", { n: stats.bookingsOpen.length }) }
         : page === "people"
-          ? { kicker: "Directory", title: "People", note: `${accounts.length} on file` }
+          ? { kicker: t("directory"), title: t("people"), note: t("nOnFile", { n: accounts.length }) }
           : page === "roster"
-            ? { kicker: "Artists", title: "Roster", note: `${stats.liveRoster.length} live` }
+            ? { kicker: t("tabArtists"), title: t("roster"), note: t("nLiveCount", { n: stats.liveRoster.length }) }
             : page === "dates"
-              ? { kicker: "Calendar", title: "Dates", note: `${stats.pendingDates.length} pending` }
+              ? { kicker: t("calendar"), title: t("dates"), note: t("nPendingCount", { n: stats.pendingDates.length }) }
               : page === "board"
-                ? { kicker: "Board", title: "Posts", note: `${stats.livePosts.length} live` }
+                ? { kicker: t("boardKicker"), title: t("posts"), note: t("nLiveCount", { n: stats.livePosts.length }) }
                 : null;
 
   return (
     <div className="cue-enter pb-12">
       {page === "home" ? (
-        <ScreenHead kicker="Admin" title="Desk" note="Inner Soul Records" />
+        <ScreenHead kicker={t("admin")} title={t("desk")} note={t("innerSoulRecords")} />
       ) : (
-        <BackRow label="Desk" onClick={() => go("home")} />
+        <BackRow label={t("desk")} onClick={() => go("home")} />
       )}
 
       {head ? <ScreenHead kicker={head.kicker} title={head.title} note={head.note} /> : null}
@@ -300,7 +312,7 @@ export function AdminMe({ artistPanel }: { artistPanel?: ReactNode }) {
       {page === "home" ? (
         <div className="px-5 pt-8">
           <Button variant="ghost" className="w-full" onClick={logout}>
-            Log out
+            {t("logOut")}
           </Button>
         </div>
       ) : null}
@@ -328,27 +340,29 @@ function DeskHome({
   onOpen: (page: DeskPage) => void;
   onOpenNotice: (id: string) => void;
 }) {
+  const t = useT();
+  const { locale } = useLocale();
   const bits = [
-    stats.queue.length ? `${stats.queue.length} in the review queue` : null,
-    stats.bookingsOpen.length ? `${stats.bookingsOpen.length} open bookings` : null,
-    stats.awaiting.length ? `${stats.awaiting.length} still off the live roster` : null,
+    stats.queue.length ? t("inReviewQueue", { n: stats.queue.length }) : null,
+    stats.bookingsOpen.length ? t("openBookings", { n: stats.bookingsOpen.length }) : null,
+    stats.awaiting.length ? t("stillOffRoster", { n: stats.awaiting.length }) : null,
   ].filter(Boolean);
-  const briefing = bits.length ? `${bits.join(". ")}.` : "Nothing waiting. The catalogue is clear.";
+  const briefing = bits.length ? `${bits.join(". ")}.` : t("nothingWaiting");
   const attention = [
     ...stats.queue.slice(0, 4).map((n) => ({
       id: n.id,
-      kicker: labelFor(n.kind),
+      kicker: noticeKindLabel(locale, n.kind),
       title: n.title,
       body: n.body,
-      age: ageLabel(n.createdAt),
+      age: ageText(locale, n.createdAt),
       go: () => onOpenNotice(n.id),
     })),
     ...stats.bookingsOpen.slice(0, 2).map((n) => ({
       id: n.id,
-      kicker: enquiryType(n),
+      kicker: enquiryTypeLabel(locale, n.title, n.fields),
       title: n.title,
       body: n.body,
-      age: ageLabel(n.createdAt),
+      age: ageText(locale, n.createdAt),
       go: () => onOpen("bookings"),
     })),
   ].slice(0, 5);
@@ -356,17 +370,17 @@ function DeskHome({
 
   const tiles: Array<{
     id: Exclude<DeskPage, "home" | "user">;
-    label: string;
+    label: Msg;
     value: number;
-    hint: string;
+    hint: Msg;
     icon: typeof Inbox;
   }> = [
-    { id: "queue", label: "Queue", value: counts.queue, hint: "to review", icon: Inbox },
-    { id: "bookings", label: "Bookings", value: counts.bookings, hint: "open", icon: Briefcase },
-    { id: "people", label: "People", value: counts.people, hint: "on file", icon: Users },
-    { id: "roster", label: "Roster", value: counts.roster, hint: "live artists", icon: Music2 },
-    { id: "dates", label: "Dates", value: counts.dates, hint: "pending + upcoming", icon: Calendar },
-    { id: "board", label: "Board", value: counts.board, hint: "live posts", icon: MessageSquare },
+    { id: "queue", label: "queue", value: counts.queue, hint: "toReview", icon: Inbox },
+    { id: "bookings", label: "bookings", value: counts.bookings, hint: "openHint", icon: Briefcase },
+    { id: "people", label: "people", value: counts.people, hint: "onFile", icon: Users },
+    { id: "roster", label: "roster", value: counts.roster, hint: "liveArtists", icon: Music2 },
+    { id: "dates", label: "dates", value: counts.dates, hint: "pendingUpcoming", icon: Calendar },
+    { id: "board", label: "boardKicker", value: counts.board, hint: "livePosts", icon: MessageSquare },
   ];
 
   return (
@@ -387,11 +401,11 @@ function DeskHome({
               className="rounded-lg bg-surface p-4 text-left"
             >
               <span className="flex items-center justify-between text-muted">
-                <span className="cue-kicker text-xs">{tile.label}</span>
+                <span className="cue-kicker text-xs">{t(tile.label)}</span>
                 <Icon className="size-4" strokeWidth={1.8} />
               </span>
               <span className="mt-3 block font-display text-3xl leading-none tabular-nums">{tile.value}</span>
-              <span className="mt-2 block text-xs text-subtle">{tile.hint}</span>
+              <span className="mt-2 block text-xs text-subtle">{t(tile.hint)}</span>
             </button>
           );
         })}
@@ -399,11 +413,11 @@ function DeskHome({
 
       <section className="mt-8">
         <div className="px-5 pb-2">
-          <p className="cue-kicker text-xs text-muted">Needs a decision</p>
-          <h2 className="cue-name font-display text-2xl leading-none">Attention</h2>
+          <p className="cue-kicker text-xs text-muted">{t("needsDecision")}</p>
+          <h2 className="cue-name font-display text-2xl leading-none">{t("attention")}</h2>
         </div>
         {attention.length === 0 ? (
-          <p className="px-5 text-sm italic text-muted">Queue and bookings are clear.</p>
+          <p className="px-5 text-sm italic text-muted">{t("queueClear")}</p>
         ) : (
           <ul>
             {attention.map((item) => (
@@ -424,14 +438,14 @@ function DeskHome({
 
       {nextDate ? (
         <section className="mt-8 px-5">
-          <p className="cue-kicker text-xs text-muted">Next date</p>
+          <p className="cue-kicker text-xs text-muted">{t("nextDate")}</p>
           <button type="button" onClick={() => onOpen("dates")} className="mt-2 w-full rounded-lg bg-surface p-4 text-left">
             <p className="cue-kicker text-xs text-accent">
-              {nextDate.weekday} {nextDate.date}
+              {weekdayLabel(locale, nextDate.weekday)} {eventDateLabel(locale, nextDate.date)}
             </p>
             <p className="cue-name mt-1 font-display text-2xl leading-none">{nextDate.title}</p>
             <p className="mt-2 text-sm text-muted">
-              {nextDate.time} · {nextDate.venue}, {nextDate.area}
+              {nextDate.time} · {nextDate.venue}, {locationLabel(locale, nextDate.area)}
             </p>
           </button>
         </section>
@@ -449,6 +463,7 @@ function DeskNav({
   counts: Record<Exclude<DeskPage, "home" | "user">, number>;
   onOpen: (page: DeskPage) => void;
 }) {
+  const t = useT();
   return (
     <div className={cn("scrollbar-none flex flex-nowrap gap-2 overflow-x-auto px-5 pb-1", page === "home" ? "mt-6" : "mt-1")}>
       {DESKS.map((desk) => {
@@ -463,7 +478,7 @@ function DeskNav({
               active ? "bg-accent text-accent-fg" : "bg-elevated text-muted",
             )}
           >
-            <span>{desk.label}</span>
+            <span>{t(desk.label)}</span>
             <span className="tabular-nums">{counts[desk.id]}</span>
           </button>
         );
@@ -514,6 +529,8 @@ function DeskQueue({
   onResolve: (id: string, status: "approved" | "declined") => void;
 }) {
   const [kind, setKind] = useState<"all" | Notice["kind"]>("all");
+  const t = useT();
+  const { locale } = useLocale();
   const counts = {
     all: items.length,
     verify: items.filter((n) => n.kind === "verify").length,
@@ -529,33 +546,33 @@ function DeskQueue({
         value={kind}
         onChange={setKind}
         options={[
-          { id: "all", label: "All", count: counts.all },
-          { id: "verify", label: "Artists", count: counts.verify },
-          { id: "label", label: "Label", count: counts.label },
-          { id: "song", label: "Tracks", count: counts.song },
-          { id: "event", label: "Events", count: counts.event },
+          { id: "all", label: t("all"), count: counts.all },
+          { id: "verify", label: t("tabArtists"), count: counts.verify },
+          { id: "label", label: t("label"), count: counts.label },
+          { id: "song", label: t("tracks"), count: counts.song },
+          { id: "event", label: t("tabEvents"), count: counts.event },
         ]}
       />
       {shown.length === 0 ? (
-        <p className="px-5 text-sm italic text-muted">Nothing in this filter.</p>
+        <p className="px-5 text-sm italic text-muted">{t("nothingInFilter")}</p>
       ) : (
         <ul>
           {shown.map((n) => (
             <li key={n.id} className="border-t border-line">
               <button type="button" onClick={() => onOpen(n.id)} className="w-full px-5 pb-2 pt-4 text-left">
                 <span className="flex items-center justify-between gap-3">
-                  <span className="cue-kicker text-xs text-accent">{labelFor(n.kind)}</span>
-                  <span className="text-xs tabular-nums text-subtle">{ageLabel(n.createdAt)}</span>
+                  <span className="cue-kicker text-xs text-accent">{noticeKindLabel(locale, n.kind)}</span>
+                  <span className="text-xs tabular-nums text-subtle">{ageText(locale, n.createdAt)}</span>
                 </span>
                 <span className="mt-1 block font-medium leading-snug">{n.title}</span>
                 <span className="mt-1 block line-clamp-2 text-sm text-muted">{n.body}</span>
               </button>
               <div className="flex gap-2 px-5 pb-4">
                 <Button size="sm" className="flex-1" onClick={() => onResolve(n.id, "approved")}>
-                  Approve
+                  {t("approve")}
                 </Button>
                 <Button size="sm" variant="outline" className="flex-1" onClick={() => onResolve(n.id, "declined")}>
-                  Decline
+                  {t("decline")}
                 </Button>
               </div>
             </li>
@@ -578,6 +595,8 @@ function DeskBookings({
   onComplete: (id: string) => void;
 }) {
   const [mode, setMode] = useState<"open" | "done">("open");
+  const t = useT();
+  const { locale } = useLocale();
   const items = mode === "open" ? open : done;
 
   return (
@@ -586,16 +605,14 @@ function DeskBookings({
         value={mode}
         onChange={setMode}
         options={[
-          { id: "open", label: "Open", count: open.length },
-          { id: "done", label: "Completed", count: done.length },
+          { id: "open", label: t("open"), count: open.length },
+          { id: "done", label: t("completed"), count: done.length },
         ]}
       />
-      <p className="px-5 pb-3 text-sm leading-6 text-muted">
-        Purchases, rooms, and lessons. WhatsApp is on each brief.
-      </p>
+      <p className="px-5 pb-3 text-sm leading-6 text-muted">{t("bookingsBrief")}</p>
       {items.length === 0 ? (
         <p className="px-5 text-sm italic text-muted">
-          {mode === "open" ? "No open enquiries." : "Nothing completed yet."}
+          {mode === "open" ? t("noOpenEnquiries") : t("nothingCompleted")}
         </p>
       ) : (
         <ul>
@@ -605,8 +622,8 @@ function DeskBookings({
               <li key={n.id} className="border-t border-line">
                 <button type="button" onClick={() => onOpen(n.id)} className="w-full px-5 pb-2 pt-4 text-left">
                   <span className="flex items-center justify-between gap-3">
-                    <span className="cue-kicker text-xs text-accent">{enquiryType(n)}</span>
-                    <span className="text-xs tabular-nums text-subtle">{ageLabel(n.createdAt)}</span>
+                    <span className="cue-kicker text-xs text-accent">{enquiryTypeLabel(locale, n.title, n.fields)}</span>
+                    <span className="text-xs tabular-nums text-subtle">{ageText(locale, n.createdAt)}</span>
                   </span>
                   <span className="mt-1 block font-medium leading-snug">{n.title}</span>
                   <span className="mt-1 block line-clamp-2 text-sm text-muted">{n.body}</span>
@@ -617,7 +634,7 @@ function DeskBookings({
                 <div className="flex gap-2 px-5 pb-4">
                   {mode === "open" ? (
                     <Button size="sm" className="flex-1" onClick={() => onComplete(n.id)}>
-                      Tick complete
+                      {t("tickComplete")}
                     </Button>
                   ) : null}
                   {wa ? (
@@ -633,7 +650,7 @@ function DeskBookings({
                       WhatsApp
                     </a>
                   ) : (
-                    <p className="flex h-9 flex-1 items-center text-xs italic text-subtle">No WhatsApp on file</p>
+                    <p className="flex h-9 flex-1 items-center text-xs italic text-subtle">{t("noWhatsAppOnFile")}</p>
                   )}
                 </div>
               </li>
@@ -656,13 +673,15 @@ function DeskPeople({
 }) {
   const [q, setQ] = useState("");
   const [kind, setKind] = useState<"all" | AccountKind>("all");
+  const t = useT();
+  const { locale } = useLocale();
   const kinds: AccountKind[] = ["artist", "explorer", "business", "admin"];
   const query = q.trim().toLowerCase();
   const shown = accounts
     .filter((a) => (kind === "all" ? true : a.kind === kind))
     .filter((a) => {
       if (!query) return true;
-      const hay = `${a.name} ${a.username} ${a.email} ${a.role} ${a.location} ${KIND_LABEL[a.kind]}`.toLowerCase();
+      const hay = `${a.name} ${a.username} ${a.email} ${a.role} ${a.location} ${kindLabel(locale, a.kind)}`.toLowerCase();
       return hay.includes(query);
     })
     .slice()
@@ -677,8 +696,8 @@ function DeskPeople({
             className="mt-0 pl-9"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search name, email, username"
-            aria-label="Search people"
+            placeholder={t("searchPeoplePlaceholder")}
+            aria-label={t("searchPeople")}
           />
         </label>
       </div>
@@ -686,16 +705,16 @@ function DeskPeople({
         value={kind}
         onChange={setKind}
         options={[
-          { id: "all", label: "All", count: accounts.length },
+          { id: "all", label: t("all"), count: accounts.length },
           ...kinds.map((k) => ({
             id: k as "all" | AccountKind,
-            label: KIND_LABEL[k],
+            label: kindLabel(locale, k),
             count: accounts.filter((a) => a.kind === k).length,
           })),
         ]}
       />
       {shown.length === 0 ? (
-        <p className="px-5 text-sm italic text-muted">No one matches.</p>
+        <p className="px-5 text-sm italic text-muted">{t("noOneMatches")}</p>
       ) : (
         <ul>
           {shown.map((user) => {
@@ -710,12 +729,12 @@ function DeskPeople({
                       {artist?.verified ? <VerifiedMark /> : null}
                     </p>
                     <p className="truncate text-xs text-muted">
-                      @{user.username} · {KIND_LABEL[user.kind]}
-                      {user.artistId ? " · Artist" : ""} · {user.location}
+                      @{user.username} · {kindLabel(locale, user.kind)}
+                      {user.artistId ? t("linkedArtist") : ""} · {locationLabel(locale, user.location)}
                     </p>
                   </div>
                   {!user.whatsapp && user.kind !== "admin" ? (
-                    <span className="shrink-0 text-xs italic text-subtle">No WA</span>
+                    <span className="shrink-0 text-xs italic text-subtle">{t("noWA")}</span>
                   ) : null}
                 </button>
               </li>
@@ -745,6 +764,8 @@ function DeskRoster({
   onOpenArtist: (id: string) => void;
 }) {
   const [mode, setMode] = useState<"live" | "awaiting">("live");
+  const t = useT();
+  const { locale } = useLocale();
   const items = mode === "live" ? live : awaiting;
 
   function accountFor(artistId: string) {
@@ -757,19 +778,20 @@ function DeskRoster({
         value={mode}
         onChange={setMode}
         options={[
-          { id: "live", label: "Live", count: live.length },
-          { id: "awaiting", label: "Awaiting", count: awaiting.length },
+          { id: "live", label: t("liveOn"), count: live.length },
+          { id: "awaiting", label: t("awaitingRoster"), count: awaiting.length },
         ]}
       />
       {items.length === 0 ? (
         <p className="px-5 text-sm italic text-muted">
-          {mode === "live" ? "No live artists." : "Everyone listed is live."}
+          {mode === "live" ? t("noLiveArtists") : t("everyoneLive")}
         </p>
       ) : (
         <ul>
           {items.map((artist) => {
             const acc = accountFor(artist.id);
             const pendingSongs = artist.songs.filter((s) => s.status === "pending").length;
+            const liveSongs = artist.songs.filter((s) => s.status === "approved").length;
             const notice =
               queue.find((n) => n.refId === artist.id && (n.kind === "verify" || n.kind === "label")) ??
               queue.find((n) => artist.songs.some((s) => s.id === n.refId));
@@ -788,16 +810,16 @@ function DeskRoster({
                         {artist.verified ? <VerifiedMark /> : null}
                       </p>
                       <p className="truncate text-xs text-muted">
-                        {artist.role} · {artist.area}
+                        {artist.role} · {locationLabel(locale, artist.area)}
                         {mode === "awaiting"
-                          ? ` · ${pendingSongs} pending track${pendingSongs === 1 ? "" : "s"}`
-                          : ` · ${artist.songs.filter((s) => s.status === "approved").length} live`}
+                          ? ` · ${pendingSongs === 1 ? t("pendingTrack", { n: pendingSongs }) : t("pendingTracks", { n: pendingSongs })}`
+                          : ` · ${t("nLiveSongs", { n: liveSongs })}`}
                       </p>
                     </div>
                   </button>
                   {notice ? (
                     <Button size="sm" variant="subtle" onClick={() => onOpenNotice(notice.id)}>
-                      Review
+                      {t("review")}
                     </Button>
                   ) : null}
                 </div>
@@ -830,6 +852,8 @@ function DeskDates({
   onDelete: (id: string) => void;
 }) {
   const [mode, setMode] = useState<"pending" | "upcoming" | "past">(pending.length ? "pending" : "upcoming");
+  const t = useT();
+  const { locale } = useLocale();
   const items = mode === "pending" ? pending : mode === "upcoming" ? upcoming : past;
 
   return (
@@ -838,13 +862,13 @@ function DeskDates({
         value={mode}
         onChange={setMode}
         options={[
-          { id: "pending", label: "Pending", count: pending.length },
-          { id: "upcoming", label: "Upcoming", count: upcoming.length },
-          { id: "past", label: "Past", count: past.length },
+          { id: "pending", label: t("pending"), count: pending.length },
+          { id: "upcoming", label: t("upcoming"), count: upcoming.length },
+          { id: "past", label: t("past"), count: past.length },
         ]}
       />
       {items.length === 0 ? (
-        <p className="px-5 text-sm italic text-muted">No dates in this filter.</p>
+        <p className="px-5 text-sm italic text-muted">{t("noDatesInFilter")}</p>
       ) : (
         <ul>
           {items.map((event) => {
@@ -855,26 +879,26 @@ function DeskDates({
             return (
               <li key={event.id} className="border-t border-line px-5 py-4">
                 <p className="cue-kicker text-xs text-accent">
-                  {event.weekday} {event.date} · {event.time}
+                  {weekdayLabel(locale, event.weekday)} {eventDateLabel(locale, event.date)} · {event.time}
                 </p>
                 <p className="mt-1 font-medium leading-snug">{event.title}</p>
                 <p className="mt-1 text-sm text-muted">
-                  {event.venue}, {event.area}
+                  {event.venue}, {locationLabel(locale, event.area)}
                 </p>
                 <p className="mt-1 text-xs text-subtle">{lineup}</p>
                 <div className="mt-3 flex gap-2">
                   {notice ? (
                     <>
                       <Button size="sm" className="flex-1" onClick={() => onApprove(notice.id)}>
-                        Approve
+                        {t("approve")}
                       </Button>
                       <Button size="sm" variant="outline" className="flex-1" onClick={() => onDecline(notice.id)}>
-                        Decline
+                        {t("decline")}
                       </Button>
                     </>
                   ) : (
                     <Button size="sm" variant="outline" className="flex-1" onClick={() => onDelete(event.id)}>
-                      Delete
+                      {t("delete")}
                     </Button>
                   )}
                 </div>
@@ -897,6 +921,8 @@ function DeskBoard({
   onDelete: (id: string) => void;
 }) {
   const [mode, setMode] = useState<"live" | "archive">("live");
+  const t = useT();
+  const { locale } = useLocale();
   const items = mode === "live" ? live : archived;
 
   return (
@@ -905,33 +931,33 @@ function DeskBoard({
         value={mode}
         onChange={setMode}
         options={[
-          { id: "live", label: "Live", count: live.length },
-          { id: "archive", label: "Archived", count: archived.length },
+          { id: "live", label: t("liveOn"), count: live.length },
+          { id: "archive", label: t("archived"), count: archived.length },
         ]}
       />
       <p className="px-5 pb-3 text-sm italic text-muted">
-        {mode === "archive" ? "Posts older than 30 days. Admin only." : "Current board. Delete or ban from here."}
+        {mode === "archive" ? t("archiveNote") : t("liveBoardNote")}
       </p>
       {items.length === 0 ? (
-        <p className="px-5 text-sm italic text-muted">{mode === "live" ? "Board is empty." : "No archived posts."}</p>
+        <p className="px-5 text-sm italic text-muted">{mode === "live" ? t("boardEmpty") : t("noArchivedPosts")}</p>
       ) : (
         <ul>
           {items.map((post) => (
             <li key={post.id} className="border-t border-line">
               <div className="flex items-start">
                 <div className="min-w-0 flex-1 px-5 py-4">
-                  <p className="cue-kicker text-xs text-accent">{CATEGORY_LABEL[post.category]}</p>
+                  <p className="cue-kicker text-xs text-accent">{categoryLabel(locale, post.category)}</p>
                   <p className="mt-1 font-medium leading-snug">{post.title}</p>
                   <p className="mt-1 line-clamp-2 text-sm text-muted">{post.body}</p>
                   <p className="mt-2 text-xs text-subtle">
-                    {post.author} · {ageLabel(post.createdAt) || post.time} · {post.thread.length}{" "}
-                    {post.thread.length === 1 ? "reply" : "replies"}
+                    {post.author} · {ageText(locale, post.createdAt) || post.time} · {post.thread.length}{" "}
+                    {post.thread.length === 1 ? t("reply") : t("replies")}
                   </p>
                 </div>
                 <button
                   type="button"
                   className="flex size-11 shrink-0 items-center justify-center text-muted"
-                  aria-label="Delete post"
+                  aria-label={t("deletePost")}
                   onClick={() => onDelete(post.id)}
                 >
                   <Trash2 className="size-4" />
@@ -960,9 +986,11 @@ function AdminUserProfile({
 }) {
   const setAccountKind = useCue((s) => s.setAccountKind);
   const wa = whatsappHref(user.whatsapp);
+  const t = useT();
+  const { locale } = useLocale();
   return (
     <div className="cue-enter pb-12">
-      <BackRow label="People" onClick={onBack} />
+      <BackRow label={t("people")} onClick={onBack} />
       <div className="flex items-end gap-4 px-5 pt-2">
         <img src={user.photo} alt="" className="size-20 rounded-lg object-cover" />
         <div>
@@ -971,15 +999,15 @@ function AdminUserProfile({
             {artist?.verified ? <VerifiedMark /> : null}
           </p>
           <p className="text-sm text-muted">
-            @{user.username} · {KIND_LABEL[user.kind]}
-            {user.artistId ? " · Artist" : ""}
+            @{user.username} · {kindLabel(locale, user.kind)}
+            {user.artistId ? t("linkedArtist") : ""}
           </p>
         </div>
       </div>
       <dl className="mt-6 space-y-3 px-5 text-sm">
-        <InfoRow label="Email" value={user.email} href={user.email ? `mailto:${user.email}` : undefined} />
+        <InfoRow label={t("email")} value={user.email} href={user.email ? `mailto:${user.email}` : undefined} />
         <div className="grid grid-cols-[7rem_1fr] gap-2">
-          <dt className="text-muted">WhatsApp</dt>
+          <dt className="text-muted">{t("fldWhatsApp")}</dt>
           <dd>
             {wa ? (
               <a href={wa} target="_blank" rel="noreferrer" className="text-accent underline-offset-2 hover:underline">
@@ -990,29 +1018,29 @@ function AdminUserProfile({
             )}
           </dd>
         </div>
-        <InfoRow label="Location" value={user.location} />
-        <InfoRow label="Role" value={artist?.role ?? user.role} />
+        <InfoRow label={t("location")} value={locationLabel(locale, user.location)} />
+        <InfoRow label={t("role")} value={artist?.role ?? user.role} />
         {artist ? (
           <>
-            <InfoRow label="Label" value={artist.labelApproved ? artist.label : `${artist.label} (pending)`} />
-            <InfoRow label="Genres" value={artist.genres.join(", ")} />
+            <InfoRow label={t("label")} value={artist.labelApproved ? artist.label : t("labelPending", { label: artist.label })} />
+            <InfoRow label={t("genres")} value={artist.genres.map((g) => genreLabel(locale, g)).join(", ")} />
             <InfoRow
-              label="Tracks"
-              value={`${artist.songs.length} · ${artist.songs.filter((s) => s.status === "approved").length} live`}
+              label={t("tracks")}
+              value={t("tracksLive", { n: artist.songs.length, live: artist.songs.filter((s) => s.status === "approved").length })}
             />
           </>
         ) : null}
       </dl>
       {user.kind !== "admin" ? (
         <div className="mt-6 px-5">
-          <p className="text-xs text-muted">User type</p>
+          <p className="text-xs text-muted">{t("userType")}</p>
           <SelectInput
             value={user.kind}
             onChange={(e) => setAccountKind(user.id, e.target.value as Exclude<AccountKind, "admin">)}
           >
-            <option value="explorer">Explorer</option>
-            <option value="artist">Artist</option>
-            <option value="business">Business</option>
+            <option value="explorer">{t("kindExplorer")}</option>
+            <option value="artist">{t("kindArtist")}</option>
+            <option value="business">{t("kindBusiness")}</option>
           </SelectInput>
         </div>
       ) : null}
@@ -1020,15 +1048,15 @@ function AdminUserProfile({
       <div className="flex flex-col gap-2 px-5 pt-8">
         {onOpenArtist ? (
           <Button className="w-full" onClick={onOpenArtist}>
-            Open artist page
+            {t("openArtistPage")}
           </Button>
         ) : null}
         {user.kind !== "admin" ? (
           <Button variant="outline" className="w-full" onClick={onBan}>
-            Ban user
+            {t("banUser")}
           </Button>
         ) : (
-          <p className="text-sm italic text-subtle">Admin accounts cannot be banned.</p>
+          <p className="text-sm italic text-subtle">{t("adminNoBan")}</p>
         )}
       </div>
     </div>
@@ -1050,11 +1078,4 @@ function InfoRow({ label, value, href }: { label: string; value: string; href?: 
       </dd>
     </div>
   );
-}
-
-function enquiryType(n: Notice) {
-  if (n.fields?.Package) return "Purchase";
-  if (n.title.startsWith("Lesson")) return "Lesson";
-  if (n.title.startsWith("MaaS")) return "MaaS";
-  return "Enquiry";
 }

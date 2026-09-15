@@ -1,17 +1,10 @@
-import { isListedArtist, whatsappHref } from "@/lib/data";
+import { whatsappHref } from "@/lib/data";
 import { useCue, type Notice } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { coverImage } from "@/lib/r2";
 import { Sheet } from "./chrome";
 import { SongPreview } from "./r2-audio";
-
-export function labelFor(kind: Notice["kind"]) {
-  if (kind === "verify") return "Artist";
-  if (kind === "label") return "Label";
-  if (kind === "event") return "Event";
-  if (kind === "song") return "Track";
-  return "Enquiry";
-}
+import { eventDateLabel, fieldLabel, fieldValue, locationLabel, noticeKindLabel, songStatusLabel, useLocale, useT, weekdayLabel } from "@/lib/i18n";
 
 export function NoticeList({
   notices,
@@ -22,13 +15,14 @@ export function NoticeList({
   empty: string;
   onOpen: (id: string) => void;
 }) {
+  const { locale } = useLocale();
   if (notices.length === 0) return <p className="px-5 text-sm italic text-muted">{empty}</p>;
   return (
     <ul>
       {notices.map((n) => (
         <li key={n.id} className="border-t border-line">
           <button type="button" onClick={() => onOpen(n.id)} className="w-full px-5 py-4 text-left">
-            <p className="cue-kicker text-xs text-accent">{labelFor(n.kind)}</p>
+            <p className="cue-kicker text-xs text-accent">{noticeKindLabel(locale, n.kind)}</p>
             <p className="mt-1 font-medium leading-snug">{n.title}</p>
             <p className="mt-1 line-clamp-2 text-sm text-muted">{n.body}</p>
           </button>
@@ -52,6 +46,8 @@ export function NoticeSheet({
   const resolveNotice = useCue((s) => s.resolveNotice);
   const artists = useCue((s) => s.artists);
   const events = useCue((s) => s.events);
+  const t = useT();
+  const { locale } = useLocale();
   const artist =
     notice.kind === "verify" || notice.kind === "label"
       ? artists.find((a) => a.id === notice.refId)
@@ -63,18 +59,18 @@ export function NoticeSheet({
   const fields = notice.fields ? Object.entries(notice.fields) : [];
 
   return (
-    <Sheet title={notice.title} kicker={labelFor(notice.kind)} onClose={onClose}>
+    <Sheet title={notice.title} kicker={noticeKindLabel(locale, notice.kind)} onClose={onClose}>
       <p className="text-sm leading-6 text-muted">{notice.body}</p>
       {fields.length > 0 ? (
         <dl className="mt-4 space-y-2">
           {fields.map(([k, v]) => (
             <div key={k} className="grid grid-cols-[7rem_1fr] gap-2 text-sm">
-              <dt className="text-muted">{k}</dt>
+              <dt className="text-muted">{fieldLabel(locale, k)}</dt>
               <dd className="text-fg">
                 {k === "WhatsApp" && whatsappHref(v) ? (
                   <a href={whatsappHref(v)} target="_blank" rel="noreferrer" className="text-accent underline-offset-2 hover:underline">{v}</a>
                 ) : (
-                  v
+                  fieldValue(locale, k, v)
                 )}
               </dd>
             </div>
@@ -86,7 +82,7 @@ export function NoticeSheet({
           <img src={artist.photo} alt="" className="size-14 rounded-md object-cover" />
           <div>
             <p className="font-medium">{artist.name}</p>
-            <p className="text-xs text-muted">{artist.role} · {artist.area}</p>
+            <p className="text-xs text-muted">{artist.role} · {locationLabel(locale, artist.area)}</p>
           </div>
         </div>
       ) : null}
@@ -96,7 +92,7 @@ export function NoticeSheet({
             <img src={coverImage(song.cover)} alt="" className="size-12 shrink-0 rounded-md object-cover" />
             <div className="min-w-0">
               <p className="truncate font-medium">{song.title}</p>
-              <p className="text-xs text-muted">{song.duration} · {song.status}</p>
+              <p className="text-xs text-muted">{song.duration} · {songStatusLabel(locale, song.status)}</p>
             </div>
           </div>
           <SongPreview song={song} />
@@ -105,24 +101,24 @@ export function NoticeSheet({
       {event ? (
         <div className="mt-4 text-sm leading-6">
           <p className="font-medium">{event.title}</p>
-          <p className="text-muted">{event.weekday} {event.date} · {event.time}</p>
-          <p className="text-muted">{event.venue}, {event.area}</p>
+          <p className="text-muted">{weekdayLabel(locale, event.weekday)} {eventDateLabel(locale, event.date)} · {event.time}</p>
+          <p className="text-muted">{event.venue}, {locationLabel(locale, event.area)}</p>
           <p className="mt-2">{event.blurb}</p>
         </div>
       ) : null}
       {enquiry || notice.kind === "enquiry" ? (
         readonly || notice.status === "completed" ? (
-          <Button className="mt-6 w-full" variant="ghost" onClick={onClose}>Close</Button>
+          <Button className="mt-6 w-full" variant="ghost" onClick={onClose}>{t("close")}</Button>
         ) : (
           <div className="mt-6 flex gap-2">
-            <Button className="flex-1" onClick={() => resolveNotice(notice.id, "completed")}>Tick as completed</Button>
-            <Button variant="ghost" className="flex-1" onClick={onClose}>Cancel</Button>
+            <Button className="flex-1" onClick={() => resolveNotice(notice.id, "completed")}>{t("tickCompleted")}</Button>
+            <Button variant="ghost" className="flex-1" onClick={onClose}>{t("cancel")}</Button>
           </div>
         )
       ) : (
         <div className="mt-6 flex gap-2">
-          <Button className="flex-1" onClick={() => resolveNotice(notice.id, "approved")}>Approve</Button>
-          <Button variant="outline" className="flex-1" onClick={() => resolveNotice(notice.id, "declined")}>Decline</Button>
+          <Button className="flex-1" onClick={() => resolveNotice(notice.id, "approved")}>{t("approve")}</Button>
+          <Button variant="outline" className="flex-1" onClick={() => resolveNotice(notice.id, "declined")}>{t("decline")}</Button>
         </div>
       )}
     </Sheet>

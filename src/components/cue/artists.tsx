@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { APP_NAME, isISR, catalogVisible, shufflePick, type Artist } from "@/lib/data";
 import { useCue } from "@/lib/store";
 import { ScreenHead, VerifiedMark } from "./chrome";
+import { useT } from "@/lib/i18n";
 
 export function ArtistsScreen() {
   const all = useCue((s) => s.artists);
@@ -11,6 +12,7 @@ export function ArtistsScreen() {
   const rest = artists.filter((a) => !isISR(a));
   const restKey = rest.map((a) => a.id).join("|");
   const [independents, setIndependents] = useState(rest);
+  const t = useT();
 
   useEffect(() => {
     setIndependents(shufflePick(rest, rest.length));
@@ -20,20 +22,20 @@ export function ArtistsScreen() {
 
   return (
     <div className="cue-enter">
-      <ScreenHead kicker="Catalogue" title="The roster" note={`${artists.length} listed`} />
+      <ScreenHead kicker={t("catalogue")} title={t("theRoster")} note={t("listedCount", { n: artists.length })} />
       {label.length > 0 ? (
         <section className="mb-8">
           <div className="px-5 pb-3">
-            <p className="cue-kicker text-xs text-accent">Inner Soul Records</p>
-            <p className="mt-1 text-sm italic text-muted">The label roster. Assigned, not claimed.</p>
+            <p className="cue-kicker text-xs text-accent">{t("innerSoulRecords")}</p>
+            <p className="mt-1 text-sm italic text-muted">{t("isrRosterNote")}</p>
           </div>
           <CatalogGrid artists={label} />
         </section>
       ) : null}
       <section>
         <div className="px-5 pb-3">
-          <p className="cue-kicker text-xs text-muted">Independent & verified</p>
-          <p className="mt-1 text-sm italic text-muted">Artists with a live track on {APP_NAME}.</p>
+          <p className="cue-kicker text-xs text-muted">{t("indieVerified")}</p>
+          <p className="mt-1 text-sm italic text-muted">{t("indieVerifiedNote", { app: APP_NAME })}</p>
         </div>
         <CatalogGrid artists={independents} />
       </section>

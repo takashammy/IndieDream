@@ -4,6 +4,7 @@ import { APP_NAME, catalogVisible, type LocationArea, LOCATIONS } from "@/lib/da
 import { currentAccount, currentArtist, useCue } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { AreaInput, Confirm, Field, ScreenHead, SelectInput, TextInput, Sheet, VerifiedMark } from "./chrome";
+import { eventDateParts, locationLabel, useLocale, useT, weekdayLabel } from "@/lib/i18n";
 
 export function EventsScreen() {
   const events = useCue((s) => s.events);
@@ -16,6 +17,8 @@ export function EventsScreen() {
   const session = useCue((s) => currentAccount(s));
   const deleteEvent = useCue((s) => s.deleteEvent);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const t = useT();
+  const { locale } = useLocale();
 
   const selected = events.find((e) => e.id === eventId && e.status === "approved");
   const live = events
@@ -39,13 +42,13 @@ export function EventsScreen() {
             type="button"
             onClick={() => openEvent(null)}
             className="absolute left-3 top-3 flex size-11 items-center justify-center rounded-md bg-bg/70 text-fg backdrop-blur-sm"
-            aria-label="All events"
+            aria-label={t("allEvents")}
           >
             <ChevronLeft className="size-5" />
           </button>
           <div className="absolute inset-x-0 bottom-0 p-5">
             <p className="cue-kicker text-xs text-accent">
-              {selected.weekday} {selected.date}
+              {weekdayLabel(locale, selected.weekday)} {eventDateParts(locale, selected.date).day} {eventDateParts(locale, selected.date).month}
             </p>
             <h1 className="cue-name mt-1 font-display text-3xl leading-none">{selected.title}</h1>
           </div>
@@ -55,12 +58,12 @@ export function EventsScreen() {
             <Clock className="size-4" /> {selected.time}
           </p>
           <p className="flex items-center gap-2">
-            <MapPin className="size-4" /> {selected.venue}, {selected.area}
+            <MapPin className="size-4" /> {selected.venue}, {locationLabel(locale, selected.area)}
           </p>
           <p className="text-sm leading-6 text-fg/90">{selected.blurb}</p>
         </div>
         <section className="mt-6 px-5 pb-8">
-          <h2 className="cue-kicker text-xs text-muted">Lineup</h2>
+          <h2 className="cue-kicker text-xs text-muted">{t("lineup")}</h2>
           <ul className="mt-3 flex flex-col gap-2">
             {lineup.map((artist) => (
               <li key={artist.id}>
@@ -83,15 +86,15 @@ export function EventsScreen() {
           </ul>
           {session?.kind === "admin" ? (
             <Button variant="outline" className="mt-8 w-full" onClick={() => setConfirmDelete(true)}>
-              Delete event
+              {t("deleteEvent")}
             </Button>
           ) : null}
         </section>
         {confirmDelete ? (
           <Confirm
-            title="Delete this event?"
-            body={`Remove “${selected.title}” from ${APP_NAME}. This cannot be undone.`}
-            confirmLabel="Yes"
+            title={t("deleteEventQ")}
+            body={t("removeEvent", { title: selected.title, app: APP_NAME })}
+            confirmLabel={t("yes")}
             onConfirm={() => deleteEvent(selected.id)}
             onClose={() => setConfirmDelete(false)}
           />
@@ -102,30 +105,33 @@ export function EventsScreen() {
 
   return (
     <div className="cue-enter">
-      <ScreenHead kicker="Events" title="This month" />
+      <ScreenHead kicker={t("tabEvents")} title={t("thisMonth")} />
       <ul className="flex flex-col pb-24">
-        {live.map((event) => (
-          <li key={event.id} className="border-t border-line">
-            <button
-              type="button"
-              onClick={() => openEvent(event.id)}
-              className="grid w-full grid-cols-[4.5rem_1fr] gap-4 px-5 py-4 text-left"
-            >
-              <div className="text-center">
-                <p className="cue-kicker text-xs text-accent">{event.weekday}</p>
-                <p className="font-display text-2xl leading-tight">{event.date.split(" ")[0]}</p>
-                <p className="text-xs text-muted">{event.date.split(" ")[1]}</p>
-              </div>
-              <div>
-                <img src={event.photo} alt="" className="mb-3 h-28 w-full rounded-md object-cover" />
-                <p className="cue-name font-display text-xl leading-tight">{event.title}</p>
-                <p className="mt-1 text-sm text-muted">
-                  {event.time} · {event.venue}
-                </p>
-              </div>
-            </button>
-          </li>
-        ))}
+        {live.map((event) => {
+          const parts = eventDateParts(locale, event.date);
+          return (
+            <li key={event.id} className="border-t border-line">
+              <button
+                type="button"
+                onClick={() => openEvent(event.id)}
+                className="grid w-full grid-cols-[4.5rem_1fr] gap-4 px-5 py-4 text-left"
+              >
+                <div className="text-center">
+                  <p className="cue-kicker text-xs text-accent">{weekdayLabel(locale, event.weekday)}</p>
+                  <p className="font-display text-2xl leading-tight">{parts.day}</p>
+                  <p className="text-xs text-muted">{parts.month}</p>
+                </div>
+                <div>
+                  <img src={event.photo} alt="" className="mb-3 h-28 w-full rounded-md object-cover" />
+                  <p className="cue-name font-display text-xl leading-tight">{event.title}</p>
+                  <p className="mt-1 text-sm text-muted">
+                    {event.time} · {event.venue}
+                  </p>
+                </div>
+              </button>
+            </li>
+          );
+        })}
       </ul>
       {composing ? <EventForm onClose={() => setEventComposer(false)} /> : null}
     </div>
@@ -137,6 +143,7 @@ export function EventsFab() {
   const meArtist = useCue((s) => currentArtist(s));
   const setGate = useCue((s) => s.setGate);
   const setEventComposer = useCue((s) => s.setEventComposer);
+  const t = useT();
 
   function onPost() {
     if (!session) {
@@ -158,7 +165,7 @@ export function EventsFab() {
       style={{ bottom: "calc(env(safe-area-inset-bottom) + 4.15rem)" }}
     >
       <Plus className="size-4" />
-      Post event
+      {t("postEvent")}
     </button>
   );
 }
@@ -178,17 +185,17 @@ function EventForm({ onClose }: { onClose: () => void }) {
   const [tagged, setTagged] = useState<string[]>(me ? [me.id] : []);
   const [openTags, setOpenTags] = useState(false);
   const [sent, setSent] = useState(false);
+  const t = useT();
+  const { locale } = useLocale();
 
   function toggle(id: string) {
     setTagged((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
   }
 
   return (
-    <Sheet title="Post an event" onClose={onClose}>
+    <Sheet title={t("postAnEvent")} onClose={onClose}>
       {sent ? (
-        <p className="text-sm leading-6 text-muted">
-          Sent for review. All events must be approved by Dreamin' Indie admins.
-        </p>
+        <p className="text-sm leading-6 text-muted">{t("sentForReview")}</p>
       ) : (
         <form
           className="space-y-3"
@@ -207,31 +214,29 @@ function EventForm({ onClose }: { onClose: () => void }) {
             if (!err) setSent(true);
           }}
         >
-          <p className="text-sm leading-6 text-muted">
-            All events must be approved by Dreamin' Indie admins.
-          </p>
-          <Field label="Title">
+          <p className="text-sm leading-6 text-muted">{t("eventApproval")}</p>
+          <Field label={t("title")}>
             <TextInput value={title} onChange={(e) => setTitle(e.target.value)} required />
           </Field>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Date">
+            <Field label={t("date")}>
               <TextInput type="date" value={isoDate} onChange={(e) => setIsoDate(e.target.value)} required />
             </Field>
-            <Field label="Time">
+            <Field label={t("time")}>
               <TextInput type="time" value={time} onChange={(e) => setTime(e.target.value)} required />
             </Field>
           </div>
-          <Field label="Venue">
+          <Field label={t("venue")}>
             <TextInput value={venue} onChange={(e) => setVenue(e.target.value)} required />
           </Field>
-          <Field label="Area">
+          <Field label={t("area")}>
             <SelectInput value={area} onChange={(e) => setArea(e.target.value as LocationArea)}>
               {LOCATIONS.map((l) => (
-                <option key={l}>{l}</option>
+                <option key={l} value={l}>{locationLabel(locale, l)}</option>
               ))}
             </SelectInput>
           </Field>
-          <Field label="Details">
+          <Field label={t("details")}>
             <AreaInput rows={4} value={blurb} onChange={(e) => setBlurb(e.target.value)} required />
           </Field>
           <div>
@@ -240,8 +245,8 @@ function EventForm({ onClose }: { onClose: () => void }) {
               onClick={() => setOpenTags((v) => !v)}
               className="flex h-11 w-full items-center justify-between rounded-md bg-elevated px-3 text-sm"
             >
-              <span>Tag artists</span>
-              <span className="text-muted">{tagged.length ? `${tagged.length} selected` : "None"}</span>
+              <span>{t("tagArtists")}</span>
+              <span className="text-muted">{tagged.length ? t("selectedN", { n: tagged.length }) : t("none")}</span>
             </button>
             {openTags ? (
               <ul className="mt-2 max-h-40 space-y-1 overflow-y-auto rounded-md bg-surface px-3 py-2">
@@ -261,7 +266,7 @@ function EventForm({ onClose }: { onClose: () => void }) {
             ) : null}
           </div>
           <Button type="submit" className="w-full">
-            Submit for approval
+            {t("submitApproval")}
           </Button>
         </form>
       )}

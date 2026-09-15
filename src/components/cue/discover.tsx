@@ -2,6 +2,7 @@ import { ChevronLeft } from "lucide-react";
 import { APP_NAME, artistsByGenre, genresFromCatalog, catalogVisible } from "@/lib/data";
 import { useCue } from "@/lib/store";
 import { ScreenHead, VerifiedMark } from "./chrome";
+import { genreLabel, useLocale, useT } from "@/lib/i18n";
 
 const GENRE_COVER: Record<string, string> = {
   Jazz: "/media/events/jazz.jpg",
@@ -26,22 +27,26 @@ export function DiscoverScreen() {
   const openArtist = useCue((s) => s.openArtist);
   const listed = artists.filter((a) => catalogVisible(a, accounts));
   const genres = genresFromCatalog(listed);
+  const t = useT();
+  const { locale } = useLocale();
 
   if (genre) {
     const people = artistsByGenre(genre, listed);
     return (
       <div className="cue-enter">
         <header className="flex items-center gap-1 px-2 pt-3">
-          <button type="button" onClick={() => openGenre(null)} className="flex size-11 items-center justify-center" aria-label="All genres">
+          <button type="button" onClick={() => openGenre(null)} className="flex size-11 items-center justify-center" aria-label={t("allGenres")}>
             <ChevronLeft className="size-5" />
           </button>
           <div>
-            <p className="cue-kicker text-xs text-muted">Genre</p>
-            <h1 className="cue-name font-display text-3xl leading-none">{genre}</h1>
+            <p className="cue-kicker text-xs text-muted">{t("genre")}</p>
+            <h1 className="cue-name font-display text-3xl leading-none">{genreLabel(locale, genre)}</h1>
           </div>
         </header>
         <p className="px-5 pt-2 text-sm italic text-muted">
-          {people.length} {people.length === 1 ? "artist" : "artists"} tagged {genre.toLowerCase()}
+          {people.length === 1
+            ? t("artistTagged", { n: people.length, genre: genreLabel(locale, genre) })
+            : t("artistsTagged", { n: people.length, genre: genreLabel(locale, genre) })}
         </p>
         <ul className="mt-4">
           {people.map((artist) => (
@@ -65,8 +70,8 @@ export function DiscoverScreen() {
 
   return (
     <div className="cue-enter">
-      <ScreenHead kicker="Listen" title="By genre" note="From the roster" />
-      <p className="px-5 pb-4 text-sm italic text-muted">A genre only appears here if someone on {APP_NAME} actually plays it.</p>
+      <ScreenHead kicker={t("listen")} title={t("byGenre")} note={t("fromRoster")} />
+      <p className="px-5 pb-4 text-sm italic text-muted">{t("genreOnlyIfPlayed", { app: APP_NAME })}</p>
       <div className="grid grid-cols-2 gap-px bg-line">
         {genres.map((g) => {
           const count = listed.filter((a) => a.genres.includes(g)).length;
@@ -74,8 +79,8 @@ export function DiscoverScreen() {
           return (
             <button key={g} type="button" onClick={() => openGenre(g)} className="bg-bg p-3 text-left">
               <img src={cover} alt="" className="aspect-[4/3] w-full object-cover" />
-              <p className="cue-name mt-3 font-display text-2xl leading-none">{g}</p>
-              <p className="mt-1 text-xs italic text-muted">{count} on roster</p>
+              <p className="cue-name mt-3 font-display text-2xl leading-none">{genreLabel(locale, g)}</p>
+              <p className="mt-1 text-xs italic text-muted">{t("onRoster", { n: count })}</p>
             </button>
           );
         })}

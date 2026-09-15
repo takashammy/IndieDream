@@ -3,6 +3,7 @@ import { Briefcase, Calendar, Compass, House, LayoutDashboard, MessageSquare, Us
 import { currentAccount, useCue, type TabId } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { setMainScroller, scrollMainToTop } from "@/lib/scroll-main";
+import { useT, useLocale, type Msg } from "@/lib/i18n";
 import { ArtistsScreen } from "./artists";
 import { ArtistProfile } from "./artist-profile";
 import { DiscoverScreen } from "./discover";
@@ -14,14 +15,14 @@ import { ServicesScreen } from "./services";
 import { Player } from "./player";
 import { Gate } from "./gate";
 
-const TABS: Array<{ id: TabId; label: string; icon: typeof Users }> = [
-  { id: "artists", label: "Artists", icon: Users },
-  { id: "discover", label: "Discover", icon: Compass },
-  { id: "events", label: "Events", icon: Calendar },
-  { id: "home", label: "Home", icon: House },
-  { id: "board", label: "Board", icon: MessageSquare },
-  { id: "services", label: "Services", icon: Briefcase },
-  { id: "me", label: "Me", icon: UserRound },
+const TABS: Array<{ id: TabId; label: Msg; icon: typeof Users }> = [
+  { id: "artists", label: "tabArtists", icon: Users },
+  { id: "discover", label: "tabDiscover", icon: Compass },
+  { id: "events", label: "tabEvents", icon: Calendar },
+  { id: "home", label: "tabHome", icon: House },
+  { id: "board", label: "tabBoard", icon: MessageSquare },
+  { id: "services", label: "tabServices", icon: Briefcase },
+  { id: "me", label: "tabMe", icon: UserRound },
 ];
 
 export function AppShell() {
@@ -42,10 +43,20 @@ export function AppShell() {
   const admin = session?.kind === "admin";
   const masthead = tab === "home";
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const t = useT();
+  const { locale, hydrateLocale } = useLocale();
 
   useEffect(() => {
     hydrate();
   }, [hydrate]);
+
+  useEffect(() => {
+    hydrateLocale();
+  }, [hydrateLocale]);
+
+  useEffect(() => {
+    document.documentElement.lang = locale === "zh" ? "zh-Hant" : "en";
+  }, [locale]);
 
   useEffect(() => {
     setMainScroller(scrollerRef.current);
@@ -65,7 +76,7 @@ export function AppShell() {
             <PoweredBy />
           </div>
           <div className="mx-auto max-w-lg">
-            <p className="mt-2 text-center text-sm italic text-muted">A platform for musicians chasing dreams</p>
+            <p className="mt-2 text-center text-sm italic text-muted">{t("tagline")}</p>
             <div className="rule-double mt-3" />
           </div>
         </header>
@@ -105,7 +116,7 @@ export function AppShell() {
         >
           {TABS.map((item) => {
             const Icon = item.id === "me" && admin ? LayoutDashboard : item.icon;
-            const label = item.id === "me" && admin ? "Desk" : item.label;
+            const label = item.id === "me" && admin ? t("tabDesk") : t(item.label);
             const active = tab === item.id || (tab === "inbox" && item.id === "me");
             const isHome = item.id === "home";
             const badge = admin && item.id === "me" ? inboxPending : admin && item.id === "services" ? enquiryPending : 0;
@@ -137,6 +148,7 @@ export function AppShell() {
 }
 
 function PoweredBy() {
+  const t = useT();
   return (
     <a
       href="https://www.instagram.com/haven.innersoulrecords"
@@ -144,7 +156,7 @@ function PoweredBy() {
       rel="noopener noreferrer"
       className="text-right text-xs leading-4 text-muted"
     >
-      <span className="cue-kicker block text-subtle">Powered by</span>
+      <span className="cue-kicker block text-subtle">{t("poweredBy")}</span>
       Inner Soul Records
     </a>
   );

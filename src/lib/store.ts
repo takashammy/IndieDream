@@ -22,6 +22,7 @@ import {
   type Song,
 } from "@/lib/data";
 import { loadStudio, saveStudio } from "@/lib/cue-sync";
+import { useLocaleStore, type Locale } from "@/lib/locale";
 
 export type TabId =
   | "home"
@@ -51,6 +52,7 @@ export type Account = {
   whatsapp: string;
   artistId?: string;
   acceptedUploadTerms?: boolean;
+  locale?: Locale;
 };
 
 export type NoticeKind = "verify" | "label" | "event" | "song" | "enquiry";
@@ -130,6 +132,7 @@ export type CueState = PersistSlice & {
     trackTitle?: string;
   }) => string | null;
   logout: () => void;
+  saveLocale: (locale: Locale) => void;
   saveArtistProfile: (patch: {
     name: string;
     role: string;
@@ -1000,7 +1003,14 @@ export const useCue = create<CueState>((set, get) => {
       ) {
         return "This account has been removed from Dreamin' Indie.";
       }
-      set({ sessionId: acc.id, meMode: "idle", gate: null });
+      const loc: Locale = acc.locale === "zh" || acc.locale === "en" ? acc.locale : useLocaleStore.getState().locale;
+      useLocaleStore.getState().setLocale(loc);
+      set({
+        sessionId: acc.id,
+        meMode: "idle",
+        gate: null,
+        accounts: get().accounts.map((a) => (a.id === acc.id ? { ...a, locale: loc } : a)),
+      });
       persist();
       return null;
     },
@@ -1082,6 +1092,7 @@ export const useCue = create<CueState>((set, get) => {
         whatsapp: "",
         artistId,
         acceptedUploadTerms: input.kind === "artist" ? true : undefined,
+        locale: useLocaleStore.getState().locale,
       };
       const notices = [...get().notices];
       if (artist) {
@@ -1130,6 +1141,15 @@ export const useCue = create<CueState>((set, get) => {
 
     logout: () => {
       set({ sessionId: null, meMode: "idle", nowPlaying: null, playing: false });
+      persist();
+    },
+
+    saveLocale: (locale) => {
+      const acc = currentAccount(get());
+      if (!acc) return;
+      set({
+        accounts: get().accounts.map((a) => (a.id === acc.id ? { ...a, locale } : a)),
+      });
       persist();
     },
 

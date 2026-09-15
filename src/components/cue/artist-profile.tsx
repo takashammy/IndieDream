@@ -5,6 +5,7 @@ import { currentAccount, useCue } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { coverImage } from "@/lib/r2";
 import { Confirm, SocialPair, TrackSheet, VerifiedMark } from "./chrome";
+import { eventDateLabel, genreLabel, useLocale, useT, weekdayLabel } from "@/lib/i18n";
 
 export function ArtistProfile({ id }: { id: string }) {
   const artists = useCue((s) => s.artists);
@@ -21,12 +22,14 @@ export function ArtistProfile({ id }: { id: string }) {
   const admin = session?.kind === "admin";
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [openSong, setOpenSong] = useState<Song | null>(null);
+  const t = useT();
+  const { locale } = useLocale();
 
   if (!artist) {
     return (
       <div className="px-5 py-10">
-        <p className="text-muted">This artist isn’t on the roster.</p>
-        <Button variant="ghost" className="mt-4" onClick={closeArtist}>Back</Button>
+        <p className="text-muted">{t("notOnRoster")}</p>
+        <Button variant="ghost" className="mt-4" onClick={closeArtist}>{t("back")}</Button>
       </div>
     );
   }
@@ -39,11 +42,11 @@ export function ArtistProfile({ id }: { id: string }) {
       <div className="relative h-[52vh] min-h-72">
         <img src={artist.photo} alt="" className="absolute inset-0 size-full object-cover" />
         <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, color-mix(in oklab, var(--bg) 35%, transparent) 0%, transparent 30%, color-mix(in oklab, var(--bg) 92%, transparent) 100%)" }} />
-        <button type="button" onClick={closeArtist} className="absolute left-3 top-3 z-20 flex size-11 items-center justify-center rounded-md bg-bg/70 text-fg backdrop-blur-sm" aria-label="Back to roster">
+        <button type="button" onClick={closeArtist} className="absolute left-3 top-3 z-20 flex size-11 items-center justify-center rounded-md bg-bg/70 text-fg backdrop-blur-sm" aria-label={t("backToRoster")}>
           <ChevronLeft className="size-5" />
         </button>
         <div className="pointer-events-none absolute inset-x-0 bottom-0 p-5 pr-28">
-          <p className="cue-kicker text-xs text-accent">{isISR(artist) ? "Inner Soul Records · " : null}{artist.role}</p>
+          <p className="cue-kicker text-xs text-accent">{isISR(artist) ? `${t("innerSoulRecords")} · ` : null}{artist.role}</p>
           <h1 className="cue-name mt-1 flex items-center gap-2 font-display text-4xl leading-none sm:text-5xl">{artist.name}{artist.verified ? <VerifiedMark className="size-6" /> : null}</h1>
           <p className="mt-2 flex items-center gap-1.5 text-sm text-muted"><MapPin className="size-3.5" />{artist.city}</p>
         </div>
@@ -54,14 +57,14 @@ export function ArtistProfile({ id }: { id: string }) {
       <div className="px-5 pt-4">
         <div className="flex flex-wrap gap-2">
           {artist.genres.map((g) => (
-            <button key={g} type="button" onClick={() => openGenre(g)} className="h-8 rounded-md bg-elevated px-3 text-xs text-fg">{g}</button>
+            <button key={g} type="button" onClick={() => openGenre(g)} className="h-8 rounded-md bg-elevated px-3 text-xs text-fg">{genreLabel(locale, g)}</button>
           ))}
         </div>
         <p className="mt-4 text-sm leading-6 text-muted">{artist.bio}</p>
       </div>
       <section className="mt-6">
-        <h2 className="px-5 cue-kicker text-xs text-muted">On {APP_NAME}</h2>
-        {songs.length === 0 ? <p className="px-5 pt-3 text-sm text-muted">Nothing live yet.</p> : (
+        <h2 className="px-5 cue-kicker text-xs text-muted">{t("onApp", { app: APP_NAME })}</h2>
+        {songs.length === 0 ? <p className="px-5 pt-3 text-sm text-muted">{t("nothingLive")}</p> : (
           <ul className="mt-2">
             {songs.map((song) => {
               const active = nowPlaying?.song.id === song.id && playing;
@@ -72,14 +75,14 @@ export function ArtistProfile({ id }: { id: string }) {
                       <img src={coverImage(song.cover)} alt="" className="size-12 shrink-0 rounded-sm object-cover" />
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium">{song.title}</p>
-                        <p className="text-xs text-muted">{song.duration} · {song.plays} plays</p>
+                        <p className="text-xs text-muted">{song.duration} · {song.plays} {t("plays")}</p>
                       </div>
                     </button>
                     <button
                       type="button"
                       onClick={() => play({ song, artistName: artist.name, artistId: artist.id })}
                       className="flex size-10 shrink-0 items-center justify-center rounded-md bg-elevated text-fg"
-                      aria-label={`Play ${song.title}`}
+                      aria-label={t("playSong", { title: song.title })}
                     >
                       <Play className={active ? "size-3 fill-accent text-accent" : "size-3 translate-x-px"} />
                     </button>
@@ -93,7 +96,7 @@ export function ArtistProfile({ id }: { id: string }) {
       </section>
       {gigs.length > 0 ? (
         <section className="mt-6 px-5">
-          <h2 className="cue-kicker text-xs text-muted">Upcoming</h2>
+          <h2 className="cue-kicker text-xs text-muted">{t("upcoming")}</h2>
           <ul className="mt-3 flex flex-col gap-2">
             {gigs.map((gig) => (
               <li key={gig.id}>
@@ -101,7 +104,7 @@ export function ArtistProfile({ id }: { id: string }) {
                   <img src={gig.photo} alt="" className="size-14 shrink-0 rounded-md object-cover" />
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">{gig.title}</p>
-                    <p className="text-xs text-muted">{gig.weekday} {gig.date} · {gig.venue}</p>
+                    <p className="text-xs text-muted">{weekdayLabel(locale, gig.weekday)} {eventDateLabel(locale, gig.date)} · {gig.venue}</p>
                   </div>
                 </button>
               </li>
@@ -109,8 +112,8 @@ export function ArtistProfile({ id }: { id: string }) {
           </ul>
         </section>
       ) : null}
-      {admin ? <div className="px-5 pt-8"><Button variant="outline" className="w-full" onClick={() => setConfirmDelete(true)}>Delete profile</Button></div> : null}
-      {confirmDelete ? <Confirm title="Delete this profile?" body={`Remove ${artist.name} from ${APP_NAME}. This cannot be undone.`} confirmLabel="Yes" cancelLabel="Cancel" onConfirm={() => deleteArtist(artist.id)} onClose={() => setConfirmDelete(false)} /> : null}
+      {admin ? <div className="px-5 pt-8"><Button variant="outline" className="w-full" onClick={() => setConfirmDelete(true)}>{t("deleteProfile")}</Button></div> : null}
+      {confirmDelete ? <Confirm title={t("deleteProfileQ")} body={t("removeArtist", { name: artist.name, app: APP_NAME })} confirmLabel={t("yes")} cancelLabel={t("cancel")} onConfirm={() => deleteArtist(artist.id)} onClose={() => setConfirmDelete(false)} /> : null}
       {openSong ? <TrackSheet artistName={artist.name} artistId={artist.id} song={openSong} onClose={() => setOpenSong(null)} /> : null}
     </div>
   );

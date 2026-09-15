@@ -11,6 +11,7 @@ import {
 } from "@/lib/data";
 import { currentAccount, useCue } from "@/lib/store";
 import { ScreenHead, TrackSheet, VerifiedMark } from "./chrome";
+import { eventDateParts, useLocale, useT, weekdayLabel } from "@/lib/i18n";
 
 function pickHomeArtists(listed: Artist[]) {
   const label = listed.filter(isISR);
@@ -32,9 +33,11 @@ export function HomeScreen() {
   const playing = useCue((s) => s.playing);
   const session = useCue((s) => currentAccount(s));
   const [openTrack, setOpenTrack] = useState<{ song: Song; artistName: string; artistId: string } | null>(null);
+  const t = useT();
+  const { locale } = useLocale();
 
   const listed = artists.filter((a) => catalogVisible(a, accounts));
-  const [featured, setFeatured] = useState(() => pickHomeArtists(listed));
+  const [featured, setFeatured] = useState(() => listed.slice(0, 6));
   useEffect(() => {
     setFeatured(pickHomeArtists(listed));
     // listed is captured on visit; reshuffle when returning to Home (remount)
@@ -46,9 +49,9 @@ export function HomeScreen() {
   return (
     <div className="cue-enter pb-10">
       <ScreenHead
-        kicker="Hong Kong"
-        title="Listen in"
-        note={session ? session.name : "Guest"}
+        kicker={t("hongKong")}
+        title={t("listenIn")}
+        note={session ? session.name : t("guest")}
       />
 
       <div className="px-5">
@@ -58,20 +61,20 @@ export function HomeScreen() {
           className="flex w-full items-center justify-between rounded-md bg-accent px-4 py-3 text-left text-accent-fg"
         >
           <span>
-            <span className="cue-kicker block text-xs opacity-80">Publishing</span>
-            <span className="font-display text-xl leading-none">Publish your songs</span>
+            <span className="cue-kicker block text-xs opacity-80">{t("publishing")}</span>
+            <span className="font-display text-xl leading-none">{t("publishSongs")}</span>
           </span>
-          <span className="text-sm italic">Services →</span>
+          <span className="text-sm italic">{t("servicesArrow")}</span>
         </button>
       </div>
 
       <section className="mt-8">
         <div className="flex items-end justify-between px-5">
           <div>
-            <p className="cue-kicker text-xs text-muted">Heard around town</p>
-            <h2 className="cue-name font-display text-2xl leading-none">Artists</h2>
+            <p className="cue-kicker text-xs text-muted">{t("heardAround")}</p>
+            <h2 className="cue-name font-display text-2xl leading-none">{t("tabArtists")}</h2>
           </div>
-          <p className="text-xs italic text-subtle">Shuffled · six</p>
+          <p className="text-xs italic text-subtle">{t("shuffledSix")}</p>
         </div>
         <div className="mt-3 grid grid-cols-3 gap-px bg-line">
           {featured.map((artist) => (
@@ -87,7 +90,7 @@ export function HomeScreen() {
                 {artist.verified ? <VerifiedMark className="size-3" /> : null}
               </p>
               {isISR(artist) ? (
-                <p className="mt-0.5 text-xs italic text-accent">Inner Soul</p>
+                <p className="mt-0.5 text-xs italic text-accent">{t("innerSoul")}</p>
               ) : (
                 <p className="mt-0.5 truncate text-xs italic text-muted">{artist.role}</p>
               )}
@@ -98,8 +101,8 @@ export function HomeScreen() {
 
       <section className="mt-8">
         <div className="px-5">
-          <p className="cue-kicker text-xs text-muted">Just in</p>
-          <h2 className="cue-name font-display text-2xl leading-none">Latest tracks</h2>
+          <p className="cue-kicker text-xs text-muted">{t("justIn")}</p>
+          <h2 className="cue-name font-display text-2xl leading-none">{t("latestTracks")}</h2>
         </div>
         <ul className="mt-2">
           {tracks.map(({ song, artist }) => {
@@ -122,7 +125,7 @@ export function HomeScreen() {
                     type="button"
                     onClick={() => play({ song, artistName: artist.name, artistId: artist.id })}
                     className="flex size-10 shrink-0 items-center justify-center rounded-md bg-elevated"
-                    aria-label={`Play ${song.title}`}
+                    aria-label={t("playSong", { title: song.title })}
                   >
                     <Play className={active ? "size-3 fill-accent text-accent" : "size-3 translate-x-px"} />
                   </button>
@@ -135,8 +138,8 @@ export function HomeScreen() {
 
       <section className="mt-8">
         <div className="px-5">
-          <p className="cue-kicker text-xs text-muted">Events</p>
-          <h2 className="cue-name font-display text-2xl leading-none">Coming up</h2>
+          <p className="cue-kicker text-xs text-muted">{t("tabEvents")}</p>
+          <h2 className="cue-name font-display text-2xl leading-none">{t("comingUp")}</h2>
         </div>
         <ul className="mt-2">
           {soon.map((event) => (
@@ -147,9 +150,9 @@ export function HomeScreen() {
                 className="grid w-full grid-cols-[4.5rem_1fr] gap-3 px-5 py-3 text-left"
               >
                 <div className="text-center">
-                  <p className="cue-kicker text-xs text-accent">{event.weekday}</p>
-                  <p className="font-display text-2xl leading-tight">{event.date.split(" ")[0]}</p>
-                  <p className="text-xs text-muted">{event.date.split(" ")[1]}</p>
+                  <p className="cue-kicker text-xs text-accent">{weekdayLabel(locale, event.weekday)}</p>
+                  <p className="font-display text-2xl leading-tight">{eventDateParts(locale, event.date).day}</p>
+                  <p className="text-xs text-muted">{eventDateParts(locale, event.date).month}</p>
                 </div>
                 <div>
                   <p className="cue-name font-display text-lg leading-tight">{event.title}</p>

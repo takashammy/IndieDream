@@ -3,7 +3,6 @@ import { Plus, Search, Trash2 } from "lucide-react";
 import {
   CATEGORY_LABEL,
   APP_NAME,
-  ageLabel,
   isPostExpired,
   type Artist,
   type BoardCategory,
@@ -14,6 +13,14 @@ import { currentAccount, useCue, type Account } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { AreaInput, BackRow, Confirm, Field, ScreenHead, TextInput, VerifiedMark, readLocalImage } from "./chrome";
 import { cn } from "@/lib/utils";
+import {
+  ageText,
+  boardPlaceholder,
+  categoryLabel,
+  imageReason,
+  useLocale,
+  useT,
+} from "@/lib/i18n";
 
 type BoardFilter = "all" | BoardCategory | "open" | "mine";
 type BoardSort = "latest" | "busy";
@@ -49,25 +56,6 @@ function resolveAuthor(
   return { photo: "/media/user.jpg", verified: false };
 }
 
-const PLACEHOLDER: Record<BoardCategory, { title: string; body: string }> = {
-  seeking: {
-    title: "Bassist for a Saturday residency",
-    body: "Room, dates, pay, and what you actually need.",
-  },
-  collab: {
-    title: "Producer for six cello sketches",
-    body: "What you’ve got, what you’re looking for, and the kind of player who shouldn’t write.",
-  },
-  gear: {
-    title: "Selling a 1966 Ludwig snare",
-    body: "Condition, pickup, and the price. No lowballs from strangers.",
-  },
-  session: {
-    title: "Horn charts available this month",
-    body: "When you’re free, what you play, and how to reach you.",
-  },
-};
-
 export function BoardScreen() {
   const posts = useCue((s) => s.posts);
   const deleted = useCue((s) => s.deletedPostIds);
@@ -90,6 +78,8 @@ export function BoardScreen() {
   const [composing, setComposing] = useState(false);
   const [reply, setReply] = useState("");
   const [ban, setBan] = useState<BanTarget | null>(null);
+  const t = useT();
+  const { locale } = useLocale();
 
   useEffect(() => {
     function onCompose() {
@@ -134,7 +124,7 @@ export function BoardScreen() {
         return false;
       }
       if (!q) return true;
-      const hay = `${p.title} ${p.body} ${p.author} ${p.role} ${CATEGORY_LABEL[p.category]}`.toLowerCase();
+      const hay = `${p.title} ${p.body} ${p.author} ${p.role} ${CATEGORY_LABEL[p.category]} ${categoryLabel(locale, p.category)}`.toLowerCase();
       return hay.includes(q);
     });
     const ranked = [...filtered];
@@ -146,7 +136,7 @@ export function BoardScreen() {
       return +new Date(b.createdAt) - +new Date(a.createdAt);
     });
     return ranked;
-  }, [active, filter, query, session, sort]);
+  }, [active, filter, query, session, sort, locale]);
 
   useEffect(() => {
     setPage(0);
@@ -168,14 +158,14 @@ export function BoardScreen() {
   }
 
   const chipOptions: Array<{ id: BoardFilter; label: string; count: number }> = [
-    { id: "all", label: "All", count: counts.all },
-    { id: "seeking", label: "Seeking", count: counts.seeking },
-    { id: "collab", label: "Collab", count: counts.collab },
-    { id: "gear", label: "Gear", count: counts.gear },
-    { id: "session", label: "Session", count: counts.session },
-    { id: "open", label: "Open", count: counts.open },
+    { id: "all", label: t("all"), count: counts.all },
+    { id: "seeking", label: t("seeking"), count: counts.seeking },
+    { id: "collab", label: t("collab"), count: counts.collab },
+    { id: "gear", label: t("gear"), count: counts.gear },
+    { id: "session", label: t("session"), count: counts.session },
+    { id: "open", label: t("open"), count: counts.open },
   ];
-  if (session) chipOptions.push({ id: "mine", label: "Mine", count: counts.mine });
+  if (session) chipOptions.push({ id: "mine", label: t("mine"), count: counts.mine });
 
   if (selected) {
     const face = resolveAuthor(selected.authorId, artists, accounts);
@@ -184,10 +174,10 @@ export function BoardScreen() {
       (selected.authorId === session.id || (session.artistId && selected.authorId === session.artistId));
     return (
       <div className="cue-enter pb-12">
-        <BackRow label="Board" onClick={() => openPost(null)} />
+        <BackRow label={t("boardKicker")} onClick={() => openPost(null)} />
         <p className="cue-kicker px-5 text-xs text-accent">
-          {CATEGORY_LABEL[selected.category]}
-          {selected.thread.length === 0 ? " · Open" : null}
+          {categoryLabel(locale, selected.category)}
+          {selected.thread.length === 0 ? t("openDot") : null}
         </p>
         <h1 className="cue-name px-5 pt-2 font-display text-3xl leading-tight">{selected.title}</h1>
         <AuthorLine
@@ -195,7 +185,7 @@ export function BoardScreen() {
           role={selected.role}
           photo={face.photo}
           verified={face.verified}
-          age={ageLabel(selected.createdAt)}
+          age={ageText(locale, selected.createdAt)}
           you={Boolean(mine)}
           onOpen={face.artistId ? () => openArtist(face.artistId!) : undefined}
         />
@@ -219,7 +209,7 @@ export function BoardScreen() {
                 })
               }
             >
-              <Trash2 className="size-4" /> Delete post
+              <Trash2 className="size-4" /> {t("deletePost")}
             </Button>
           </div>
         ) : null}
@@ -227,11 +217,11 @@ export function BoardScreen() {
         <section className="mt-8">
           <div className="px-5">
             <h2 className="cue-kicker text-xs text-muted">
-              Replies · {selected.thread.length}
+              {t("repliesKicker", { n: selected.thread.length })}
             </h2>
           </div>
           {selected.thread.length === 0 ? (
-            <p className="mt-3 px-5 text-sm italic text-muted">No replies yet. Be the first.</p>
+            <p className="mt-3 px-5 text-sm italic text-muted">{t("noReplies")}</p>
           ) : (
             <ul className="mt-3">
               {selected.thread.map((item) => (
@@ -271,22 +261,22 @@ export function BoardScreen() {
                 setReply("");
               }}
             >
-              <Field label="Write a reply">
+              <Field label={t("writeReply")}>
                 <AreaInput
                   rows={3}
                   value={reply}
                   onChange={(e) => setReply(e.target.value)}
-                  placeholder="Keep it about the music."
+                  placeholder={t("keepMusic")}
                 />
               </Field>
               <Button type="submit" className="w-full">
-                Reply
+                {t("reply")}
               </Button>
             </form>
           ) : (
             <div className="px-5">
               <Button className="mt-4 w-full" onClick={() => setGate("board")}>
-                Sign in to reply
+                {t("signInReply")}
               </Button>
             </div>
           )}
@@ -328,19 +318,17 @@ export function BoardScreen() {
 
   const emptyCopy =
     query.trim()
-      ? "Nothing matches that search."
+      ? t("noMatch")
       : filter === "open"
-        ? "Every call has an answer."
+        ? t("everyAnswered")
         : filter === "mine"
-          ? "You haven’t posted yet."
-          : "No threads in this filter.";
+          ? t("haventPosted")
+          : t("noThreads");
 
   return (
     <div className="cue-enter pb-24">
-      <ScreenHead kicker="Board" title="Talk shop" note={`${counts.all} live`} />
-      <p className="px-5 pb-4 text-sm leading-6 text-muted">
-        Calls, gear, and collabs. Music only — anything else comes off.
-      </p>
+      <ScreenHead kicker={t("boardKicker")} title={t("talkShop")} note={t("liveN", { n: counts.all })} />
+      <p className="px-5 pb-4 text-sm leading-6 text-muted">{t("boardIntro")}</p>
       <BoardChips value={filter} onChange={setFilter} options={chipOptions} />
       <div className="relative px-5 pb-3">
         <Search className="pointer-events-none absolute left-8 top-1/2 size-4 -translate-y-1/2 text-subtle" />
@@ -348,13 +336,13 @@ export function BoardScreen() {
           className="mt-0 pl-9"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Title, player, room…"
-          aria-label="Search the board"
+          placeholder={t("searchPlaceholder")}
+          aria-label={t("searchBoard")}
         />
       </div>
       <div className="flex items-center justify-between gap-3 px-5 pb-2">
         <p className="text-xs tabular-nums text-subtle">
-          {visible.length} {visible.length === 1 ? "thread" : "threads"}
+          {visible.length} {visible.length === 1 ? t("thread") : t("threads")}
           {visible.length > PAGE ? ` · ${safePage * PAGE + 1}–${Math.min(visible.length, safePage * PAGE + PAGE)}` : ""}
         </p>
         <div className="flex">
@@ -363,14 +351,14 @@ export function BoardScreen() {
             className={cn("h-11 px-2 text-sm", sort === "latest" ? "text-accent" : "text-muted")}
             onClick={() => setSort("latest")}
           >
-            Latest
+            {t("latest")}
           </button>
           <button
             type="button"
             className={cn("h-11 px-2 text-sm", sort === "busy" ? "text-accent" : "text-muted")}
             onClick={() => setSort("busy")}
           >
-            Busiest
+            {t("busiest")}
           </button>
         </div>
       </div>
@@ -394,15 +382,15 @@ export function BoardScreen() {
                     <img src={face.photo} alt="" className="size-12 shrink-0 rounded-md object-cover" />
                     <div className="min-w-0 flex-1">
                       <p className="cue-kicker text-xs text-accent">
-                        {CATEGORY_LABEL[post.category]}
-                        {open ? " · Open" : busy ? " · Busy" : null}
+                        {categoryLabel(locale, post.category)}
+                        {open ? t("openDot") : busy ? t("busyDot") : null}
                       </p>
                       <p className="mt-1 font-medium leading-snug">{post.title}</p>
                       <p className="mt-1 line-clamp-2 text-sm text-muted">{post.body}</p>
                       {post.image ? <img src={post.image} alt="" className="mt-2 h-28 w-full rounded-md object-cover" /> : null}
                       <p className="mt-2 text-xs text-subtle">
-                        {post.author} · {ageLabel(post.createdAt)} · {post.thread.length}{" "}
-                        {post.thread.length === 1 ? "reply" : "replies"}
+                        {post.author} · {ageText(locale, post.createdAt)} · {post.thread.length}{" "}
+                        {post.thread.length === 1 ? t("reply") : t("replies")}
                       </p>
                     </div>
                   </button>
@@ -410,7 +398,7 @@ export function BoardScreen() {
                     <button
                       type="button"
                       className="flex size-11 shrink-0 items-center justify-center text-muted"
-                      aria-label="Delete post"
+                      aria-label={t("deletePost")}
                       onClick={() =>
                         setBan({
                           kind: "post",
@@ -436,7 +424,7 @@ export function BoardScreen() {
               disabled={safePage === 0}
               onClick={() => setPage((p) => Math.max(0, p - 1))}
             >
-              Previous
+              {t("previous")}
             </button>
             <p className="text-xs tabular-nums text-subtle">
               {safePage + 1} / {pageCount}
@@ -447,7 +435,7 @@ export function BoardScreen() {
               disabled={safePage >= pageCount - 1}
               onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
             >
-              Next
+              {t("next")}
             </button>
           </div>
         ) : null}
@@ -469,6 +457,7 @@ export function BoardScreen() {
 export function BoardFab() {
   const postId = useCue((s) => s.postId);
   const [hidden, setHidden] = useState(false);
+  const t = useT();
 
   useEffect(() => {
     const hide = () => setHidden(true);
@@ -495,7 +484,7 @@ export function BoardFab() {
       style={{ bottom: "calc(env(safe-area-inset-bottom) + 4.15rem)" }}
     >
       <Plus className="size-4" />
-      New post
+      {t("newPost")}
     </button>
   );
 }
@@ -546,6 +535,7 @@ function AuthorLine({
   you?: boolean;
   onOpen?: () => void;
 }) {
+  const t = useT();
   const inner = (
     <>
       <img src={photo} alt="" className="size-12 rounded-md object-cover" />
@@ -553,7 +543,7 @@ function AuthorLine({
         <p className="flex items-center gap-1.5 font-medium">
           {name}
           {verified ? <VerifiedMark /> : null}
-          {you ? <span className="text-xs font-normal italic text-subtle">You</span> : null}
+          {you ? <span className="text-xs font-normal italic text-subtle">{t("youPronoun")}</span> : null}
         </p>
         <p className="text-xs text-muted">
           {role} · {age}
@@ -586,6 +576,8 @@ function ReplyRow({
   onOpenArtist: (id: string) => void;
   onDelete: () => void;
 }) {
+  const t = useT();
+  const { locale } = useLocale();
   return (
     <li className="border-t border-line px-5 py-3">
       <div className="flex items-start gap-3">
@@ -594,7 +586,7 @@ function ReplyRow({
             type="button"
             className="size-10 shrink-0 overflow-hidden rounded-md"
             onClick={() => onOpenArtist(face.artistId!)}
-            aria-label={`${item.author} on the roster`}
+            aria-label={t("onRosterAria", { name: item.author })}
           >
             <img src={face.photo} alt="" className="size-full object-cover" />
           </button>
@@ -605,9 +597,9 @@ function ReplyRow({
           <p className="text-sm font-medium">
             {item.author}{" "}
             <span className="font-normal text-muted">
-              · {item.role} · {ageLabel(item.createdAt)}
+              · {item.role} · {ageText(locale, item.createdAt)}
             </span>
-            {you ? <span className="ml-1 text-xs font-normal italic text-subtle">You</span> : null}
+            {you ? <span className="ml-1 text-xs font-normal italic text-subtle">{t("youPronoun")}</span> : null}
           </p>
           <p className="mt-1 text-sm leading-6">{item.body}</p>
         </div>
@@ -615,7 +607,7 @@ function ReplyRow({
           <button
             type="button"
             className="flex size-11 shrink-0 items-center justify-center text-muted"
-            aria-label="Delete reply"
+            aria-label={t("deleteReply")}
             onClick={onDelete}
           >
             <Trash2 className="size-4" />
@@ -637,18 +629,19 @@ function BanConfirm({
   onBan: () => void;
   onClose: () => void;
 }) {
-  const noun = target.kind === "reply" ? "reply" : "post";
+  const t = useT();
+  const noun = target.kind === "reply" ? t("reply") : t("post");
   return (
     <Confirm
-      title={`Delete this ${noun}?`}
-      body={`Remove this ${noun} from the board. You can also ban ${target.author} and take them off ${APP_NAME}.`}
-      confirmLabel="Delete"
-      cancelLabel="Cancel"
+      title={t("deleteThis", { noun })}
+      body={t("removeBoard", { noun, author: target.author, app: APP_NAME })}
+      confirmLabel={t("delete")}
+      cancelLabel={t("cancel")}
       onConfirm={onDelete}
       onClose={onClose}
       extra={
         target.authorId
-          ? { label: `Ban and remove ${target.author}`, onClick: onBan }
+          ? { label: t("banRemove", { author: target.author }), onClick: onBan }
           : undefined
       }
     />
@@ -667,7 +660,9 @@ function Compose({
   const [category, setCategory] = useState<BoardCategory>("seeking");
   const [image, setImage] = useState<string | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
-  const hint = PLACEHOLDER[category];
+  const t = useT();
+  const { locale } = useLocale();
+  const hint = boardPlaceholder(locale, category);
 
   return (
     <form
@@ -683,13 +678,11 @@ function Compose({
         });
       }}
     >
-      <BackRow label="Board" onClick={onCancel} />
+      <BackRow label={t("boardKicker")} onClick={onCancel} />
       <div className="px-5">
-        <p className="cue-kicker text-xs text-muted">New post</p>
-        <h1 className="cue-name mt-1 font-display text-3xl leading-none">Start a thread</h1>
-        <p className="mt-3 text-sm leading-6 text-muted">
-          Music related only. Rooms, players, gear, and work — not general chat.
-        </p>
+        <p className="cue-kicker text-xs text-muted">{t("newPost")}</p>
+        <h1 className="cue-name mt-1 font-display text-3xl leading-none">{t("startThread")}</h1>
+        <p className="mt-3 text-sm leading-6 text-muted">{t("boardComposeHint")}</p>
       </div>
       <div className="mt-4">
         <BoardChips
@@ -703,19 +696,19 @@ function Compose({
           }}
           options={(Object.keys(CATEGORY_LABEL) as BoardCategory[]).map((c) => ({
             id: c,
-            label: CATEGORY_LABEL[c],
+            label: categoryLabel(locale, c),
           }))}
         />
       </div>
       <div className="space-y-4 px-5">
-        <Field label="Title">
+        <Field label={t("title")}>
           <TextInput
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder={hint.title}
           />
         </Field>
-        <Field label="Details">
+        <Field label={t("details")}>
           <AreaInput
             value={body}
             onChange={(e) => setBody(e.target.value)}
@@ -725,17 +718,17 @@ function Compose({
         </Field>
         {category === "gear" ? (
           <div>
-            <p className="text-xs text-muted">Photo · 2 MB max</p>
+            <p className="text-xs text-muted">{t("photo2mb")}</p>
             {image ? (
               <div className="mt-2">
                 <img src={image} alt="" className="h-36 w-full rounded-md object-cover" />
                 <button type="button" className="mt-2 text-sm text-muted" onClick={() => setImage(null)}>
-                  Remove photo
+                  {t("removePhoto")}
                 </button>
               </div>
             ) : (
               <label className="relative mt-2 flex h-11 w-full items-center justify-center overflow-hidden rounded-md bg-elevated px-3 text-sm">
-                <span className="pointer-events-none">Add a photo</span>
+                <span className="pointer-events-none">{t("addPhoto")}</span>
                 <input
                   type="file"
                   accept="image/*"
@@ -751,7 +744,7 @@ function Compose({
                       })
                       .catch((err: unknown) => {
                         setImage(null);
-                        setImageError(err instanceof Error ? err.message : "Could not read image.");
+                        setImageError(err instanceof Error ? imageReason(locale, err.message) : t("couldNotRead"));
                       });
                   }}
                 />
@@ -760,13 +753,13 @@ function Compose({
             {imageError ? <p className="mt-1 text-sm text-accent">{imageError}</p> : null}
           </div>
         ) : (
-          <p className="text-xs text-subtle">Photos can only be attached to gear posts.</p>
+          <p className="text-xs text-subtle">{t("photosGearOnly")}</p>
         )}
         <Button type="submit" className="w-full">
-          Post
+          {t("post")}
         </Button>
         <Button type="button" variant="ghost" className="w-full" onClick={onCancel}>
-          Cancel
+          {t("cancel")}
         </Button>
       </div>
     </form>

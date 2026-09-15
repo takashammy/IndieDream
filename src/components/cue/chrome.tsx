@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Song } from "@/lib/data";
 import { useCue } from "@/lib/store";
+import { imageReason, useLocale, useT } from "@/lib/i18n";
 
 export function BackRow({ label, onClick }: { label: string; onClick: () => void }) {
   return (
@@ -39,11 +40,12 @@ export function ScreenHead({
 }
 
 export function VerifiedMark({ className }: { className?: string }) {
+  const t = useT();
   return (
     <Music2
       className={cn("inline-block size-4 shrink-0 text-accent", className)}
       strokeWidth={2.2}
-      aria-label="Verified artist"
+      aria-label={t("verifiedArtist")}
     />
   );
 }
@@ -174,6 +176,7 @@ export function PhotoPick({
 }) {
   const ref = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
+  const { locale } = useLocale();
 
   return (
     <div className="shrink-0">
@@ -203,7 +206,7 @@ export function PhotoPick({
               onChange(url);
             })
             .catch((err: unknown) => {
-              setError(err instanceof Error ? err.message : "Could not read image.");
+              setError(err instanceof Error ? imageReason(locale, err.message) : imageReason(locale, ""));
             });
         }}
       />
@@ -259,12 +262,13 @@ export function Sheet({
   onClose: () => void;
   children: ReactNode;
 }) {
+  const t = useT();
   const frame = (
     <div className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[calc(5rem+env(safe-area-inset-bottom))]">
       <button
         type="button"
         className="fixed inset-0 bg-ink/45"
-        aria-label="Close"
+        aria-label={t("close")}
         onClick={onClose}
       />
       <div
@@ -279,7 +283,7 @@ export function Sheet({
             type="button"
             onClick={onClose}
             className="flex size-11 shrink-0 items-center justify-center text-muted"
-            aria-label="Close dialog"
+            aria-label={t("closeDialog")}
           >
             <X className="size-4" />
           </button>
@@ -295,8 +299,8 @@ export function Sheet({
 export function Confirm({
   title,
   body,
-  confirmLabel = "Yes",
-  cancelLabel = "Cancel",
+  confirmLabel,
+  cancelLabel,
   onConfirm,
   onClose,
   extra,
@@ -309,8 +313,9 @@ export function Confirm({
   onClose: () => void;
   extra?: { label: string; onClick: () => void };
 }) {
+  const t = useT();
   return (
-    <Sheet title={title} kicker="Please confirm" onClose={onClose}>
+    <Sheet title={title} kicker={t("pleaseConfirm")} onClose={onClose}>
       <p className="text-sm leading-6 text-muted">{body}</p>
       <div className="mt-6 flex flex-col gap-2">
         <Button
@@ -320,7 +325,7 @@ export function Confirm({
             onClose();
           }}
         >
-          {confirmLabel}
+          {confirmLabel ?? t("yes")}
         </Button>
         {extra ? (
           <Button
@@ -335,7 +340,7 @@ export function Confirm({
           </Button>
         ) : null}
         <Button variant="ghost" className="w-full" onClick={onClose}>
-          {cancelLabel}
+          {cancelLabel ?? t("cancel")}
         </Button>
       </div>
     </Sheet>
@@ -354,6 +359,7 @@ export function TrackSheet({
   onClose: () => void;
 }) {
   const openArtist = useCue((s) => s.openArtist);
+  const t = useT();
   const lyrics = song.lyrics?.trim();
   const title = artistId ? (
     <button
@@ -370,12 +376,12 @@ export function TrackSheet({
     artistName
   );
   return (
-    <Sheet title={title} kicker="Track" onClose={onClose}>
+    <Sheet title={title} kicker={t("track")} onClose={onClose}>
       <p className="text-base font-medium leading-snug">{song.title}</p>
       {lyrics ? (
         <p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-muted">{lyrics}</p>
       ) : (
-        <p className="mt-4 text-sm italic text-subtle">No lyrics yet.</p>
+        <p className="mt-4 text-sm italic text-subtle">{t("noLyrics")}</p>
       )}
     </Sheet>
   );
