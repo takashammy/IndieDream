@@ -6,6 +6,8 @@ import { AreaInput, Confirm, Field, PhotoPick, ScreenHead, SelectInput, Sheet, T
 import { AUDIO_PICK_ACCEPT, inspectAudioFile } from "@/lib/audio-limits";
 import { coverImage, putTrackFile, r2KeyFromCover, withR2Cover } from "@/lib/r2";
 import { LanguageToggle } from "./language-toggle";
+import { ensureOwnArtist } from "@/lib/ensure-artist";
+import { saveMySong } from "@/lib/cue-profile";
 import {
   audioReason,
   genreLabel,
@@ -67,13 +69,19 @@ export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
   const [termsOpen, setTermsOpen] = useState(false);
   const [dropSong, setDropSong] = useState<Song | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const trackFileRef = useRef<File | null>(null);
   const t = useT();
   const { locale } = useLocale();
   const pendingSongs = (artist?.songs ?? []).filter((s) => s.status !== "approved").length;
   const awaitingAdmin = Boolean(artist && (!artist.verified || pendingSongs > 0));
 
+  function pickedFile() {
+    return trackFileRef.current || trackFile || fileRef.current?.files?.[0] || null;
+  }
+
   function onSave(e: FormEvent) {
     e.preventDefault();
+    ensureOwnArtist();
     saveArtistProfile({ name, role, area, city: area, genres: [genre], label: label.trim() || "Independent", bio, spotify, youtube, email, whatsapp });
     setSaved(true);
     window.setTimeout(() => setSaved(false), 1600);
@@ -83,26 +91,67 @@ export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
     const file = e.target.files?.[0];
     if (!file) return;
     const check = await inspectAudioFile(file);
-    if (!check.ok) { e.target.value = ""; setFileName(null); setTrackFile(null); setLimitWarn(check.reasons); return; }
-    setLimitWarn(null); setFileError(null); setFileName(file.name); setTrackFile(file);
+    if (!check.ok) {
+      e.target.value = "";
+      setFileName(null);
+      setTrackFile(null);
+      trackFileRef.current = null;
+      setLimitWarn(check.reasons);
+      return;
+    }
+    setLimitWarn(null);
+    setFileError(null);
+    setFileName(file.name);
+    setTrackFile(file);
+    trackFileRef.current = file;
     if (!title.trim()) setTitle(file.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " "));
   }
 
   async function finishUpload() {
-    const nameOf = title.trim() || fileName?.replace(/\.[^.]+$/, "") || "";
-    if (!nameOf || !trackFile || !artist?.id) {
+    const picked = pickedFile();
+    const own = ensureOwnArtist();
+    const artistId = own?.id || artist?.id || acc.artistId;
+    const nameOf = title.trim() || fileName?.replace(/\.[^.]+$/, "") || picked?.name.replace(/\.[^.]+$/, "") || "";
+    if (!picked) {
       setFileError(t("errChooseMp3"));
+      return;
+    }
+    if (!nameOf) {
+      setFileError(t("errChooseMp3"));
+      return;
+    }
+    if (!artistId) {
+      setFileError(t("errLoginFirst"));
       return;
     }
     setBusy(true);
     setFileError(null);
-    const put = await putTrackFile(trackFile, artist.id);
-    setBusy(false);
+    const put = await putTrackFile(picked, artistId);
     if (!put.ok) {
+      setBusy(false);
       setFileError(put.error);
       return;
     }
-    addPendingSong(nameOf, { spotify: trackSpotify, youtube: trackYoutube, cover: withR2Cover(trackCover ?? undefined, put.key), lyrics });
+    const cover = withR2Cover(trackCover ?? undefined, put.key);
+    const songId = `song-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+    try {
+      await saveMySong({
+        data: {
+          id: songId,
+          title: nameOf,
+          cover,
+          spotify: trackSpotify,
+          youtube: trackYoutube,
+          lyrics,
+          audioUrl: put.key,
+          status: acc.kind === "admin" ? "approved" : "pending",
+        },
+      });
+    } catch {
+      /* local queue still records the track */
+    }
+    addPendingSong(nameOf, { spotify: trackSpotify, youtube: trackYoutube, cover, lyrics });
+    setBusy(false);
     setTitle("");
     setTrackGenre(GENRE_OPTIONS[0]);
     setWriters("");
@@ -113,6 +162,7 @@ export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
     setTrackCover(null);
     setFileName(null);
     setTrackFile(null);
+    trackFileRef.current = null;
     setOpenUpload(false);
     setOpenSongs(true);
     if (fileRef.current) fileRef.current.value = "";
@@ -120,10 +170,17 @@ export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
 
   async function onUpload(e: FormEvent) {
     e.preventDefault();
-    const nameOf = title.trim() || fileName?.replace(/\.[^.]+$/, "") || "";
+    const picked = pickedFile();
+    const own = ensureOwnArtist();
+    const artistId = own?.id || artist?.id || acc.artistId;
+    const nameOf = title.trim() || fileName?.replace(/\.[^.]+$/, "") || picked?.name.replace(/\.[^.]+$/, "") || "";
     if (!nameOf) return;
-    if (!trackFile || !artist?.id) {
+    if (!picked) {
       setFileError(t("errChooseMp3"));
+      return;
+    }
+    if (!artistId) {
+      setFileError(t("errLoginFirst"));
       return;
     }
     if (!acc.acceptedUploadTerms) {
