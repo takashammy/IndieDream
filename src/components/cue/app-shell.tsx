@@ -14,6 +14,7 @@ import { HomeScreen } from "./home";
 import { ServicesScreen } from "./services";
 import { Player } from "./player";
 import { Gate } from "./gate";
+import { Splash } from "./splash";
 
 const TABS: Array<{ id: TabId; label: Msg; icon: typeof Users }> = [
   { id: "artists", label: "tabArtists", icon: Users },
@@ -143,6 +144,7 @@ export function AppShell() {
         </nav>
       </main>
       <Gate />
+      <Splash />
     </div>
   );
 }

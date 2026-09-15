@@ -123,6 +123,19 @@
   text-transform: uppercase;
 }
 
+img.brand-mark {
+  outline: none;
+  height: auto;
+}
+
+.splash-line {
+  animation: cueIn 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.splash-line-2 {
+  animation-delay: 180ms;
+}
+
 .scrollbar-none {
   scrollbar-width: none;
 }

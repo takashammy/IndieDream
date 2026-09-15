@@ -151,14 +151,31 @@ export function stripInstallParams(url) {
   return rest ? `${path}?${rest}` : path;
 }
 
-export function renderInstallPageHtml(template, { host, url } = {}) {
+export function renderInstallPageHtml(template, { host, url, site } = {}) {
+  const fromHost = appNameFromHost(host);
+  const fromSite = String(site?.title ?? "").trim();
+  const name = fromHost === DEFAULT_APP_NAME && fromSite ? fromSite : fromHost;
   return String(template)
-    .replaceAll("{{APP_NAME}}", escapeHtml(appNameFromHost(host)))
+    .replaceAll("{{APP_NAME}}", escapeHtml(name))
     .replaceAll("{{APP_URL}}", escapeHtml(stripInstallParams(url)));
 }
 
-export function renderWebManifest(hostHeader) {
-  const name = appNameFromHost(hostHeader);
+export function resolvePwaName(hostHeader, site = {}) {
+  const fromHost = appNameFromHost(hostHeader);
+  const fromSite = String(site.title ?? "").trim();
+  return fromHost === DEFAULT_APP_NAME && fromSite ? fromSite : fromHost;
+}
+
+function pwaSurfaceColor(site = {}) {
+  const hex = placeholderCardColor(site);
+  return hex ? `#${hex}` : "#000000";
+}
+
+export function renderWebManifest(hostHeader, site = {}) {
+  const name = resolvePwaName(hostHeader, site);
+  const branded = Boolean(String(site.title ?? "").trim()) && name === String(site.title).trim();
+  const theme = branded ? "#f3eadb" : pwaSurfaceColor(site);
+  const background = branded ? "#1c1612" : pwaSurfaceColor(site);
   return JSON.stringify(
     {
       name,
@@ -167,8 +184,8 @@ export function renderWebManifest(hostHeader) {
       start_url: "/",
       scope: "/",
       display: "standalone",
-      background_color: "#000000",
-      theme_color: "#000000",
+      background_color: background,
+      theme_color: theme,
       icons: [
         {
           src: "/__grok/icon-180.png",
