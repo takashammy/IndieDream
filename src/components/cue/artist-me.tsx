@@ -1,5 +1,5 @@
 import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
-import { GENRE_OPTIONS, ISR_LABEL, LOCATIONS, APP_NAME, claimsISR, type LocationArea, type Song } from "@/lib/data";
+import { GENRE_OPTIONS, LOCATIONS, APP_NAME, type LocationArea, type Song } from "@/lib/data";
 import { currentAccount, currentArtist, useCue } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { AreaInput, Confirm, Field, PhotoPick, ScreenHead, SelectInput, Sheet, TextInput, VerifiedMark } from "./chrome";
@@ -69,6 +69,8 @@ export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const t = useT();
   const { locale } = useLocale();
+  const pendingSongs = (artist?.songs ?? []).filter((s) => s.status !== "approved").length;
+  const awaitingAdmin = Boolean(artist && (!artist.verified || pendingSongs > 0));
 
   function onSave(e: FormEvent) {
     e.preventDefault();
@@ -136,6 +138,11 @@ export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
   return (
     <div className={embedded ? "border-t border-line pb-4 pt-2" : "cue-enter pb-12"}>
       <ScreenHead kicker={embedded ? t("artist") : t("you")} title={embedded ? t("yourMusic") : t("profile")} note={artist?.verified ? t("verified") : t("pendingReview")} />
+      {awaitingAdmin ? (
+        <p className="mx-5 mb-4 rounded-md bg-elevated px-3 py-2 text-sm leading-6 text-accent">
+          {t("gateVerifyBody")}
+        </p>
+      ) : null}
       <div className="flex items-end gap-4 px-5">
         <PhotoPick src={artist?.photo ?? acc.photo} label={t("changePhoto")} className="size-20 shrink-0" onChange={setProfilePhoto} />
         <div className="min-w-0">
@@ -164,7 +171,7 @@ export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
               </SelectInput>
             </Field>
             <Field label={t("label")}><TextInput value={label} onChange={(e) => setLabel(e.target.value)} /></Field>
-            {claimsISR(label) && !artist?.labelApproved ? <p className="text-sm italic text-accent">{t("isrNeedsApproval", { label: ISR_LABEL })}</p> : null}
+            {!artist?.labelApproved ? <p className="text-sm italic text-accent">{t("isrNeedsApproval", { label: label.trim() || t("independent") })}</p> : null}
             <Field label={t("bio")}><AreaInput rows={4} value={bio} onChange={(e) => setBio(e.target.value)} /></Field>
             <Field label={t("email")}><TextInput type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></Field>
             <Field label={t("whatsapp")}><TextInput type="tel" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} /></Field>
