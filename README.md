@@ -14,6 +14,6 @@ Demo staff logins are no longer in the app. After deploy:
 3. Open the site → **Me** → **Open the Desk**.
 4. Enter that setup key, then your name, username, email, and a new password (8+ characters).
 5. That creates the only admin. The form will not work again once an admin exists.
-6. Extra staff accounts can be added later from a signed-in Desk session (server function `createStaffAdmin`).
+6. To add Sin Lam or another staff member later, ask the agent for item 2 follow-up (`createStaffAdmin`) from a signed-in Desk session — or register is for artists/listeners only.
 
 Do not put passwords in this repository.
