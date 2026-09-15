@@ -16,6 +16,6 @@ Demo staff logins are no longer in the app. After a full wipe (`migrations/0010_
 5. That creates the first admin. The form will not work again once an admin exists.
 6. Create Sin Lam (or anyone else) as staff later from a signed-in Desk session — public register cannot make admins.
 
-If the installed app still looks logged in or still shows old profiles, delete the site data / remove the home-screen app and open it again. Local cache key is now `indie-dream-v8`. Older keys (`v1`–`v7`) are dropped on load so a previous test world cannot write itself back onto the live site.
+If the installed app still looks logged in or still shows old profiles, delete the site data / remove the home-screen app and open it again. On first load after this deploy the app deletes older local saves (`indie-dream-v1` through `v7`, including the previous test world) so an old phone cannot write that world back onto the live site.
 
 Old demo passwords (`inner-soul`, `Harbour88`, `Lantern88`) are dead. Do not put passwords in this repository.
