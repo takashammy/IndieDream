@@ -57,6 +57,7 @@ export function MeScreen() {
               <Button variant="ghost" className="w-full" onClick={() => setMeMode("login")}>{t("logIn")}</Button>
               <Button variant="ghost" className="w-full" onClick={() => setMeMode("reset")}>{t("forgotPassword")}</Button>
             </div>
+            <LanguageToggle className="mt-8 px-0 pt-0" />
           </div>
         </div>
       );
@@ -69,12 +70,7 @@ export function MeScreen() {
     body = <PlainMe />;
   }
 
-  return (
-    <>
-      <LanguageToggle />
-      {body}
-    </>
-  );
+  return body;
 }
 
 function LoginForm() {
@@ -98,6 +94,7 @@ function LoginForm() {
       <Button type="button" variant="ghost" className="mt-2 w-full" onClick={() => setMeMode("reset")}>{t("forgotPassword")}</Button>
       <button type="button" className="mt-3 w-full text-center text-sm text-muted" onClick={() => setMeMode("register")}>{t("needAccount")}</button>
       <p className="mt-8 text-xs leading-5 text-subtle">Martin Sham — martin / Harbour88. Sin Lam — sinlam / Lantern88. Also admin / inner-soul, mei / melody, patrice / patrice.</p>
+      <LanguageToggle className="mt-8 px-0 pt-0" />
     </form>
   );
 }
@@ -150,6 +147,7 @@ function ResetForm() {
           <button type="button" className="mt-4 w-full text-center text-sm text-muted" onClick={() => setMeMode("login")}>{t("backToLogin")}</button>
         </>
       )}
+      <LanguageToggle className="mt-8 px-0 pt-0" />
     </form>
   );
 }
@@ -240,6 +238,7 @@ function RegisterForm() {
       {error ? <p className="mt-3 text-sm text-accent">{error === "upload-mp3" ? t("errUploadMp3") : storeErr(locale, error)}</p> : null}
       <Button type="submit" className="mt-5 w-full">{t("createAccount")}</Button>
       <button type="button" className="mt-4 w-full text-center text-sm text-muted" onClick={() => setMeMode("login")}>{t("alreadyRegistered")}</button>
+      <LanguageToggle className="mt-8 px-0 pt-0" />
       {termsOpen ? (
         <Confirm
           title={t("uploadAgreement")}
@@ -292,7 +291,10 @@ function PlainMe() {
           </form>
         </Sheet>
       ) : null}
-      <div className="px-5 pt-8"><Button variant="ghost" className="w-full" onClick={logout}>{t("logOut")}</Button></div>
+      <div className="px-5 pt-8">
+        <LanguageToggle className="px-0 pt-0" />
+        <Button variant="ghost" className="mt-4 w-full" onClick={logout}>{t("logOut")}</Button>
+      </div>
     </div>
   );
 }

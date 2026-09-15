@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { AreaInput, Confirm, Field, PhotoPick, ScreenHead, SelectInput, Sheet, TextInput, VerifiedMark } from "./chrome";
 import { AUDIO_PICK_ACCEPT, inspectAudioFile } from "@/lib/audio-limits";
 import { coverImage, putTrackFile, r2KeyFromCover, withR2Cover } from "@/lib/r2";
+import { LanguageToggle } from "./language-toggle";
 import {
   audioReason,
   genreLabel,
@@ -182,7 +183,10 @@ export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
         </section>
       ) : null}
       {embedded ? null : (
-        <div className="px-5 pt-8"><Button variant="ghost" className="w-full" onClick={logout}>{t("logOut")}</Button></div>
+        <div className="px-5 pt-8">
+          <LanguageToggle className="px-0 pt-0" />
+          <Button variant="ghost" className="mt-4 w-full" onClick={logout}>{t("logOut")}</Button>
+        </div>
       )}
       {openUpload ? (
         <Sheet title={t("uploadSong")} kicker={t("newTrack")} onClose={() => setOpenUpload(false)}>

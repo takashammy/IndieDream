@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { BackRow, Confirm, ScreenHead, SelectInput, TextInput, VerifiedMark } from "./chrome";
 import { NoticeSheet } from "./inbox";
+import { LanguageToggle } from "./language-toggle";
 import {
   ageText,
   categoryLabel,
@@ -311,7 +312,8 @@ export function AdminMe({ artistPanel }: { artistPanel?: ReactNode }) {
 
       {page === "home" ? (
         <div className="px-5 pt-8">
-          <Button variant="ghost" className="w-full" onClick={logout}>
+          <LanguageToggle className="px-0 pt-0" />
+          <Button variant="ghost" className="mt-4 w-full" onClick={logout}>
             {t("logOut")}
           </Button>
         </div>
