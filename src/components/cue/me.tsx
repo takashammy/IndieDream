@@ -99,55 +99,16 @@ function LoginForm() {
 }
 
 function ResetForm() {
-  const resetPassword = useCue((s) => s.resetPassword);
   const setMeMode = useCue((s) => s.setMeMode);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState(false);
   const t = useT();
-  const { locale } = useLocale();
   return (
-    <form
-      className="cue-enter px-5 pb-10 pt-5"
-      onSubmit={(e) => {
-        e.preventDefault();
-        if (password !== confirm) {
-          setError("mismatch");
-          return;
-        }
-        const err = resetPassword(email, password);
-        if (err) {
-          setError(err);
-          return;
-        }
-        setError(null);
-        setDone(true);
-      }}
-    >
+    <div className="cue-enter px-5 pb-10 pt-5">
       <p className="cue-kicker text-xs text-muted">{t("account")}</p>
       <h1 className="cue-name mt-1 font-display text-4xl leading-none">{t("resetPassword")}</h1>
-      {done ? (
-        <div className="mt-6">
-          <p className="text-sm leading-6 text-muted">{t("passwordUpdated")}</p>
-          <Button type="button" className="mt-5 w-full" onClick={() => setMeMode("login")}>{t("backToLogin")}</Button>
-        </div>
-      ) : (
-        <>
-          <p className="mt-3 text-sm leading-6 text-muted">{t("resetHint")}</p>
-          <div className="mt-6 space-y-3">
-            <Field label={t("email")}><TextInput type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required /></Field>
-            <Field label={t("newPassword")}><TextInput type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" required /></Field>
-            <Field label={t("confirmPassword")}><TextInput type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" required /></Field>
-          </div>
-          {error ? <p className="mt-3 text-sm text-accent">{error === "mismatch" ? t("passwordsMismatch") : storeErr(locale, error)}</p> : null}
-          <Button type="submit" className="mt-5 w-full">{t("saveNewPassword")}</Button>
-          <button type="button" className="mt-4 w-full text-center text-sm text-muted" onClick={() => setMeMode("login")}>{t("backToLogin")}</button>
-        </>
-      )}
+      <p className="mt-3 text-sm leading-6 text-muted">{t("resetHint")}</p>
+      <Button type="button" className="mt-5 w-full" onClick={() => setMeMode("login")}>{t("backToLogin")}</Button>
       <LanguageToggle className="mt-8 px-0 pt-0" />
-    </form>
+    </div>
   );
 }
 
@@ -218,7 +179,7 @@ function RegisterForm() {
               </SelectInput>
             </Field>
             <Field label={t("label")}><TextInput value={label} onChange={(e) => setLabel(e.target.value)} placeholder={t("independent")} /></Field>
-            {label.trim().toLowerCase() === "inner soul records" ? <p className="text-sm italic text-accent">{t("isrPending")}</p> : null}
+            <p className="text-sm italic text-accent">{t("isrPending")}</p>
           </>
         ) : null}
         <Field label={t("bio")}><AreaInput rows={4} value={bio} onChange={(e) => setBio(e.target.value)} /></Field>
