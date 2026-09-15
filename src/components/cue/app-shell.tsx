@@ -16,6 +16,7 @@ import { Player } from "./player";
 import { Gate } from "./gate";
 import { Splash } from "./splash";
 import { InstallBanner, OfflineBanner } from "./pwa-chrome";
+import { FounderStaffForm } from "./founder-staff";
 import { dropLegacyStudioCache, registerServiceWorker } from "@/lib/pwa";
 
 const TABS: Array<{ id: TabId; label: Msg; icon: typeof Users }> = [
@@ -113,6 +114,7 @@ export function AppShell() {
           {tab === "board" ? <BoardScreen /> : null}
           {tab === "services" ? <ServicesScreen /> : null}
           {tab === "me" || tab === "inbox" ? <MeScreen /> : null}
+          {admin && (tab === "me" || tab === "inbox") ? <FounderStaffForm /> : null}
         </div>
 
         {tab === "events" && !eventId ? <EventsFab /> : null}
