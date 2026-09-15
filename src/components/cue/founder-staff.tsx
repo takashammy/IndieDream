@@ -2,8 +2,10 @@ import { useState } from "react";
 import { installFounderStaff } from "@/lib/cue-founders";
 import { Button } from "@/components/ui/button";
 import { Field, TextInput } from "./chrome";
+import { useT } from "@/lib/i18n";
 
 export function FounderStaffForm() {
+  const t = useT();
   const [martinEmail, setMartinEmail] = useState("");
   const [martinPassword, setMartinPassword] = useState("");
   const [sinlamEmail, setSinlamEmail] = useState("");
@@ -15,24 +17,18 @@ export function FounderStaffForm() {
   if (done) {
     return (
       <section className="mt-8 px-5">
-        <p className="cue-kicker text-xs text-muted">Staff</p>
-        <h2 className="cue-name font-display text-2xl leading-none">Martin and Sin Lam are ready</h2>
-        <p className="mt-2 text-sm leading-6 text-muted">
-          Log out, then sign in as <span className="text-fg">martin</span> or <span className="text-fg">sinlam</span>.
-          Each login is Desk admin and a live artist.
-        </p>
+        <p className="cue-kicker text-xs text-muted">{t("staff")}</p>
+        <h2 className="cue-name font-display text-2xl leading-none">{t("staffReady")}</h2>
+        <p className="mt-2 text-sm leading-6 text-muted">{t("staffReadyBody")}</p>
       </section>
     );
   }
 
   return (
     <section className="mt-8 px-5">
-      <p className="cue-kicker text-xs text-muted">Staff</p>
-      <h2 className="cue-name font-display text-2xl leading-none">Add Martin and Sin Lam</h2>
-      <p className="mt-2 text-sm leading-6 text-muted">
-        Creates two Desk admins who also have live artist pages. Usernames are fixed:
-        martin and sinlam. Choose emails and passwords here — they are not stored in the repo.
-      </p>
+      <p className="cue-kicker text-xs text-muted">{t("staff")}</p>
+      <h2 className="cue-name font-display text-2xl leading-none">{t("addMartinSin")}</h2>
+      <p className="mt-2 text-sm leading-6 text-muted">{t("addMartinSinBody")}</p>
       <form
         className="mt-5 space-y-4"
         onSubmit={async (e) => {
@@ -50,7 +46,7 @@ export function FounderStaffForm() {
             }
             setDone(true);
           } catch {
-            setError("Could not reach the server.");
+            setError(t("couldNotReach"));
           }
           setBusy(false);
         }}
@@ -58,10 +54,10 @@ export function FounderStaffForm() {
         <div className="rounded-lg bg-surface p-4">
           <p className="font-medium">Martin Sham · @martin</p>
           <div className="mt-3 space-y-3">
-            <Field label="Email">
+            <Field label={t("email")}>
               <TextInput type="email" value={martinEmail} onChange={(e) => setMartinEmail(e.target.value)} required />
             </Field>
-            <Field label="Password (8+)">
+            <Field label={t("password8")}>
               <TextInput type="password" value={martinPassword} onChange={(e) => setMartinPassword(e.target.value)} autoComplete="new-password" required />
             </Field>
           </div>
@@ -69,17 +65,17 @@ export function FounderStaffForm() {
         <div className="rounded-lg bg-surface p-4">
           <p className="font-medium">Sin Lam · @sinlam</p>
           <div className="mt-3 space-y-3">
-            <Field label="Email">
+            <Field label={t("email")}>
               <TextInput type="email" value={sinlamEmail} onChange={(e) => setSinlamEmail(e.target.value)} required />
             </Field>
-            <Field label="Password (8+)">
+            <Field label={t("password8")}>
               <TextInput type="password" value={sinlamPassword} onChange={(e) => setSinlamPassword(e.target.value)} autoComplete="new-password" required />
             </Field>
           </div>
         </div>
         {error ? <p className="text-sm text-accent">{error}</p> : null}
         <Button type="submit" className="w-full" disabled={busy}>
-          {busy ? "Saving…" : "Create both staff artists"}
+          {busy ? t("saving") : t("createBothStaff")}
         </Button>
       </form>
     </section>
