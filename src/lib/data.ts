@@ -125,58 +125,7 @@ function yt(q: string) {
   return `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
 }
 
-export const ARTISTS: Artist[] = [
-  {
-    id: "martin",
-    name: "Martin Sham",
-    role: "Guitarist / producer",
-    city: "Wan Chai",
-    area: "HK Island",
-    photo: "/media/artists/jun.jpg",
-    genres: ["Indie", "Soul"],
-    bio: "Runs Inner Soul Records and still writes guitar parts after the office lights go off. Looking after the roster and the room.",
-    label: ISR_LABEL,
-    labelApproved: true,
-    verified: true,
-    songs: [
-      {
-        id: "martin-1",
-        title: "After the Desk Closes",
-        duration: "3:36",
-        plays: "1.2k",
-        cover: "/media/covers/guitar.jpg",
-        uploadedAt: "2026-09-01T21:00:00+08:00",
-        status: "approved",
-        lyrics: "The desk goes dark\nthe guitar still knows the room\nHarbour Road is quiet\nso I write until the morning comes through",
-      },
-    ],
-  },
-  {
-    id: "sinlam",
-    name: "Sin Lam",
-    role: "Vocalist",
-    city: "Sham Shui Po",
-    area: "Kowloon",
-    photo: "/media/artists/nia.jpg",
-    genres: ["Soul", "Jazz"],
-    bio: "Voice first, paperwork second. Inner Soul on weekdays, small rooms on weekends.",
-    label: ISR_LABEL,
-    labelApproved: true,
-    verified: true,
-    songs: [
-      {
-        id: "sinlam-1",
-        title: "Lantern Over Lai Chi Kok",
-        duration: "4:02",
-        plays: "980",
-        cover: "/media/covers/silk.jpg",
-        uploadedAt: "2026-09-02T20:00:00+08:00",
-        status: "approved",
-        lyrics: "Lantern over Lai Chi Kok\nvoice first, paperwork later\nI keep a small room warm\nwhile the city gets greater",
-      },
-    ],
-  },
-];
+export const ARTISTS: Artist[] = [];
 
 export const EVENTS: CueEvent[] = [];
 
