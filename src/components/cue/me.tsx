@@ -1,6 +1,7 @@
-import { useRef, useState, type ChangeEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from "react";
 import { APP_NAME, GENRE_OPTIONS, LOCATIONS, type LocationArea } from "@/lib/data";
 import { currentAccount, useCue } from "@/lib/store";
+import { getAuthState } from "@/lib/cue-auth";
 import { Button } from "@/components/ui/button";
 import { AreaInput, Confirm, Field, PhotoPick, ScreenHead, SelectInput, Sheet, TextInput } from "./chrome";
 import { AdminMe } from "./admin";
@@ -38,12 +39,14 @@ function AudioLimitWarn({ reasons, onClose }: { reasons: string[]; onClose: () =
 export function MeScreen() {
   const session = useCue((s) => currentAccount(s));
   const meMode = useCue((s) => s.meMode);
+  const needsFirstAdmin = useCue((s) => s.needsFirstAdmin);
   const setMeMode = useCue((s) => s.setMeMode);
   const t = useT();
 
   let body: ReactNode;
   if (!session) {
-    if (meMode === "register") body = <RegisterForm />;
+    if (meMode === "setup" || (needsFirstAdmin && meMode === "idle")) body = <SetupAdminForm />;
+    else if (meMode === "register") body = <RegisterForm />;
     else if (meMode === "login") body = <LoginForm />;
     else if (meMode === "reset") body = <ResetForm />;
     else {
@@ -53,6 +56,9 @@ export function MeScreen() {
           <div className="px-5">
             <p className="text-sm leading-6 text-muted">{t("guestBrowse")}</p>
             <div className="mt-6 flex flex-col gap-2">
+              {needsFirstAdmin ? (
+                <Button className="w-full" onClick={() => setMeMode("setup")}>Open the Desk</Button>
+              ) : null}
               <Button className="w-full" onClick={() => setMeMode("register")}>{t("register")}</Button>
               <Button variant="ghost" className="w-full" onClick={() => setMeMode("login")}>{t("logIn")}</Button>
               <Button variant="ghost" className="w-full" onClick={() => setMeMode("reset")}>{t("forgotPassword")}</Button>
@@ -73,16 +79,78 @@ export function MeScreen() {
   return body;
 }
 
+function SetupAdminForm() {
+  const setupAdmin = useCue((s) => s.setupAdmin);
+  const setMeMode = useCue((s) => s.setMeMode);
+  const [secret, setSecret] = useState("");
+  const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [setupReady, setSetupReady] = useState(true);
+  useEffect(() => {
+    void getAuthState()
+      .then((s) => setSetupReady(Boolean(s.setupReady)))
+      .catch(() => setSetupReady(false));
+  }, []);
+  return (
+    <form
+      className="cue-enter px-5 pb-10 pt-5"
+      onSubmit={async (e) => {
+        e.preventDefault();
+        setBusy(true);
+        setError(await setupAdmin({ secret, username, password, name, email }));
+        setBusy(false);
+      }}
+    >
+      <p className="cue-kicker text-xs text-muted">Desk</p>
+      <h1 className="cue-name mt-1 font-display text-4xl leading-none">First admin</h1>
+      <p className="mt-3 text-sm leading-6 text-muted">
+        After the wipe there is no staff login in the app. Enter the setup key from Vercel
+        (`ADMIN_SETUP_SECRET`), then the account you want to use.
+      </p>
+      {!setupReady ? (
+        <p className="mt-3 text-sm text-accent">
+          Add ADMIN_SETUP_SECRET in Vercel environment variables and redeploy first.
+        </p>
+      ) : null}
+      <div className="mt-6 space-y-3">
+        <Field label="Setup key"><TextInput value={secret} onChange={(e) => setSecret(e.target.value)} autoComplete="off" required /></Field>
+        <Field label="Name"><TextInput value={name} onChange={(e) => setName(e.target.value)} required /></Field>
+        <Field label="Username"><TextInput value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" required /></Field>
+        <Field label="Email"><TextInput type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></Field>
+        <Field label="Password (8+ characters)"><TextInput type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" required /></Field>
+      </div>
+      {error ? <p className="mt-3 text-sm text-accent">{error}</p> : null}
+      <Button type="submit" className="mt-5 w-full" disabled={!setupReady || busy}>{busy ? "Saving…" : "Create Desk admin"}</Button>
+      <button type="button" className="mt-3 w-full text-center text-sm text-muted" onClick={() => setMeMode("login")}>Back</button>
+      <LanguageToggle className="mt-8 px-0 pt-0" />
+    </form>
+  );
+}
+
 function LoginForm() {
   const login = useCue((s) => s.login);
   const setMeMode = useCue((s) => s.setMeMode);
+  const needsFirstAdmin = useCue((s) => s.needsFirstAdmin);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const t = useT();
   const { locale } = useLocale();
   return (
-    <form className="cue-enter px-5 pb-10 pt-5" onSubmit={(e) => { e.preventDefault(); setError(login(username, password)); }}>
+    <form
+      className="cue-enter px-5 pb-10 pt-5"
+      onSubmit={async (e) => {
+        e.preventDefault();
+        setBusy(true);
+        setError(await login(username, password));
+        setBusy(false);
+      }}
+    >
       <p className="cue-kicker text-xs text-muted">{t("account")}</p>
       <h1 className="cue-name mt-1 font-display text-4xl leading-none">{t("logIn")}</h1>
       <div className="mt-6 space-y-3">
@@ -90,9 +158,12 @@ function LoginForm() {
         <Field label={t("password")}><TextInput type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" /></Field>
       </div>
       {error ? <p className="mt-3 text-sm text-accent">{storeErr(locale, error)}</p> : null}
-      <Button type="submit" className="mt-5 w-full">{t("enter")}</Button>
+      <Button type="submit" className="mt-5 w-full" disabled={busy}>{busy ? "…" : t("enter")}</Button>
       <Button type="button" variant="ghost" className="mt-2 w-full" onClick={() => setMeMode("reset")}>{t("forgotPassword")}</Button>
       <button type="button" className="mt-3 w-full text-center text-sm text-muted" onClick={() => setMeMode("register")}>{t("needAccount")}</button>
+      {needsFirstAdmin ? (
+        <button type="button" className="mt-3 w-full text-center text-sm text-accent" onClick={() => setMeMode("setup")}>Open the Desk</button>
+      ) : null}
       <LanguageToggle className="mt-8 px-0 pt-0" />
     </form>
   );
@@ -131,6 +202,7 @@ function RegisterForm() {
   const [error, setError] = useState<string | null>(null);
   const [limitWarn, setLimitWarn] = useState<string[] | null>(null);
   const [termsOpen, setTermsOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
   const t = useT();
   const { locale } = useLocale();
   async function onFile(e: ChangeEvent<HTMLInputElement>) {
@@ -142,15 +214,17 @@ function RegisterForm() {
     setLimitWarn(null); setError(null); setFileName(file.name);
     if (!trackTitle.trim()) setTrackTitle(file.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " "));
   }
-  function submitRegister() {
+  async function submitRegister() {
     if (kind === "artist" && !fileName) {
       setError("upload-mp3");
       return;
     }
-    setError(register({ username, password, email, kind, name, role, location, genre, label, bio, trackTitle: kind === "artist" ? trackTitle : undefined }));
+    setBusy(true);
+    setError(await register({ username, password, email, kind, name, role, location, genre, label, bio, trackTitle: kind === "artist" ? trackTitle : undefined }));
+    setBusy(false);
   }
   return (
-    <form className="cue-enter px-5 pb-12 pt-5" onSubmit={(e) => { e.preventDefault(); if (kind === "artist") { if (!fileName) { setError("upload-mp3"); return; } setTermsOpen(true); return; } submitRegister(); }}>
+    <form className="cue-enter px-5 pb-12 pt-5" onSubmit={(e) => { e.preventDefault(); if (kind === "artist") { if (!fileName) { setError("upload-mp3"); return; } setTermsOpen(true); return; } void submitRegister(); }}>
       <p className="cue-kicker text-xs text-muted">{t("account")}</p>
       <h1 className="cue-name mt-1 font-display text-4xl leading-none">{t("register")}</h1>
       <div className="mt-6 space-y-4">
@@ -196,7 +270,7 @@ function RegisterForm() {
         {limitWarn ? <AudioLimitWarn reasons={limitWarn} onClose={() => setLimitWarn(null)} /> : null}
       </div>
       {error ? <p className="mt-3 text-sm text-accent">{error === "upload-mp3" ? t("errUploadMp3") : storeErr(locale, error)}</p> : null}
-      <Button type="submit" className="mt-5 w-full">{t("createAccount")}</Button>
+      <Button type="submit" className="mt-5 w-full" disabled={busy}>{busy ? "…" : t("createAccount")}</Button>
       <button type="button" className="mt-4 w-full text-center text-sm text-muted" onClick={() => setMeMode("login")}>{t("alreadyRegistered")}</button>
       <LanguageToggle className="mt-8 px-0 pt-0" />
       {termsOpen ? (
@@ -205,7 +279,7 @@ function RegisterForm() {
           body={t("uploadTerms")}
           confirmLabel={t("agreeContinue")}
           cancelLabel={t("notNow")}
-          onConfirm={submitRegister}
+          onConfirm={() => { setTermsOpen(false); void submitRegister(); }}
           onClose={() => setTermsOpen(false)}
         />
       ) : null}
