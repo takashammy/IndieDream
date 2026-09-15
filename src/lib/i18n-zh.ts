@@ -1,1 +1,1 @@
-see-local
+export const ZH: Record<string, string> = {};
