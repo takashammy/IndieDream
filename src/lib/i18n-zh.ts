@@ -1,3 +1,1 @@
-export const ZH: Record<string, string> = {
-  _placeholder: "replaced next",
-};
+export { ZH } from "./i18n-zh-data";
