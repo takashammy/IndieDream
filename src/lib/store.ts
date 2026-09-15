@@ -9,6 +9,9 @@ import {
   formatEventDate,
   migrateAccountKind,
   validEmail,
+  GENRE_OPTIONS,
+  parsePlays,
+  formatPlays,
   type AccountKind,
   type Artist,
   type BoardCategory,
@@ -157,12 +160,13 @@ export type CueState = PersistSlice & {
   deleteSong: (songId: string) => void;
   acceptUploadTerms: () => void;
   setProfilePhoto: (photo: string) => void;
-  addPost: (post: Pick<BoardPost, "title" | "body" | "category">) => void;
+  addPost: (post: Pick<BoardPost, "title" | "body" | "category" | "image">) => void;
   addReply: (postId: string, body: string) => void;
   deletePost: (id: string) => void;
   deleteReply: (postId: string, replyId: string) => void;
   deleteArtist: (artistId: string) => void;
   banUser: (authorId: string) => void;
+  setAccountKind: (accountId: string, kind: Exclude<AccountKind, "admin">) => void;
   deleteEvent: (id: string) => void;
   submitEvent: (input: {
     title: string;
@@ -926,7 +930,21 @@ export const useCue = create<CueState>((set, get) => {
         set({ gate: "listen" });
         return;
       }
-      set({ nowPlaying: np, playing: true });
+      const prevId = get().nowPlaying?.song.id;
+      const isNew = prevId !== np.song.id;
+      let artists = get().artists;
+      let song = np.song;
+      if (isNew) {
+        const plays = formatPlays(parsePlays(np.song.plays) + 1);
+        song = { ...np.song, plays };
+        artists = artists.map((a) =>
+          a.id !== np.artistId
+            ? a
+            : { ...a, songs: a.songs.map((s) => (s.id === np.song.id ? { ...s, plays } : s)) },
+        );
+      }
+      set({ artists, nowPlaying: { ...np, song }, playing: true });
+      if (isNew) persist();
     },
     togglePlay: () => {
       if (!get().nowPlaying) return;
@@ -1322,6 +1340,7 @@ export const useCue = create<CueState>((set, get) => {
         time: "Just now",
         thread: [],
         createdAt: new Date().toISOString(),
+        image: input.category === "gear" ? input.image : undefined,
       };
       set({ posts: [post, ...get().posts] });
       persist();
@@ -1384,6 +1403,50 @@ export const useCue = create<CueState>((set, get) => {
         artistId: get().artistId === artistId ? null : get().artistId,
         nowPlaying: get().nowPlaying?.artistId === artistId ? null : get().nowPlaying,
         playing: get().nowPlaying?.artistId === artistId ? false : get().playing,
+      });
+      persist();
+    },
+
+    setAccountKind: (accountId, kind) => {
+      const acc = get().accounts.find((a) => a.id === accountId);
+      if (!acc || acc.kind === "admin") return;
+      let artists = get().artists;
+      let artistId = acc.artistId;
+      if (kind === "artist") {
+        if (!artistId || !artists.some((a) => a.id === artistId)) {
+          artistId = artistId || uid("art");
+          artists = [
+            ...artists,
+            {
+              id: artistId,
+              name: acc.name,
+              role: "Artist",
+              city: acc.location,
+              area: acc.location,
+              photo: acc.photo || "/media/user.jpg",
+              genres: [GENRE_OPTIONS[0]],
+              bio: acc.bio,
+              songs: [],
+              label: "Independent",
+              labelApproved: false,
+              verified: false,
+            },
+          ];
+        }
+      }
+      const artist = artists.find((a) => a.id === artistId);
+      set({
+        accounts: get().accounts.map((a) =>
+          a.id === accountId
+            ? {
+                ...a,
+                kind,
+                artistId: kind === "artist" ? artistId : a.artistId,
+                role: kind === "artist" ? artist?.role || "Artist" : KIND_LABEL[kind],
+              }
+            : a,
+        ),
+        artists,
       });
       persist();
     },

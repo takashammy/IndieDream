@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { APP_NAME, isISR, isListedArtist, shufflePick, type Artist } from "@/lib/data";
+import { APP_NAME, isISR, catalogVisible, shufflePick, type Artist } from "@/lib/data";
 import { useCue } from "@/lib/store";
 import { ScreenHead, VerifiedMark } from "./chrome";
 
 export function ArtistsScreen() {
   const all = useCue((s) => s.artists);
-  const artists = all.filter(isListedArtist);
+  const accounts = useCue((s) => s.accounts);
+  const artists = all.filter((a) => catalogVisible(a, accounts));
   const label = artists.filter(isISR);
   const rest = artists.filter((a) => !isISR(a));
   const restKey = rest.map((a) => a.id).join("|");

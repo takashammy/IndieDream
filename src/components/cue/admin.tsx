@@ -16,9 +16,10 @@ import {
   type CueEvent,
 } from "@/lib/data";
 import { currentAccount, useCue, type Account, type Notice } from "@/lib/store";
+import { scrollMainToTop } from "@/lib/scroll-main";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { BackRow, Confirm, ScreenHead, TextInput, VerifiedMark } from "./chrome";
+import { BackRow, Confirm, ScreenHead, SelectInput, TextInput, VerifiedMark } from "./chrome";
 import { NoticeSheet, labelFor } from "./inbox";
 
 type DeskPage = "home" | "queue" | "bookings" | "people" | "user" | "roster" | "dates" | "board";
@@ -110,6 +111,7 @@ export function AdminMe({ artistPanel }: { artistPanel?: ReactNode }) {
     if (next !== "user") setUserId(null);
     openNotice(null);
     setDoneId(null);
+    scrollMainToTop();
   }
 
   const overlays = (
@@ -136,6 +138,7 @@ export function AdminMe({ artistPanel }: { artistPanel?: ReactNode }) {
             setBanId(null);
             setUserId(null);
             setPage("people");
+            scrollMainToTop();
           }}
           onClose={() => setBanId(null)}
         />
@@ -955,6 +958,7 @@ function AdminUserProfile({
   onBan: () => void;
   onOpenArtist?: () => void;
 }) {
+  const setAccountKind = useCue((s) => s.setAccountKind);
   const wa = whatsappHref(user.whatsapp);
   return (
     <div className="cue-enter pb-12">
@@ -999,6 +1003,19 @@ function AdminUserProfile({
           </>
         ) : null}
       </dl>
+      {user.kind !== "admin" ? (
+        <div className="mt-6 px-5">
+          <p className="text-xs text-muted">User type</p>
+          <SelectInput
+            value={user.kind}
+            onChange={(e) => setAccountKind(user.id, e.target.value as Exclude<AccountKind, "admin">)}
+          >
+            <option value="explorer">Explorer</option>
+            <option value="artist">Artist</option>
+            <option value="business">Business</option>
+          </SelectInput>
+        </div>
+      ) : null}
       {user.bio ? <p className="mt-6 px-5 text-sm leading-6 text-muted">{user.bio}</p> : null}
       <div className="flex flex-col gap-2 px-5 pt-8">
         {onOpenArtist ? (

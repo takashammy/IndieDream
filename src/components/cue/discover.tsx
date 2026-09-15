@@ -1,5 +1,5 @@
 import { ChevronLeft } from "lucide-react";
-import { APP_NAME, artistsByGenre, genresFromCatalog, isListedArtist } from "@/lib/data";
+import { APP_NAME, artistsByGenre, genresFromCatalog, catalogVisible } from "@/lib/data";
 import { useCue } from "@/lib/store";
 import { ScreenHead, VerifiedMark } from "./chrome";
 
@@ -20,10 +20,11 @@ const GENRE_COVER: Record<string, string> = {
 
 export function DiscoverScreen() {
   const artists = useCue((s) => s.artists);
+  const accounts = useCue((s) => s.accounts);
   const genre = useCue((s) => s.genre);
   const openGenre = useCue((s) => s.openGenre);
   const openArtist = useCue((s) => s.openArtist);
-  const listed = artists.filter(isListedArtist);
+  const listed = artists.filter((a) => catalogVisible(a, accounts));
   const genres = genresFromCatalog(listed);
 
   if (genre) {

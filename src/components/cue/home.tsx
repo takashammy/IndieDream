@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Play } from "lucide-react";
 import {
   isISR,
-  isListedArtist,
+  catalogVisible,
   recentTracks,
   shufflePick,
   upcomingEvents,
@@ -22,6 +22,7 @@ function pickHomeArtists(listed: Artist[]) {
 
 export function HomeScreen() {
   const artists = useCue((s) => s.artists);
+  const accounts = useCue((s) => s.accounts);
   const events = useCue((s) => s.events);
   const openArtist = useCue((s) => s.openArtist);
   const openEvent = useCue((s) => s.openEvent);
@@ -32,10 +33,12 @@ export function HomeScreen() {
   const session = useCue((s) => currentAccount(s));
   const [openTrack, setOpenTrack] = useState<{ song: Song; artistName: string; artistId: string } | null>(null);
 
-  const listed = artists.filter(isListedArtist);
+  const listed = artists.filter((a) => catalogVisible(a, accounts));
   const [featured, setFeatured] = useState(() => pickHomeArtists(listed));
   useEffect(() => {
     setFeatured(pickHomeArtists(listed));
+    // listed is captured on visit; reshuffle when returning to Home (remount)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const tracks = recentTracks(artists, 3);
   const soon = upcomingEvents(events, 3);
@@ -132,7 +135,7 @@ export function HomeScreen() {
 
       <section className="mt-8">
         <div className="px-5">
-          <p className="cue-kicker text-xs text-muted">Dates</p>
+          <p className="cue-kicker text-xs text-muted">Events</p>
           <h2 className="cue-name font-display text-2xl leading-none">Coming up</h2>
         </div>
         <ul className="mt-2">
@@ -150,7 +153,7 @@ export function HomeScreen() {
                 </div>
                 <div>
                   <p className="cue-name font-display text-lg leading-tight">{event.title}</p>
-                  <p className="mt-1 text-sm leading-6 text-muted">
+                  <p className="mt-1 text-sm text-muted">
                     {event.time} · {event.venue}
                   </p>
                 </div>

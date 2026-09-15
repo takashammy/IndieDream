@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ChevronLeft, Clock, MapPin, Plus } from "lucide-react";
-import { APP_NAME, isListedArtist, type LocationArea, LOCATIONS } from "@/lib/data";
+import { APP_NAME, catalogVisible, type LocationArea, LOCATIONS } from "@/lib/data";
 import { currentAccount, currentArtist, useCue } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { AreaInput, Confirm, Field, ScreenHead, SelectInput, TextInput, Sheet, VerifiedMark } from "./chrome";
@@ -102,7 +102,7 @@ export function EventsScreen() {
 
   return (
     <div className="cue-enter">
-      <ScreenHead kicker="Dates" title="This month" note="Hong Kong rooms" />
+      <ScreenHead kicker="Events" title="This month" />
       <ul className="flex flex-col pb-24">
         {live.map((event) => (
           <li key={event.id} className="border-t border-line">
@@ -165,7 +165,8 @@ export function EventsFab() {
 
 function EventForm({ onClose }: { onClose: () => void }) {
   const allArtists = useCue((s) => s.artists);
-  const artists = allArtists.filter(isListedArtist);
+  const accounts = useCue((s) => s.accounts);
+  const artists = allArtists.filter((a) => catalogVisible(a, accounts));
   const me = useCue((s) => currentArtist(s));
   const submitEvent = useCue((s) => s.submitEvent);
   const [title, setTitle] = useState("");
@@ -175,6 +176,7 @@ function EventForm({ onClose }: { onClose: () => void }) {
   const [area, setArea] = useState<LocationArea>("HK Island");
   const [blurb, setBlurb] = useState("");
   const [tagged, setTagged] = useState<string[]>(me ? [me.id] : []);
+  const [openTags, setOpenTags] = useState(false);
   const [sent, setSent] = useState(false);
 
   function toggle(id: string) {
@@ -182,10 +184,10 @@ function EventForm({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <Sheet title="Post an event" kicker="Needs approval" onClose={onClose}>
+    <Sheet title="Post an event" onClose={onClose}>
       {sent ? (
         <p className="text-sm leading-6 text-muted">
-          Sent for review. It goes live once Inner Soul Records approves it.
+          Sent for review. All events must be approved by Dreamin' Indie admins.
         </p>
       ) : (
         <form
@@ -205,8 +207,8 @@ function EventForm({ onClose }: { onClose: () => void }) {
             if (!err) setSent(true);
           }}
         >
-          <p className="text-sm italic text-muted">
-            Verified artists can file a date. It goes live after Inner Soul Records reviews it. Tag anyone sharing the bill.
+          <p className="text-sm leading-6 text-muted">
+            All events must be approved by Dreamin' Indie admins.
           </p>
           <Field label="Title">
             <TextInput value={title} onChange={(e) => setTitle(e.target.value)} required />
@@ -232,23 +234,32 @@ function EventForm({ onClose }: { onClose: () => void }) {
           <Field label="Details">
             <AreaInput rows={4} value={blurb} onChange={(e) => setBlurb(e.target.value)} required />
           </Field>
-          <fieldset>
-            <legend className="text-xs text-muted">Tag artists</legend>
-            <ul className="mt-2 max-h-40 space-y-1 overflow-y-auto">
-              {artists.map((a) => (
-                <li key={a.id}>
-                  <label className="flex min-h-11 items-center gap-3 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={tagged.includes(a.id)}
-                      onChange={() => toggle(a.id)}
-                    />
-                    {a.name}
-                  </label>
-                </li>
-              ))}
-            </ul>
-          </fieldset>
+          <div>
+            <button
+              type="button"
+              onClick={() => setOpenTags((v) => !v)}
+              className="flex h-11 w-full items-center justify-between rounded-md bg-elevated px-3 text-sm"
+            >
+              <span>Tag artists</span>
+              <span className="text-muted">{tagged.length ? `${tagged.length} selected` : "None"}</span>
+            </button>
+            {openTags ? (
+              <ul className="mt-2 max-h-40 space-y-1 overflow-y-auto rounded-md bg-surface px-3 py-2">
+                {artists.map((a) => (
+                  <li key={a.id}>
+                    <label className="flex min-h-11 items-center gap-3 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={tagged.includes(a.id)}
+                        onChange={() => toggle(a.id)}
+                      />
+                      {a.name}
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
           <Button type="submit" className="w-full">
             Submit for approval
           </Button>

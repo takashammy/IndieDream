@@ -12,7 +12,7 @@ import {
 } from "@/lib/data";
 import { currentAccount, useCue, type Account } from "@/lib/store";
 import { Button } from "@/components/ui/button";
-import { AreaInput, BackRow, Confirm, Field, ScreenHead, TextInput, VerifiedMark } from "./chrome";
+import { AreaInput, BackRow, Confirm, Field, ScreenHead, TextInput, VerifiedMark, readLocalImage } from "./chrome";
 import { cn } from "@/lib/utils";
 
 type BoardFilter = "all" | BoardCategory | "open" | "mine";
@@ -199,6 +199,11 @@ export function BoardScreen() {
           you={Boolean(mine)}
           onOpen={face.artistId ? () => openArtist(face.artistId!) : undefined}
         />
+        {selected.image ? (
+          <div className="mt-5 px-5">
+            <img src={selected.image} alt="" className="max-h-80 w-full rounded-md object-cover" />
+          </div>
+        ) : null}
         <p className="mt-5 px-5 text-sm leading-6">{selected.body}</p>
         {admin ? (
           <div className="px-5">
@@ -394,6 +399,7 @@ export function BoardScreen() {
                       </p>
                       <p className="mt-1 font-medium leading-snug">{post.title}</p>
                       <p className="mt-1 line-clamp-2 text-sm text-muted">{post.body}</p>
+                      {post.image ? <img src={post.image} alt="" className="mt-2 h-28 w-full rounded-md object-cover" /> : null}
                       <p className="mt-2 text-xs text-subtle">
                         {post.author} · {ageLabel(post.createdAt)} · {post.thread.length}{" "}
                         {post.thread.length === 1 ? "reply" : "replies"}
@@ -654,11 +660,13 @@ function Compose({
   onSubmit,
 }: {
   onCancel: () => void;
-  onSubmit: (post: Pick<BoardPost, "title" | "body" | "category">) => void;
+  onSubmit: (post: Pick<BoardPost, "title" | "body" | "category" | "image">) => void;
 }) {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [category, setCategory] = useState<BoardCategory>("seeking");
+  const [image, setImage] = useState<string | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
   const hint = PLACEHOLDER[category];
 
   return (
@@ -667,7 +675,12 @@ function Compose({
       onSubmit={(e) => {
         e.preventDefault();
         if (!title.trim() || !body.trim()) return;
-        onSubmit({ title: title.trim(), body: body.trim(), category });
+        onSubmit({
+          title: title.trim(),
+          body: body.trim(),
+          category,
+          image: category === "gear" ? image ?? undefined : undefined,
+        });
       }}
     >
       <BackRow label="Board" onClick={onCancel} />
@@ -681,7 +694,13 @@ function Compose({
       <div className="mt-4">
         <BoardChips
           value={category}
-          onChange={setCategory}
+          onChange={(c) => {
+            setCategory(c);
+            if (c !== "gear") {
+              setImage(null);
+              setImageError(null);
+            }
+          }}
           options={(Object.keys(CATEGORY_LABEL) as BoardCategory[]).map((c) => ({
             id: c,
             label: CATEGORY_LABEL[c],
@@ -704,6 +723,45 @@ function Compose({
             placeholder={hint.body}
           />
         </Field>
+        {category === "gear" ? (
+          <div>
+            <p className="text-xs text-muted">Photo · 2 MB max</p>
+            {image ? (
+              <div className="mt-2">
+                <img src={image} alt="" className="h-36 w-full rounded-md object-cover" />
+                <button type="button" className="mt-2 text-sm text-muted" onClick={() => setImage(null)}>
+                  Remove photo
+                </button>
+              </div>
+            ) : (
+              <label className="relative mt-2 flex h-11 w-full items-center justify-center overflow-hidden rounded-md bg-elevated px-3 text-sm">
+                <span className="pointer-events-none">Add a photo</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="absolute inset-0 cursor-pointer opacity-0"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = "";
+                    if (!file) return;
+                    readLocalImage(file, 1200, 2 * 1024 * 1024)
+                      .then((url) => {
+                        setImageError(null);
+                        setImage(url);
+                      })
+                      .catch((err: unknown) => {
+                        setImage(null);
+                        setImageError(err instanceof Error ? err.message : "Could not read image.");
+                      });
+                  }}
+                />
+              </label>
+            )}
+            {imageError ? <p className="mt-1 text-sm text-accent">{imageError}</p> : null}
+          </div>
+        ) : (
+          <p className="text-xs text-subtle">Photos can only be attached to gear posts.</p>
+        )}
         <Button type="submit" className="w-full">
           Post
         </Button>

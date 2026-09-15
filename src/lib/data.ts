@@ -73,6 +73,7 @@ export type BoardPost = {
   time: string;
   thread: BoardReply[];
   createdAt: string;
+  image?: string;
 };
 
 export const APP_NAME = "Dreamin' Indie";
@@ -107,13 +108,13 @@ export const PUBLISH_PACKAGES = [
     id: "art",
     name: "Publish music and cover art",
     price: "$1,500",
-    note: "Release plus a designed sleeve from Inner Soul Records.",
+    note: "Release plus a designed sleeve.",
   },
   {
     id: "prod",
     name: "Publish music and professional production",
     price: "$8,000",
-    note: "Tracking, mix, master, and a full Inner Soul release.",
+    note: "Tracking, mix, master, and a full release on the big platforms.",
   },
 ] as const;
 
@@ -1016,6 +1017,32 @@ export function claimsISR(label: string) {
 
 export function isListedArtist(artist: Artist) {
   return artist.verified && artist.songs.some((s) => s.status === "approved");
+}
+
+export function catalogVisible(artist: Artist, accounts: { artistId?: string; kind: string }[]) {
+  if (!isListedArtist(artist)) return false;
+  const acc = accounts.find((a) => a.artistId === artist.id);
+  if (!acc) return true;
+  return acc.kind === "artist" || acc.kind === "admin";
+}
+
+export function parsePlays(value: string) {
+  const raw = (value || "").trim().toLowerCase().replace(/,/g, "");
+  if (!raw) return 0;
+  if (raw.endsWith("k")) {
+    const n = parseFloat(raw);
+    return Number.isFinite(n) ? Math.round(n * 1000) : 0;
+  }
+  const n = parseInt(raw, 10);
+  return Number.isFinite(n) ? n : 0;
+}
+
+export function formatPlays(n: number) {
+  if (n < 1000) return String(Math.max(0, n));
+  if (n < 10000) return n.toLocaleString("en-US");
+  const k = n / 1000;
+  const t = k >= 10 ? k.toFixed(0) : k.toFixed(1);
+  return `${t.replace(/\.0$/, "")}k`;
 }
 
 export function liveSongs(artist: Artist) {

@@ -1,12 +1,14 @@
-import { useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { INNER_SOUL_INSTRUMENTS, type ShopInstrument } from "@/lib/instruments";
 import { currentAccount, useCue } from "@/lib/store";
+import { scrollMainToTop } from "@/lib/scroll-main";
 import { Button } from "@/components/ui/button";
 import { AreaInput, Field, Sheet, TextInput } from "./chrome";
 
 export function InstrumentShop({ onBack }: { onBack?: () => void }) {
   const openService = useCue((s) => s.openService);
   const [picked, setPicked] = useState<ShopInstrument | null>(null);
+  useLayoutEffect(() => { scrollMainToTop(); }, []);
   return (
     <div className="cue-enter pb-10">
       <div className="px-5 pt-3">

@@ -1,36 +1,55 @@
 import { Pause, Play, SkipForward } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { isListedArtist, liveSongs } from "@/lib/data";
+import { catalogVisible, liveSongs } from "@/lib/data";
 import { useCue, type NowPlaying } from "@/lib/store";
 import { coverImage } from "@/lib/r2";
 import { useSongSrc } from "./r2-audio";
 import { TrackSheet } from "./chrome";
 
-function poolFrom(artists: ReturnType<typeof useCue.getState>["artists"], excludeId?: string) {
-  const all = artists.filter(isListedArtist).flatMap((artist) =>
+function livePool(artists: ReturnType<typeof useCue.getState>["artists"], accounts: ReturnType<typeof useCue.getState>["accounts"]) {
+  return artists.filter((a) => catalogVisible(a, accounts)).flatMap((artist) =>
     liveSongs(artist).map((song) => ({ song, artistName: artist.name, artistId: artist.id })),
   );
-  const rest = excludeId ? all.filter((item) => item.song.id !== excludeId) : all;
-  const source = rest.length ? rest : all;
-  if (source.length === 0) return null;
+}
+
+function pickUnheard(
+  artists: ReturnType<typeof useCue.getState>["artists"],
+  accounts: ReturnType<typeof useCue.getState>["accounts"],
+  heard: Set<string>,
+  excludeId?: string,
+) {
+  const all = livePool(artists, accounts);
+  let remaining = all.filter((item) => !heard.has(item.song.id) && item.song.id !== excludeId);
+  if (!remaining.length) {
+    heard.clear();
+    remaining = all.filter((item) => item.song.id !== excludeId);
+  }
+  const source = remaining.length ? remaining : all;
+  if (!source.length) return null;
   return source[Math.floor(Math.random() * source.length)];
 }
 
 export function Player() {
   const artists = useCue((s) => s.artists);
+  const accounts = useCue((s) => s.accounts);
   const nowPlaying = useCue((s) => s.nowPlaying);
   const playing = useCue((s) => s.playing);
   const play = useCue((s) => s.play);
   const togglePlay = useCue((s) => s.togglePlay);
   const [idle, setIdle] = useState<NowPlaying | null>(null);
   const [openTrack, setOpenTrack] = useState(false);
+  const heardRef = useRef<Set<string>>(new Set());
   const shown = nowPlaying ?? idle;
   const src = useSongSrc(nowPlaying?.song);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
-    setIdle((current) => current ?? poolFrom(artists));
-  }, [artists]);
+    setIdle((current) => current ?? pickUnheard(artists, accounts, heardRef.current));
+  }, [artists, accounts]);
+
+  useEffect(() => {
+    if (nowPlaying && playing) heardRef.current.add(nowPlaying.song.id);
+  }, [nowPlaying?.song.id, playing]);
 
   useEffect(() => {
     const el = audioRef.current;
@@ -48,7 +67,7 @@ export function Player() {
   }
 
   function onNext() {
-    const next = poolFrom(artists, shown?.song.id);
+    const next = pickUnheard(artists, accounts, heardRef.current, shown?.song.id);
     if (!next) return;
     setIdle(next);
     if (playing || nowPlaying) play(next);
