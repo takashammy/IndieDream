@@ -1,18 +1,20 @@
 const DISMISS_KEY = "indie-dream-install-dismissed";
+const WIPE_FLAG = "indie-dream-cache-wipe-8";
 
 const LEGACY_STUDIO_KEYS = [
   "indie-dream-v1",
   "indie-dream-v2",
   "indie-dream-v3",
   "indie-dream-v4",
-  "indie-dream-v5",
   "indie-dream-v6",
 ];
 
 export function dropLegacyStudioCache() {
   if (typeof window === "undefined") return;
   try {
+    if (window.localStorage.getItem(WIPE_FLAG) === "1") return;
     for (const key of LEGACY_STUDIO_KEYS) window.localStorage.removeItem(key);
+    window.localStorage.setItem(WIPE_FLAG, "1");
   } catch {
     /* ignore */
   }
