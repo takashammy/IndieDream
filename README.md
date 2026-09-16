@@ -2,6 +2,8 @@
 
 A platform for musicians chasing dreams — Inner Soul Records, Hong Kong.
 
+**Version 1.0.0** — tagged 16 September 2026. This is the first frozen release of the live app.
+
 The live site is built from this repository on Vercel. Shared studio data lives in Neon Postgres.
 
 ## First admin after a wipe
