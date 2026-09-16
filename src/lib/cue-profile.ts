@@ -47,8 +47,9 @@ export const saveMyProfile = createServerFn({ method: "POST" })
       return { ok: false as const, error: "Enter a valid email." };
     }
 
-    const sql = await sessionMod.getSqlSafe();
-    const rows = await sql.query<{ accounts: unknown; artists: unknown }>(
+    const { withStudioTx } = await import("@/lib/db");
+    return withStudioTx(async (tx) => {
+    const rows = await tx.query<{ accounts: unknown; artists: unknown }>(
       `select accounts, artists from cue_studio where id = $1`,
       [STUDIO_ID],
     );
@@ -119,7 +120,7 @@ export const saveMyProfile = createServerFn({ method: "POST" })
       else artists.push(art);
     }
 
-    await sql.query(
+    await tx.query(
       `insert into cue_studio (id, accounts, artists, updated_at)
        values ($1, $2::jsonb, $3::jsonb, now())
        on conflict (id) do update set
@@ -128,8 +129,9 @@ export const saveMyProfile = createServerFn({ method: "POST" })
          updated_at = now()`,
       [STUDIO_ID, JSON.stringify(accounts), JSON.stringify(artists)],
     );
-    await sessionMod.writeStudioAccounts(sql, accounts as Parameters<typeof sessionMod.writeStudioAccounts>[1]);
+    await sessionMod.writeStudioAccounts(tx, accounts as Parameters<typeof sessionMod.writeStudioAccounts>[1]);
     return { ok: true as const };
+    });
   });
 
 export const grantArtistIsr = createServerFn({ method: "POST" })
@@ -138,7 +140,8 @@ export const grantArtistIsr = createServerFn({ method: "POST" })
     const sessionMod = await import("@/lib/cue-session.server");
     const session = await sessionMod.readCueSession();
     if (!session || session.kind !== "admin") return { ok: false as const, error: "Desk only." };
-    const sql = await sessionMod.getSqlSafe();
+    const { withStudioTx } = await import("@/lib/db");
+    return withStudioTx(async (sql) => {
     const rows = await sql.query<{ artists: unknown }>(`select artists from cue_studio where id = $1`, [STUDIO_ID]);
     const artists = parseArray<Record<string, unknown>>(rows[0]?.artists);
     const next = artists.map((a) => {
@@ -158,6 +161,7 @@ export const grantArtistIsr = createServerFn({ method: "POST" })
       [STUDIO_ID, JSON.stringify(next)],
     );
     return { ok: true as const };
+    });
   });
 
 export const saveMySong = createServerFn({ method: "POST" })
@@ -181,7 +185,8 @@ export const saveMySong = createServerFn({ method: "POST" })
       return { ok: false as const, error: "Only artists can upload songs." };
     }
 
-    const sql = await sessionMod.getSqlSafe();
+    const { withStudioTx } = await import("@/lib/db");
+    return withStudioTx(async (sql) => {
     const rows = await sql.query<{ accounts: unknown; artists: unknown }>(
       `select accounts, artists from cue_studio where id = $1`,
       [STUDIO_ID],
@@ -223,6 +228,7 @@ export const saveMySong = createServerFn({ method: "POST" })
     const songs = parseArray<Record<string, unknown>>(art.songs);
     const live = session.kind === "admin";
     const clock = (data.duration || "").trim();
+    const lyricsIn = data.lyrics?.trim() || "";
     const song = {
       id: data.id,
       title: data.title.trim(),
@@ -231,7 +237,7 @@ export const saveMySong = createServerFn({ method: "POST" })
       cover: data.cover || "/media/covers/vinyl.jpg",
       uploadedAt: new Date().toISOString(),
       status: live ? "approved" : "pending",
-      lyrics: data.lyrics?.trim() || undefined,
+      lyrics: lyricsIn || undefined,
       spotify: data.spotify?.trim() || undefined,
       youtube: data.youtube?.trim() || undefined,
       audioUrl: asR2Audio(data.audioUrl),
@@ -250,6 +256,7 @@ export const saveMySong = createServerFn({ method: "POST" })
         uploadedAt: prev.uploadedAt || song.uploadedAt,
         duration: clock && clock !== "—" ? clock : String(prev.duration ?? "—"),
         plays: prev.plays ?? "0",
+        lyrics: lyricsIn || prev.lyrics,
       };
     } else songs.unshift(song);
     art.songs = songs;
@@ -266,4 +273,5 @@ export const saveMySong = createServerFn({ method: "POST" })
       [STUDIO_ID, JSON.stringify(accounts), JSON.stringify(artists)],
     );
     return { ok: true as const };
+    });
   });

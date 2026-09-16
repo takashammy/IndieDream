@@ -164,17 +164,19 @@ export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
         },
       });
     } catch {
-      /* local queue still records the track */
+      /* addPendingSong still writes the track */
     }
-    addPendingSong(nameOf, {
-      id: songId,
-      spotify: trackSpotify,
-      youtube: trackYoutube,
-      cover,
-      lyrics,
-      audioUrl: `r2:${put.key}`,
-      duration: trackDuration,
-    });
+    await Promise.resolve(
+      addPendingSong(nameOf, {
+        id: songId,
+        spotify: trackSpotify,
+        youtube: trackYoutube,
+        cover,
+        lyrics,
+        audioUrl: `r2:${put.key}`,
+        duration: trackDuration,
+      }),
+    );
     setBusy(false);
     setTitle("");
     setTrackGenre(GENRE_OPTIONS[0]);
@@ -352,6 +354,9 @@ function SongLinksRow({ song, onSave, onDelete }: { song: Song; onSave: (extra: 
         </div>
       </div>
       <SongPreview song={song} />
+      {song.lyrics?.trim() ? (
+        <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted">{song.lyrics}</p>
+      ) : null}
       <div className="mt-2 space-y-2">
         <TextInput type="url" value={sp} onChange={(e) => setSp(e.target.value)} placeholder={t("spotifySong")} />
         <TextInput type="url" value={yt} onChange={(e) => setYt(e.target.value)} placeholder={t("youtubeSong")} />

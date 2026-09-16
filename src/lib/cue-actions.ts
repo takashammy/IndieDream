@@ -91,8 +91,8 @@ export const applyStudioAction = createServerFn({ method: "POST" })
     const session = await sessionMod.readCueSession();
     if (!session) return { ok: false, error: "Log in first." };
 
-    const { getSql } = await import("@/lib/db");
-    const sql = await getSql();
+    const { withStudioTx } = await import("@/lib/db");
+    return withStudioTx(async (sql) => {
     const rows = await sql.query<{
       artists: unknown;
       accounts: unknown;
@@ -300,15 +300,32 @@ export const applyStudioAction = createServerFn({ method: "POST" })
       case "addSong": {
         if (!ownPage(action.artistId)) return deny("Songs can only be added to your own page.");
         const live = admin;
-        const song: Record<string, unknown> = {
-          ...(action.song as Record<string, unknown>),
-          status: live ? "approved" : "pending",
-        };
+        const incoming = { ...(action.song as Record<string, unknown>) };
+        if (live) incoming.status = "approved";
+        else if (!incoming.status) incoming.status = "pending";
         artists = artists.map((a) => {
           if (String(a.id) !== action.artistId) return a;
           const songs = asArray<Record<string, unknown>>(a.songs);
-          if (songs.some((s) => String(s.id) === String(song.id))) return a;
-          return { ...a, songs: [song, ...songs], verified: live ? true : a.verified };
+          const idx = songs.findIndex((s) => String(s.id) === String(incoming.id));
+          if (idx >= 0) {
+            const prev = songs[idx];
+            const next = [...songs];
+            const lyricsIn = String(incoming.lyrics ?? "").trim();
+            next[idx] = {
+              ...prev,
+              ...incoming,
+              status: live ? "approved" : prev.status === "approved" || prev.status === "declined" ? prev.status : incoming.status,
+              plays: prev.plays ?? incoming.plays,
+              lyrics: lyricsIn || prev.lyrics,
+              duration:
+                incoming.duration && String(incoming.duration) !== "—"
+                  ? incoming.duration
+                  : prev.duration,
+              audioUrl: incoming.audioUrl || prev.audioUrl,
+            };
+            return { ...a, songs: next, verified: live ? true : a.verified };
+          }
+          return { ...a, songs: [incoming, ...songs], verified: live ? true : a.verified };
         });
         if (!live && action.notice && !notices.some((n) => n.id === action.notice!.id)) {
           notices = [{ ...action.notice, status: "pending", kind: "song" }, ...notices];
@@ -474,4 +491,5 @@ export const applyStudioAction = createServerFn({ method: "POST" })
       ],
     );
     return { ok: true };
+    });
   });

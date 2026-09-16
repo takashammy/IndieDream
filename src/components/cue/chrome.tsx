@@ -360,7 +360,12 @@ export function TrackSheet({
 }) {
   const openArtist = useCue((s) => s.openArtist);
   const t = useT();
-  const lyrics = song.lyrics?.trim();
+  const liveSong = useCue((s) => {
+    if (!artistId) return song;
+    const artist = s.artists.find((a) => a.id === artistId);
+    return artist?.songs.find((item) => item.id === song.id) ?? song;
+  });
+  const lyrics = (liveSong.lyrics ?? song.lyrics)?.trim();
   const title = artistId ? (
     <button
       type="button"

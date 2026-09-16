@@ -47,8 +47,14 @@ export interface Sql {
  */
 const globalRef = globalThis as typeof globalThis & {
   __pgSqlPromise__?: Promise<Sql>;
+  __pgPool__?: { connect: () => Promise<TxClient> };
   __pgliteInstance__?: Promise<import("@electric-sql/pglite").PGlite>;
   __pgliteMigrateChain__?: Promise<void>;
+};
+
+type TxClient = {
+  query: (text: string, params?: unknown[]) => Promise<{ rows: unknown[] }>;
+  release: () => void;
 };
 
 /**
@@ -95,6 +101,7 @@ function createNeonSql(): Promise<Sql> {
     types.setTypeParser(OID_DATE, identity);
     types.setTypeParser(OID_INTERVAL, identity);
     const pool = new Pool({ connectionString: databaseUrl });
+    globalRef.__pgPool__ = pool as unknown as { connect: () => Promise<TxClient> };
     return toSql(async <T>(text: string, params: unknown[]) => {
       const res = await pool.query(text, params);
       return res.rows as T[];
@@ -193,6 +200,46 @@ export function getSql(): Promise<Sql> {
     throw err;
   });
   return sqlPromise;
+}
+
+const STUDIO_LOCK = "indie-dream";
+
+/** One connection, one lock, so overlapping saves cannot wipe lyrics or plays. */
+export async function withStudioTx<T>(fn: (sql: Sql) => Promise<T>): Promise<T> {
+  if (dbSource === "neon") {
+    await getSql();
+    const pool = globalRef.__pgPool__;
+    if (!pool) throw new Error("Postgres pool is not ready.");
+    const client = await pool.connect();
+    const sql = toSql(async <R>(text: string, params: unknown[]) => {
+      const res = await client.query(text, params);
+      return res.rows as R[];
+    });
+    try {
+      await client.query("begin");
+      await client.query("select id from cue_studio where id = $1 for update", [STUDIO_LOCK]);
+      const result = await fn(sql);
+      await client.query("commit");
+      return result;
+    } catch (err) {
+      await client.query("rollback").catch(() => {});
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
+
+  const sql = await getSql();
+  await sql.query("begin");
+  try {
+    await sql.query("select id from cue_studio where id = $1 for update", [STUDIO_LOCK]).catch(() => {});
+    const result = await fn(sql);
+    await sql.query("commit");
+    return result;
+  } catch (err) {
+    await sql.query("rollback").catch(() => {});
+    throw err;
+  }
 }
 
 /**

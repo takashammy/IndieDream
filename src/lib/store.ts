@@ -338,20 +338,30 @@ export const useCue = create<CueState>((set, get) => {
     writePersist(get());
   };
 
-  const pushAction = (action: StudioAction) => {
-    const send = () => applyStudioAction({ data: action });
-    void send()
-      .then((res) => {
-        if (res && "ok" in res && res.ok === false && action.type === "recordPlay") {
-          window.setTimeout(() => void send().catch(() => {}), 900);
+  let writeChain: Promise<void> = Promise.resolve();
+  const enqueueWrite = (task: () => Promise<unknown>) => {
+    const run = writeChain.then(async () => {
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        try {
+          const res = await task();
+          if (res && typeof res === "object" && "ok" in res && (res as { ok: boolean }).ok === false) {
+            if (attempt === 2) return;
+            await new Promise((r) => setTimeout(r, 350 * (attempt + 1)));
+            continue;
+          }
+          return;
+        } catch {
+          if (attempt === 2) return;
+          await new Promise((r) => setTimeout(r, 350 * (attempt + 1)));
         }
-      })
-      .catch(() => {
-        if (action.type === "recordPlay") {
-          window.setTimeout(() => void send().catch(() => {}), 900);
-        }
-      });
+      }
+    });
+    writeChain = run.catch(() => undefined);
+    return run;
   };
+
+  const pushAction = (action: StudioAction) =>
+    enqueueWrite(() => applyStudioAction({ data: action }));
 
   const pushProfile = (patch: {
     name?: string;
@@ -367,7 +377,7 @@ export const useCue = create<CueState>((set, get) => {
     spotify?: string;
     youtube?: string;
   }) => {
-    void saveMyProfile({ data: patch }).catch(() => {});
+    void enqueueWrite(() => saveMyProfile({ data: patch }));
   };
 
   const applySaved = (saved: PersistSlice) => {
@@ -376,11 +386,17 @@ export const useCue = create<CueState>((set, get) => {
     const catalogIds = new Set(ARTISTS.map((a) => a.id));
     const savedById = new Map((saved.artists ?? []).map((a) => [a.id, a]));
     const livePlays = new Map<string, number>();
+    const liveLyrics = new Map<string, string>();
     for (const a of get().artists) {
-      for (const s of a.songs ?? []) livePlays.set(s.id, parsePlays(s.plays));
+      for (const s of a.songs ?? []) {
+        livePlays.set(s.id, parsePlays(s.plays));
+        if (s.lyrics?.trim()) liveLyrics.set(s.id, s.lyrics);
+      }
     }
     const keepPlays = (songId: string, ...values: Array<string | undefined>) =>
       formatPlays(Math.max(livePlays.get(songId) ?? 0, ...values.map((v) => parsePlays(v ?? "0"))));
+    const keepLyrics = (songId: string, ...values: Array<string | undefined>) =>
+      values.find((v) => v && v.trim()) || liveLyrics.get(songId);
     const artists: Artist[] = [
       ...ARTISTS.filter((a) => !deletedArtistIds.includes(a.id)).map((a) => {
         const over = savedById.get(a.id);
@@ -390,12 +406,18 @@ export const useCue = create<CueState>((set, get) => {
         const extraSongs = overSongs.filter((s) => !catalogSongIds.has(s.id)).map((s) => ({
           ...s,
           plays: keepPlays(s.id, s.plays),
+          lyrics: keepLyrics(s.id, s.lyrics) || s.lyrics,
         }));
         const songs = [
           ...a.songs.map((s) => {
             const overS = overSongs.find((x) => x.id === s.id);
-            if (!overS) return { ...s, plays: keepPlays(s.id, s.plays) };
-            return { ...s, ...overS, plays: keepPlays(s.id, s.plays, overS.plays) };
+            if (!overS) return { ...s, plays: keepPlays(s.id, s.plays), lyrics: keepLyrics(s.id, s.lyrics) || s.lyrics };
+            return {
+              ...s,
+              ...overS,
+              plays: keepPlays(s.id, s.plays, overS.plays),
+              lyrics: keepLyrics(s.id, overS.lyrics, s.lyrics) || overS.lyrics || s.lyrics,
+            };
           }),
           ...extraSongs,
         ];
@@ -420,7 +442,11 @@ export const useCue = create<CueState>((set, get) => {
         .filter((a) => !catalogIds.has(a.id) && !deletedArtistIds.includes(a.id))
         .map((a) => ({
           ...a,
-          songs: (a.songs ?? []).map((s) => ({ ...s, plays: keepPlays(s.id, s.plays) })),
+          songs: (a.songs ?? []).map((s) => ({
+            ...s,
+            plays: keepPlays(s.id, s.plays),
+            lyrics: keepLyrics(s.id, s.lyrics) || s.lyrics,
+          })),
         })),
     ];
     const posts = (() => {
@@ -898,7 +924,7 @@ export const useCue = create<CueState>((set, get) => {
           : get().notices,
       });
       persist();
-      pushAction({ type: "addSong", artistId: artist.id, song, notice: notice ?? undefined });
+      return pushAction({ type: "addSong", artistId: artist.id, song, notice: notice ?? undefined });
     },
 
     rememberDuration: (artistId, songId, duration) => {
@@ -953,17 +979,19 @@ export const useCue = create<CueState>((set, get) => {
           songId,
           patch: { spotify: patched.spotify, youtube: patched.youtube, cover: patched.cover },
         });
-        void saveMySong({
-          data: {
-            id: patched.id,
-            title: patched.title,
-            cover: patched.cover,
-            spotify: patched.spotify,
-            youtube: patched.youtube,
-            lyrics: patched.lyrics,
-            audioUrl: patched.audioUrl,
-          },
-        }).catch(() => {});
+        void enqueueWrite(() =>
+          saveMySong({
+            data: {
+              id: patched.id,
+              title: patched.title,
+              cover: patched.cover,
+              spotify: patched.spotify,
+              youtube: patched.youtube,
+              lyrics: patched.lyrics,
+              audioUrl: patched.audioUrl,
+            },
+          }),
+        );
       }
     },
 
