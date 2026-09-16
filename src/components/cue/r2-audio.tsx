@@ -3,6 +3,20 @@ import { r2KeyFromCover, requestTrackPlay } from "@/lib/r2";
 import { recallAudio } from "@/lib/audio-vault";
 import type { Song } from "@/lib/data";
 
+function httpUrl(value?: string) {
+  return value && /^https?:\/\//i.test(value) ? value : null;
+}
+
+function objectKey(song: Song) {
+  const fromCover = r2KeyFromCover(song.cover);
+  if (fromCover) return fromCover;
+  const raw = (song.audioUrl ?? "").trim();
+  if (!raw) return null;
+  if (raw.startsWith("r2:")) return raw.slice(3);
+  if (raw.startsWith("tracks/")) return raw;
+  return null;
+}
+
 export function useSongSrc(song?: Song | null) {
   const [src, setSrc] = useState<string | null>(null);
   useEffect(() => {
@@ -12,11 +26,12 @@ export function useSongSrc(song?: Song | null) {
         if (alive) setSrc(null);
         return;
       }
-      if (song.audioUrl && !song.audioUrl.startsWith("r2:")) {
-        if (alive) setSrc(song.audioUrl);
+      const direct = httpUrl(song.audioUrl);
+      if (direct) {
+        if (alive) setSrc(direct);
         return;
       }
-      const key = r2KeyFromCover(song.cover) || (song.audioUrl?.startsWith("r2:") ? song.audioUrl.slice(3) : null);
+      const key = objectKey(song);
       if (key) {
         try {
           const play = await requestTrackPlay({ data: { key } });

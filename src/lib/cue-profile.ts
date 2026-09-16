@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { ISR_LABEL, claimsISR } from "@/lib/data";
+import { ISR_LABEL } from "@/lib/data";
 
 const STUDIO_ID = "indie-dream";
 
@@ -11,6 +11,14 @@ function parseArray<T>(value: unknown): T[] {
 
 function slugId(raw: string) {
   return raw.replace(/[^a-zA-Z0-9_-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 32) || "user";
+}
+
+function asR2Audio(value?: string) {
+  const raw = value?.trim();
+  if (!raw) return undefined;
+  if (/^https?:\/\//i.test(raw) || raw.startsWith("r2:")) return raw;
+  if (raw.startsWith("tracks/")) return `r2:${raw}`;
+  return raw;
 }
 
 export const saveMyProfile = createServerFn({ method: "POST" })
@@ -68,9 +76,6 @@ export const saveMyProfile = createServerFn({ method: "POST" })
 
     if (artistId) {
       const ai = artists.findIndex((a) => String(a.id) === artistId);
-      const labelRaw = data.label?.trim() ?? "";
-      const wantsISR = labelRaw ? claimsISR(labelRaw) : false;
-      const nextLabel = wantsISR ? ISR_LABEL : labelRaw || "Independent";
       const art: Record<string, unknown> =
         ai >= 0
           ? { ...artists[ai] }
@@ -84,8 +89,8 @@ export const saveMyProfile = createServerFn({ method: "POST" })
               genres: data.genres?.length ? data.genres : ["Indie"],
               bio: acc.bio || "",
               songs: [],
-              label: nextLabel,
-              labelApproved: acc.kind === "admin" && wantsISR,
+              label: "Independent",
+              labelApproved: false,
               verified: acc.kind === "admin",
             };
       if (data.name !== undefined) art.name = data.name.trim() || art.name;
@@ -99,10 +104,6 @@ export const saveMyProfile = createServerFn({ method: "POST" })
       if (data.bio !== undefined) art.bio = data.bio;
       if (data.photo !== undefined) art.photo = data.photo;
       if (data.genres?.length) art.genres = data.genres;
-      if (data.label !== undefined) {
-        art.label = nextLabel;
-        if (!wantsISR) art.labelApproved = false;
-      }
       if (data.spotify !== undefined) art.spotify = data.spotify.trim() || undefined;
       if (data.youtube !== undefined) art.youtube = data.youtube.trim() || undefined;
       if (!Array.isArray(art.songs)) art.songs = [];
@@ -120,6 +121,31 @@ export const saveMyProfile = createServerFn({ method: "POST" })
       [STUDIO_ID, JSON.stringify(accounts), JSON.stringify(artists)],
     );
     await sessionMod.writeStudioAccounts(sql, accounts as Parameters<typeof sessionMod.writeStudioAccounts>[1]);
+    return { ok: true as const };
+  });
+
+export const grantArtistIsr = createServerFn({ method: "POST" })
+  .validator(z.object({ artistId: z.string().min(1), on: z.boolean() }))
+  .handler(async ({ data }) => {
+    const sessionMod = await import("@/lib/cue-session.server");
+    const session = await sessionMod.readCueSession();
+    if (!session || session.kind !== "admin") return { ok: false as const, error: "Desk only." };
+    const sql = await sessionMod.getSqlSafe();
+    const rows = await sql.query<{ artists: unknown }>(`select artists from cue_studio where id = $1`, [STUDIO_ID]);
+    const artists = parseArray<Record<string, unknown>>(rows[0]?.artists);
+    const next = artists.map((a) =>
+      String(a.id) === data.artistId
+        ? data.on
+          ? { ...a, label: ISR_LABEL, labelApproved: true }
+          : { ...a, label: "Independent", labelApproved: false }
+        : a,
+    );
+    await sql.query(
+      `insert into cue_studio (id, artists, updated_at)
+       values ($1, $2::jsonb, now())
+       on conflict (id) do update set artists = excluded.artists, updated_at = now()`,
+      [STUDIO_ID, JSON.stringify(next)],
+    );
     return { ok: true as const };
   });
 
@@ -186,14 +212,14 @@ export const saveMySong = createServerFn({ method: "POST" })
       plays: "0",
       cover: data.cover || "/media/covers/vinyl.jpg",
       uploadedAt: new Date().toISOString(),
-      status: data.status ?? (live ? "approved" : "pending"),
+      status: live ? "approved" : "pending",
       lyrics: data.lyrics?.trim() || undefined,
       spotify: data.spotify?.trim() || undefined,
       youtube: data.youtube?.trim() || undefined,
-      audioUrl: data.audioUrl?.trim() || undefined,
+      audioUrl: asR2Audio(data.audioUrl),
     };
     const si = songs.findIndex((s) => String(s.id) === data.id);
-    if (si >= 0) songs[si] = { ...songs[si], ...song };
+    if (si >= 0) songs[si] = { ...songs[si], ...song, status: live ? "approved" : songs[si].status ?? "pending" };
     else songs.unshift(song);
     art.songs = songs;
     artists[ai] = art;
