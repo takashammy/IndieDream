@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { formatPlays, parsePlays } from "@/lib/data";
 
 const STUDIO_ID = "indie-dream";
 
@@ -77,8 +78,35 @@ export const loadStudio = createServerFn({ method: "GET" }).handler(async (): Pr
           const fields = (n.fields ?? {}) as Record<string, unknown>;
           return String(fields.Account ?? "") === selfName || String(fields.FromId ?? "") === selfId;
         });
+    let artists = asArray<Record<string, unknown>>(row.artists);
+    try {
+      await sql.query(
+        `create table if not exists cue_song_plays (
+           song_id text primary key,
+           plays integer not null default 0,
+           updated_at timestamptz not null default now()
+         )`,
+      );
+      const playRows = await sql.query<{ song_id: string; plays: number }>(
+        `select song_id, plays from cue_song_plays`,
+      );
+      if (playRows.length) {
+        const byId = new Map(playRows.map((r) => [String(r.song_id), Number(r.plays) || 0]));
+        artists = artists.map((a) => ({
+          ...a,
+          songs: asArray<Record<string, unknown>>(a.songs).map((s) => {
+            const stored = byId.get(String(s.id));
+            if (stored == null) return s;
+            const current = parsePlays(String(s.plays ?? "0"));
+            return { ...s, plays: formatPlays(Math.max(stored, current)) };
+          }),
+        }));
+      }
+    } catch {
+      /* plays table is optional until the migration runs */
+    }
     return {
-      artists: asArray(row.artists),
+      artists,
       accounts: asArray<Record<string, unknown>>(row.accounts).map((account) =>
         stripAccount(account, Boolean(admin || account.id === selfId)),
       ),

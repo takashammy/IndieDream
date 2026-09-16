@@ -339,7 +339,18 @@ export const useCue = create<CueState>((set, get) => {
   };
 
   const pushAction = (action: StudioAction) => {
-    void applyStudioAction({ data: action }).catch(() => {});
+    const send = () => applyStudioAction({ data: action });
+    void send()
+      .then((res) => {
+        if (res && "ok" in res && res.ok === false && action.type === "recordPlay") {
+          window.setTimeout(() => void send().catch(() => {}), 900);
+        }
+      })
+      .catch(() => {
+        if (action.type === "recordPlay") {
+          window.setTimeout(() => void send().catch(() => {}), 900);
+        }
+      });
   };
 
   const pushProfile = (patch: {
@@ -364,17 +375,27 @@ export const useCue = create<CueState>((set, get) => {
     const bannedUserIds = saved.bannedUserIds ?? [];
     const catalogIds = new Set(ARTISTS.map((a) => a.id));
     const savedById = new Map((saved.artists ?? []).map((a) => [a.id, a]));
+    const livePlays = new Map<string, number>();
+    for (const a of get().artists) {
+      for (const s of a.songs ?? []) livePlays.set(s.id, parsePlays(s.plays));
+    }
+    const keepPlays = (songId: string, ...values: Array<string | undefined>) =>
+      formatPlays(Math.max(livePlays.get(songId) ?? 0, ...values.map((v) => parsePlays(v ?? "0"))));
     const artists: Artist[] = [
       ...ARTISTS.filter((a) => !deletedArtistIds.includes(a.id)).map((a) => {
         const over = savedById.get(a.id);
         if (!over) return a;
         const overSongs = over.songs ?? [];
         const catalogSongIds = new Set(a.songs.map((s) => s.id));
-        const extraSongs = overSongs.filter((s) => !catalogSongIds.has(s.id));
+        const extraSongs = overSongs.filter((s) => !catalogSongIds.has(s.id)).map((s) => ({
+          ...s,
+          plays: keepPlays(s.id, s.plays),
+        }));
         const songs = [
           ...a.songs.map((s) => {
             const overS = overSongs.find((x) => x.id === s.id);
-            return overS ? { ...s, ...overS } : s;
+            if (!overS) return { ...s, plays: keepPlays(s.id, s.plays) };
+            return { ...s, ...overS, plays: keepPlays(s.id, s.plays, overS.plays) };
           }),
           ...extraSongs,
         ];
@@ -395,7 +416,12 @@ export const useCue = create<CueState>((set, get) => {
           songs,
         };
       }),
-      ...(saved.artists ?? []).filter((a) => !catalogIds.has(a.id) && !deletedArtistIds.includes(a.id)),
+      ...(saved.artists ?? [])
+        .filter((a) => !catalogIds.has(a.id) && !deletedArtistIds.includes(a.id))
+        .map((a) => ({
+          ...a,
+          songs: (a.songs ?? []).map((s) => ({ ...s, plays: keepPlays(s.id, s.plays) })),
+        })),
     ];
     const posts = (() => {
       const savedPosts = saved.posts ?? [];

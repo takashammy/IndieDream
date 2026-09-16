@@ -21,6 +21,9 @@ export function InstrumentShop({ onBack }: { onBack?: () => void }) {
         <h1 className="cue-name mt-1 font-display text-3xl leading-none">{t("theShop")}</h1>
         <p className="mt-3 text-sm leading-6 text-muted">{t("shopIntro")}</p>
       </div>
+      {INNER_SOUL_INSTRUMENTS.length === 0 ? (
+        <p className="mt-8 px-5 text-sm leading-6 text-muted">{t("shopEmpty")}</p>
+      ) : (
       <div className="mt-5 grid grid-cols-2 gap-px bg-line">
         {INNER_SOUL_INSTRUMENTS.map((item) => (
           <button key={item.id} type="button" onClick={() => setPicked(item)} className="bg-bg text-left">
@@ -36,6 +39,7 @@ export function InstrumentShop({ onBack }: { onBack?: () => void }) {
           </button>
         ))}
       </div>
+      )}
       {picked ? <ShopEnquire item={picked} onClose={() => setPicked(null)} /> : null}
     </div>
   );

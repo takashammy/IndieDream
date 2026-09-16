@@ -316,20 +316,36 @@ export const applyStudioAction = createServerFn({ method: "POST" })
         break;
       }
       case "recordPlay": {
-        let found = false;
+        await sql.query(
+          `create table if not exists cue_song_plays (
+             song_id text primary key,
+             plays integer not null default 0,
+             updated_at timestamptz not null default now()
+           )`,
+        ).catch(() => {});
+        const songId = String(action.songId);
+        await sql.query(
+          `insert into cue_song_plays (song_id, plays, updated_at)
+           values ($1, 1, now())
+           on conflict (song_id) do update set
+             plays = cue_song_plays.plays + 1,
+             updated_at = now()`,
+          [songId],
+        );
+        const playRow = await sql.query<{ plays: number }>(
+          `select plays from cue_song_plays where song_id = $1`,
+          [songId],
+        );
+        const total = Number(playRow[0]?.plays ?? 1);
+        const clock = formatPlays(total);
         artists = artists.map((a) => {
-          if (String(a.id) !== action.artistId) return a;
+          const songs = asArray<Record<string, unknown>>(a.songs);
+          if (!songs.some((s) => String(s.id) === songId)) return a;
           return {
             ...a,
-            songs: asArray<Record<string, unknown>>(a.songs).map((s) => {
-              if (String(s.id) !== action.songId) return s;
-              found = true;
-              const next = parsePlays(String(s.plays ?? "0")) + 1;
-              return { ...s, plays: formatPlays(next) };
-            }),
+            songs: songs.map((s) => (String(s.id) === songId ? { ...s, plays: clock } : s)),
           };
         });
-        if (!found) return deny("Track not found.");
         break;
       }
       case "noteDuration": {
