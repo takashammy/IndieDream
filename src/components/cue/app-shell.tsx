@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Briefcase, Calendar, Compass, House, LayoutDashboard, MessageSquare, UserRound, Users } from "lucide-react";
 import { currentAccount, useCue, type TabId } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -17,6 +17,51 @@ import { Gate } from "./gate";
 import { Splash } from "./splash";
 import { InstallBanner, OfflineBanner } from "./pwa-chrome";
 import { dropLegacyStudioCache, registerServiceWorker } from "@/lib/pwa";
+
+function consumeHardwareBack() {
+  const s = useCue.getState();
+  if (s.gate) {
+    s.setGate(null);
+    return true;
+  }
+  if (s.eventComposer) {
+    s.setEventComposer(false);
+    return true;
+  }
+  if (s.noticeId) {
+    s.openNotice(null);
+    return true;
+  }
+  if (s.artistId) {
+    s.closeArtist();
+    return true;
+  }
+  if (s.eventId) {
+    s.openEvent(null);
+    return true;
+  }
+  if (s.postId) {
+    s.openPost(null);
+    return true;
+  }
+  if (s.genre) {
+    s.openGenre(null);
+    return true;
+  }
+  if (s.servicePanel) {
+    s.openService(null);
+    return true;
+  }
+  if (s.meMode !== "idle") {
+    s.setMeMode("idle");
+    return true;
+  }
+  if (s.tab !== "home") {
+    s.setTab("home");
+    return true;
+  }
+  return false;
+}
 
 const TABS: Array<{ id: TabId; label: Msg; icon: typeof Users }> = [
   { id: "artists", label: "tabArtists", icon: Users },
@@ -48,6 +93,8 @@ export function AppShell() {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const t = useT();
   const { locale, hydrateLocale } = useLocale();
+  const [leaveHint, setLeaveHint] = useState(false);
+  const leaveArmed = useRef(0);
 
   useEffect(() => {
     dropLegacyStudioCache();
@@ -74,6 +121,36 @@ export function AppShell() {
   useLayoutEffect(() => {
     scrollMainToTop();
   }, [tab, artistId, eventId, postId, genre, servicePanel, noticeId, meMode, eventComposer]);
+
+  useEffect(() => {
+    const pushGuard = () => {
+      try {
+        window.history.pushState({ cueGuard: 1 }, "", window.location.href);
+      } catch {
+        /* ignore */
+      }
+    };
+    pushGuard();
+    const onPop = () => {
+      if (consumeHardwareBack()) {
+        pushGuard();
+        return;
+      }
+      const now = Date.now();
+      if (now - leaveArmed.current < 2000) {
+        leaveArmed.current = 0;
+        setLeaveHint(false);
+        window.history.back();
+        return;
+      }
+      leaveArmed.current = now;
+      pushGuard();
+      setLeaveHint(true);
+      window.setTimeout(() => setLeaveHint(false), 2000);
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
 
   return (
     <div className="flex min-h-dvh flex-col bg-bg text-fg">
@@ -119,6 +196,14 @@ export function AppShell() {
         {tab === "board" && !postId ? <BoardFab /> : null}
 
         <InstallBanner />
+        {leaveHint ? (
+          <p
+            role="status"
+            className="pointer-events-none absolute inset-x-0 bottom-[calc(3.6rem+env(safe-area-inset-bottom))] z-50 mx-auto w-[min(20rem,calc(100%-2rem))] rounded-md bg-ink px-4 py-2.5 text-center text-sm text-bg"
+          >
+            {t("leaveAppHint")}
+          </p>
+        ) : null}
 
         <nav
           className="sticky bottom-0 z-40 border-t border-line bg-bg/95 pb-[max(0.4rem,env(safe-area-inset-bottom))] pt-1 backdrop-blur-md"

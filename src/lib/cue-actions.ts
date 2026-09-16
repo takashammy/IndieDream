@@ -52,6 +52,7 @@ const actionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("setAccountKind"), accountId: z.string(), kind: z.enum(["artist", "explorer", "business"]) }),
   z.object({ type: z.literal("addSong"), artistId: z.string(), song: z.any(), notice: noticeSchema.optional() }),
   z.object({ type: z.literal("recordPlay"), artistId: z.string(), songId: z.string() }),
+  z.object({ type: z.literal("noteDuration"), artistId: z.string(), songId: z.string(), duration: z.string().min(1).max(12) }),
   z.object({ type: z.literal("patchSong"), artistId: z.string(), songId: z.string(), patch: z.any() }),
   z.object({ type: z.literal("deleteSong"), artistId: z.string(), songId: z.string() }),
   z.object({ type: z.literal("addArtist"), artist: z.any(), notice: noticeSchema.optional() }),
@@ -147,6 +148,7 @@ export const applyStudioAction = createServerFn({ method: "POST" })
       if (typeof patch.spotify === "string" || patch.spotify === undefined) next.spotify = patch.spotify;
       if (typeof patch.youtube === "string" || patch.youtube === undefined) next.youtube = patch.youtube;
       if (typeof patch.lyrics === "string" || patch.lyrics === undefined) next.lyrics = patch.lyrics;
+      if (typeof patch.duration === "string" && patch.duration.trim()) next.duration = patch.duration.trim();
       return next;
     };
 
@@ -209,13 +211,14 @@ export const applyStudioAction = createServerFn({ method: "POST" })
         break;
       }
       case "submitEvent": {
+        const live = admin;
         const event: Record<string, unknown> = {
           ...(action.event as Record<string, unknown>),
-          status: "pending",
+          status: live ? "approved" : "pending",
           postedBy: mine,
         };
         if (!events.some((e) => String(e.id) === String(event.id))) events = [event, ...events];
-        if (action.notice && !notices.some((n) => n.id === action.notice!.id)) {
+        if (!live && action.notice && !notices.some((n) => n.id === action.notice!.id)) {
           notices = [{ ...action.notice, status: "pending" }, ...notices];
         }
         break;
@@ -296,14 +299,18 @@ export const applyStudioAction = createServerFn({ method: "POST" })
       }
       case "addSong": {
         if (!ownPage(action.artistId)) return deny("Songs can only be added to your own page.");
-        const song: Record<string, unknown> = { ...(action.song as Record<string, unknown>), status: "pending" };
+        const live = admin;
+        const song: Record<string, unknown> = {
+          ...(action.song as Record<string, unknown>),
+          status: live ? "approved" : "pending",
+        };
         artists = artists.map((a) => {
           if (String(a.id) !== action.artistId) return a;
           const songs = asArray<Record<string, unknown>>(a.songs);
           if (songs.some((s) => String(s.id) === String(song.id))) return a;
-          return { ...a, songs: [song, ...songs] };
+          return { ...a, songs: [song, ...songs], verified: live ? true : a.verified };
         });
-        if (action.notice && !notices.some((n) => n.id === action.notice!.id)) {
+        if (!live && action.notice && !notices.some((n) => n.id === action.notice!.id)) {
           notices = [{ ...action.notice, status: "pending", kind: "song" }, ...notices];
         }
         break;
@@ -323,6 +330,23 @@ export const applyStudioAction = createServerFn({ method: "POST" })
           };
         });
         if (!found) return deny("Track not found.");
+        break;
+      }
+      case "noteDuration": {
+        const clock = action.duration.trim();
+        if (clock === "—" || !/^\d+:\d{2}(:\d{2})?$/.test(clock)) break;
+        artists = artists.map((a) => {
+          if (String(a.id) !== action.artistId) return a;
+          return {
+            ...a,
+            songs: asArray<Record<string, unknown>>(a.songs).map((s) => {
+              if (String(s.id) !== action.songId) return s;
+              const prev = String(s.duration ?? "").trim();
+              if (prev && prev !== "—") return s;
+              return { ...s, duration: clock };
+            }),
+          };
+        });
         break;
       }
       case "patchSong": {

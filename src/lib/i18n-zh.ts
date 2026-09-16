@@ -19,6 +19,7 @@ export const ZH: Record<string, string> = {
   installIos3: "點選加入。",
   installDismiss: "暫不需要",
   offlineBanner: "目前離線。目錄與「我」仍可使用上次載入的內容。",
+  leaveAppHint: "再按一次即可離開應用程式",
   language: "語言",
   langEn: "English",
   langZh: "繁體中文",

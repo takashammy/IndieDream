@@ -170,6 +170,7 @@ export const saveMySong = createServerFn({ method: "POST" })
       youtube: z.string().optional(),
       lyrics: z.string().optional(),
       audioUrl: z.string().optional(),
+      duration: z.string().optional(),
     }),
   )
   .handler(async ({ data }) => {
@@ -220,14 +221,16 @@ export const saveMySong = createServerFn({ method: "POST" })
       return { ok: false as const, error: "Songs can only be added to your own page." };
     }
     const songs = parseArray<Record<string, unknown>>(art.songs);
+    const live = session.kind === "admin";
+    const clock = (data.duration || "").trim();
     const song = {
       id: data.id,
       title: data.title.trim(),
-      duration: "—",
+      duration: clock && clock !== "—" ? clock : "—",
       plays: "0",
       cover: data.cover || "/media/covers/vinyl.jpg",
       uploadedAt: new Date().toISOString(),
-      status: "pending",
+      status: live ? "approved" : "pending",
       lyrics: data.lyrics?.trim() || undefined,
       spotify: data.spotify?.trim() || undefined,
       youtube: data.youtube?.trim() || undefined,
@@ -239,11 +242,18 @@ export const saveMySong = createServerFn({ method: "POST" })
       songs[si] = {
         ...prev,
         ...song,
-        status: prev.status === "approved" || prev.status === "declined" ? prev.status : "pending",
+        status: live
+          ? "approved"
+          : prev.status === "approved" || prev.status === "declined"
+            ? prev.status
+            : "pending",
         uploadedAt: prev.uploadedAt || song.uploadedAt,
+        duration: clock && clock !== "—" ? clock : String(prev.duration ?? "—"),
+        plays: prev.plays ?? "0",
       };
     } else songs.unshift(song);
     art.songs = songs;
+    if (live) art.verified = true;
     artists[ai] = art;
 
     await sql.query(

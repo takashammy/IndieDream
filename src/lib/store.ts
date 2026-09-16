@@ -175,8 +175,17 @@ export type CueState = PersistSlice & {
   }) => void;
   addPendingSong: (
     title: string,
-    extra?: { id?: string; cover?: string; spotify?: string; youtube?: string; lyrics?: string; audioUrl?: string },
+    extra?: {
+      id?: string;
+      cover?: string;
+      spotify?: string;
+      youtube?: string;
+      lyrics?: string;
+      audioUrl?: string;
+      duration?: string;
+    },
   ) => void;
+  rememberDuration: (artistId: string, songId: string, duration: string) => void;
   updateSongLinks: (songId: string, extra: { spotify?: string; youtube?: string; cover?: string }) => void;
   deleteSong: (songId: string) => void;
   acceptUploadTerms: () => void;
@@ -823,43 +832,67 @@ export const useCue = create<CueState>((set, get) => {
 
     addPendingSong: (title, extra) => {
       const artist = currentArtist(get());
+      const acc = currentAccount(get());
       if (!artist) return;
+      const live = acc?.kind === "admin";
       const song: Song = {
         id: extra?.id || uid("song"),
         title: title.trim(),
-        duration: "—",
+        duration: extra?.duration && extra.duration !== "—" ? extra.duration : "—",
         plays: "0",
         cover: extra?.cover ?? "/media/covers/vinyl.jpg",
         uploadedAt: new Date().toISOString(),
-        status: "pending",
+        status: live ? "approved" : "pending",
         lyrics: extra?.lyrics?.trim() || undefined,
         spotify: cleanUrl(extra?.spotify),
         youtube: cleanUrl(extra?.youtube),
         audioUrl: extra?.audioUrl,
       };
-      const notice = {
-        id: uid("n"),
-        kind: "song" as const,
-        title: `Track — ${song.title}`,
-        body: `${artist.name} uploaded “${song.title}” for review.`,
-        status: "pending" as const,
-        refId: song.id,
-        createdAt: new Date().toISOString(),
-      };
+      const notice = live
+        ? null
+        : {
+            id: uid("n"),
+            kind: "song" as const,
+            title: `Track — ${song.title}`,
+            body: `${artist.name} uploaded “${song.title}” for review.`,
+            status: "pending" as const,
+            refId: song.id,
+            createdAt: new Date().toISOString(),
+          };
       set({
         artists: get().artists.map((a) => {
           if (a.id !== artist.id) return a;
           const songs = a.songs.some((s) => s.id === song.id)
-            ? a.songs.map((s) => (s.id === song.id ? { ...s, ...song, status: s.status } : s))
+            ? a.songs.map((s) => (s.id === song.id ? { ...s, ...song, status: live ? "approved" : s.status } : s))
             : [song, ...a.songs];
-          return { ...a, songs };
+          return { ...a, songs, verified: live ? true : a.verified };
         }),
-        notices: get().notices.some((n) => n.kind === "song" && n.refId === song.id)
-          ? get().notices
-          : [notice, ...get().notices],
+        notices: notice && !get().notices.some((n) => n.kind === "song" && n.refId === song.id)
+          ? [notice, ...get().notices]
+          : get().notices,
       });
       persist();
-      pushAction({ type: "addSong", artistId: artist.id, song, notice });
+      pushAction({ type: "addSong", artistId: artist.id, song, notice: notice ?? undefined });
+    },
+
+    rememberDuration: (artistId, songId, duration) => {
+      const clock = duration.trim();
+      if (!clock || clock === "—") return;
+      const artist = get().artists.find((a) => a.id === artistId);
+      const song = artist?.songs.find((s) => s.id === songId);
+      if (!song || (song.duration && song.duration !== "—")) return;
+      const np = get().nowPlaying;
+      set({
+        artists: get().artists.map((a) =>
+          a.id !== artistId
+            ? a
+            : { ...a, songs: a.songs.map((s) => (s.id === songId ? { ...s, duration: clock } : s)) },
+        ),
+        nowPlaying:
+          np && np.song.id === songId ? { ...np, song: { ...np.song, duration: clock } } : np,
+      });
+      persist();
+      pushAction({ type: "noteDuration", artistId, songId, duration: clock });
     },
 
     updateSongLinks: (songId, extra) => {
@@ -1125,6 +1158,7 @@ export const useCue = create<CueState>((set, get) => {
         set({ gate: "verify" });
         return "Verified artists only.";
       }
+      const live = acc.kind === "admin";
       const { weekday, date } = formatEventDate(input.isoDate);
       const id = uid("ev");
       const event: CueEvent = {
@@ -1139,21 +1173,27 @@ export const useCue = create<CueState>((set, get) => {
         artistIds: input.artistIds,
         blurb: input.blurb,
         isoDate: input.isoDate,
-        status: "pending",
+        status: live ? "approved" : "pending",
         postedBy: acc.id,
       };
-      const notice = {
-        id: uid("n"),
-        kind: "event" as const,
-        title: `Event — ${event.title}`,
-        body: `${acc.name} posted ${event.title} at ${event.venue} on ${event.date}.`,
-        status: "pending" as const,
-        refId: id,
-        createdAt: new Date().toISOString(),
-      };
-      set({ events: [event, ...get().events], notices: [notice, ...get().notices], eventComposer: false });
+      const notice = live
+        ? null
+        : {
+            id: uid("n"),
+            kind: "event" as const,
+            title: `Event — ${event.title}`,
+            body: `${acc.name} posted ${event.title} at ${event.venue} on ${event.date}.`,
+            status: "pending" as const,
+            refId: id,
+            createdAt: new Date().toISOString(),
+          };
+      set({
+        events: [event, ...get().events],
+        notices: notice ? [notice, ...get().notices] : get().notices,
+        eventComposer: false,
+      });
       persist();
-      pushAction({ type: "submitEvent", event, notice });
+      pushAction({ type: "submitEvent", event, notice: notice ?? undefined });
       return null;
     },
 

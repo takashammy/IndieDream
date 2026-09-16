@@ -64,6 +64,7 @@ export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
   const [trackCover, setTrackCover] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [trackFile, setTrackFile] = useState<File | null>(null);
+  const [trackDuration, setTrackDuration] = useState("—");
   const [fileError, setFileError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [limitWarn, setLimitWarn] = useState<string[] | null>(null);
@@ -109,6 +110,7 @@ export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
       setFileName(null);
       setTrackFile(null);
       trackFileRef.current = null;
+      setTrackDuration("—");
       setLimitWarn(check.reasons);
       return;
     }
@@ -117,6 +119,7 @@ export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
     setFileName(file.name);
     setTrackFile(file);
     trackFileRef.current = file;
+    setTrackDuration(check.duration || "—");
     if (!title.trim()) setTitle(file.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " "));
   }
 
@@ -157,6 +160,7 @@ export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
           youtube: trackYoutube,
           lyrics,
           audioUrl: `r2:${put.key}`,
+          duration: trackDuration,
         },
       });
     } catch {
@@ -169,6 +173,7 @@ export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
       cover,
       lyrics,
       audioUrl: `r2:${put.key}`,
+      duration: trackDuration,
     });
     setBusy(false);
     setTitle("");
@@ -182,6 +187,7 @@ export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
     setFileName(null);
     setTrackFile(null);
     trackFileRef.current = null;
+    setTrackDuration("—");
     setOpenUpload(false);
     setOpenSongs(true);
     if (fileRef.current) fileRef.current.value = "";

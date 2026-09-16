@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { catalogVisible, liveSongs } from "@/lib/data";
 import { currentAccount, useCue, type NowPlaying } from "@/lib/store";
 import { coverImage } from "@/lib/r2";
+import { formatClock } from "@/lib/audio-limits";
 import { useT } from "@/lib/i18n";
 import { useSongSrc } from "./r2-audio";
 import { TrackSheet } from "./chrome";
@@ -40,6 +41,7 @@ export function Player() {
   const playing = useCue((s) => s.playing);
   const play = useCue((s) => s.play);
   const togglePlay = useCue((s) => s.togglePlay);
+  const rememberDuration = useCue((s) => s.rememberDuration);
   const [idle, setIdle] = useState<NowPlaying | null>(null);
   const [openTrack, setOpenTrack] = useState(false);
   const heardRef = useRef<Set<string>>(new Set());
@@ -118,7 +120,24 @@ export function Player() {
           <SkipForward className="size-4" />
         </button>
       </div>
-      {src ? <audio ref={audioRef} src={src} className="hidden" onEnded={() => { if (useCue.getState().playing) togglePlay(); }} /> : null}
+      {src ? (
+        <audio
+          ref={audioRef}
+          src={src}
+          className="hidden"
+          onEnded={() => {
+            if (useCue.getState().playing) togglePlay();
+          }}
+          onLoadedMetadata={() => {
+            const el = audioRef.current;
+            const np = useCue.getState().nowPlaying;
+            if (!el || !np) return;
+            const clock = formatClock(el.duration);
+            if (clock === "—") return;
+            rememberDuration(np.artistId, np.song.id, clock);
+          }}
+        />
+      ) : null}
       {openTrack && shown ? (
         <TrackSheet artistName={shown.artistName} artistId={shown.artistId} song={shown.song} onClose={() => setOpenTrack(false)} />
       ) : null}

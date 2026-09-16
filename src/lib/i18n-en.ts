@@ -19,6 +19,7 @@ export const EN = {
   installIos3: "Tap Add.",
   installDismiss: "Not now",
   offlineBanner: "You're offline. Catalogue and Me still open from the last visit.",
+  leaveAppHint: "Double tap to leave app",
   language: "Language",
   langEn: "English",
   langZh: "\u7e41\u9ad4\u4e2d\u6587",
