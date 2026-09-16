@@ -504,6 +504,7 @@ export const useCue = create<CueState>((set, get) => {
         servicePanel: null,
         noticeId: null,
         eventComposer: false,
+        gate: null,
         meMode: tab === "me" || tab === "inbox" ? get().meMode : "idle",
       }),
 
