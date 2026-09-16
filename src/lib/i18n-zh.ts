@@ -313,6 +313,8 @@ export const ZH: Record<string, string> = {
   phoneMp3Hint: "只限 MP3，最多 5 MB。手機請使用「檔案」選歌 — 語音備忘錄及 Apple Music 檔案須先匯出為 MP3。",
   sending: "傳送中……",
   isrNeedsApproval: "{label} 需要管理員審批。",
+  isrStamp: "列入 Inner Soul Records",
+  isrStampHint: "僅工作台。只有勾選後，藝人頁才會顯示 Inner Soul Records。",
   live: "已上架",
   declined: "已拒絕",
   awaiting: "等待審批",

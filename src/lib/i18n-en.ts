@@ -311,6 +311,8 @@ export const EN = {
   phoneMp3Hint: "MP3 only, 5 MB max. On a phone, open Files and pick the track \u2014 Voice Memos and Apple Music files need to be exported as MP3 first.",
   sending: "Sending\u2026",
   isrNeedsApproval: "{label} needs Inner Soul approval.",
+  isrStamp: "List on Inner Soul Records",
+  isrStampHint: "Desk only. This is the only way Inner Soul Records is added to an artist page.",
   live: "Live",
   declined: "Declined",
   awaiting: "Awaiting approval",

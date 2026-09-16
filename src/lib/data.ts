@@ -166,7 +166,7 @@ export function ageLabel(iso: string, now = Date.now()) {
 }
 
 export function isISR(artist: Artist) {
-  return artist.labelApproved && artist.label.trim().toLowerCase() === ISR_LABEL.toLowerCase();
+  return Boolean(artist.labelApproved);
 }
 
 export function claimsISR(label: string) {

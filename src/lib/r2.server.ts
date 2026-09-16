@@ -52,8 +52,17 @@ export function safeTrackKey(artistId: string, filename: string) {
 }
 
 export function assertTrackKey(key: string) {
-  if (!key.startsWith("tracks/") || key.includes("..") || key.includes("//")) throw new Error("Invalid object key");
-  return key;
+  let k = key.trim();
+  if (k.startsWith("r2:")) k = k.slice(3);
+  try {
+    k = decodeURIComponent(k);
+  } catch {
+    /* keep raw */
+  }
+  k = k.split("?")[0]?.split("#")[0] ?? k;
+  if (k.startsWith("/")) k = k.slice(1);
+  if (!k.startsWith("tracks/") || k.includes("..") || k.includes("//")) throw new Error("Invalid object key");
+  return k;
 }
 
 async function signingKey(secret: string, day: string) {

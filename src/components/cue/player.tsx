@@ -1,16 +1,19 @@
 import { Pause, Play, SkipForward } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { catalogVisible, liveSongs } from "@/lib/data";
-import { useCue, type NowPlaying } from "@/lib/store";
+import { currentAccount, useCue, type NowPlaying } from "@/lib/store";
 import { coverImage } from "@/lib/r2";
 import { useT } from "@/lib/i18n";
 import { useSongSrc } from "./r2-audio";
 import { TrackSheet } from "./chrome";
 
 function livePool(artists: ReturnType<typeof useCue.getState>["artists"], accounts: ReturnType<typeof useCue.getState>["accounts"]) {
-  return artists.filter((a) => catalogVisible(a, accounts)).flatMap((artist) =>
-    liveSongs(artist).map((song) => ({ song, artistName: artist.name, artistId: artist.id })),
-  );
+  const session = currentAccount(useCue.getState());
+  return artists.filter((a) => catalogVisible(a, accounts) || (session && session.artistId === a.id)).flatMap((artist) => {
+    const own = session && (session.kind === "admin" || session.artistId === artist.id);
+    const songs = own ? artist.songs.filter((s) => s.status !== "declined" && (s.audioUrl || s.cover?.includes("#r2="))) : liveSongs(artist);
+    return songs.map((song) => ({ song, artistName: artist.name, artistId: artist.id }));
+  });
 }
 
 function pickUnheard(

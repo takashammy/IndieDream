@@ -8,6 +8,7 @@ import { coverImage, putTrackFile, r2KeyFromCover, withR2Cover } from "@/lib/r2"
 import { LanguageToggle } from "./language-toggle";
 import { ensureOwnArtist } from "@/lib/ensure-artist";
 import { saveMySong } from "@/lib/cue-profile";
+import { SongPreview } from "./r2-audio";
 import {
   audioReason,
   genreLabel,
@@ -82,7 +83,19 @@ export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
   function onSave(e: FormEvent) {
     e.preventDefault();
     ensureOwnArtist();
-    saveArtistProfile({ name, role, area, city: area, genres: [genre], label: label.trim() || "Independent", bio, spotify, youtube, email, whatsapp });
+    saveArtistProfile({
+      name,
+      role,
+      area,
+      city: area,
+      genres: [genre],
+      label: label.trim(),
+      bio,
+      spotify,
+      youtube,
+      email,
+      whatsapp,
+    });
     setSaved(true);
     window.setTimeout(() => setSaved(false), 1600);
   }
@@ -143,14 +156,21 @@ export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
           spotify: trackSpotify,
           youtube: trackYoutube,
           lyrics,
-          audioUrl: put.key,
+          audioUrl: `r2:${put.key}`,
           status: acc.kind === "admin" ? "approved" : "pending",
         },
       });
     } catch {
       /* local queue still records the track */
     }
-    addPendingSong(nameOf, { spotify: trackSpotify, youtube: trackYoutube, cover, lyrics });
+    addPendingSong(nameOf, {
+      id: songId,
+      spotify: trackSpotify,
+      youtube: trackYoutube,
+      cover,
+      lyrics,
+      audioUrl: `r2:${put.key}`,
+    });
     setBusy(false);
     setTitle("");
     setTrackGenre(GENRE_OPTIONS[0]);
@@ -227,8 +247,8 @@ export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
                 {GENRE_OPTIONS.map((g) => <option key={g} value={g}>{genreLabel(locale, g)}</option>)}
               </SelectInput>
             </Field>
-            <Field label={t("label")}><TextInput value={label} onChange={(e) => setLabel(e.target.value)} /></Field>
-            {!artist?.labelApproved ? <p className="text-sm italic text-accent">{t("isrNeedsApproval", { label: label.trim() || t("independent") })}</p> : null}
+            <Field label={t("label")}><TextInput value={label} onChange={(e) => setLabel(e.target.value)} placeholder={t("optional")} /></Field>
+            {artist?.labelApproved ? <p className="text-sm italic text-accent">{t("innerSoulRecords")}</p> : null}
             <Field label={t("bio")}><AreaInput rows={4} value={bio} onChange={(e) => setBio(e.target.value)} /></Field>
             <Field label={t("email")}><TextInput type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></Field>
             <Field label={t("whatsapp")}><TextInput type="tel" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} /></Field>
@@ -326,6 +346,7 @@ function SongLinksRow({ song, onSave, onDelete }: { song: Song; onSave: (extra: 
           <p className="text-xs text-muted">{songStatusLabel(locale, song.status)}</p>
         </div>
       </div>
+      <SongPreview song={song} />
       <div className="mt-2 space-y-2">
         <TextInput type="url" value={sp} onChange={(e) => setSp(e.target.value)} placeholder={t("spotifySong")} />
         <TextInput type="url" value={yt} onChange={(e) => setYt(e.target.value)} placeholder={t("youtubeSong")} />

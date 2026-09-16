@@ -14,6 +14,10 @@ function objectKey(song: Song) {
   if (!raw) return null;
   if (raw.startsWith("r2:")) return raw.slice(3);
   if (raw.startsWith("tracks/")) return raw;
+  if (raw.includes("tracks/")) {
+    const idx = raw.indexOf("tracks/");
+    return raw.slice(idx).split("?")[0]?.split("#")[0] ?? null;
+  }
   return null;
 }
 

@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { ISR_LABEL } from "@/lib/data";
+import { ISR_LABEL, claimsISR } from "@/lib/data";
 
 const STUDIO_ID = "indie-dream";
 
@@ -89,7 +89,7 @@ export const saveMyProfile = createServerFn({ method: "POST" })
               genres: data.genres?.length ? data.genres : ["Indie"],
               bio: acc.bio || "",
               songs: [],
-              label: "Independent",
+              label: "",
               labelApproved: false,
               verified: acc.kind === "admin",
             };
@@ -104,6 +104,14 @@ export const saveMyProfile = createServerFn({ method: "POST" })
       if (data.bio !== undefined) art.bio = data.bio;
       if (data.photo !== undefined) art.photo = data.photo;
       if (data.genres?.length) art.genres = data.genres;
+      if (data.label !== undefined) {
+        const typed = data.label.trim();
+        if (claimsISR(typed)) {
+          if (art.labelApproved) art.label = ISR_LABEL;
+        } else {
+          art.label = typed;
+        }
+      }
       if (data.spotify !== undefined) art.spotify = data.spotify.trim() || undefined;
       if (data.youtube !== undefined) art.youtube = data.youtube.trim() || undefined;
       if (!Array.isArray(art.songs)) art.songs = [];
@@ -133,13 +141,16 @@ export const grantArtistIsr = createServerFn({ method: "POST" })
     const sql = await sessionMod.getSqlSafe();
     const rows = await sql.query<{ artists: unknown }>(`select artists from cue_studio where id = $1`, [STUDIO_ID]);
     const artists = parseArray<Record<string, unknown>>(rows[0]?.artists);
-    const next = artists.map((a) =>
-      String(a.id) === data.artistId
-        ? data.on
-          ? { ...a, label: ISR_LABEL, labelApproved: true }
-          : { ...a, label: "Independent", labelApproved: false }
-        : a,
-    );
+    const next = artists.map((a) => {
+      if (String(a.id) !== data.artistId) return a;
+      if (data.on) return { ...a, label: ISR_LABEL, labelApproved: true };
+      const prev = String(a.label ?? "");
+      return {
+        ...a,
+        labelApproved: false,
+        label: claimsISR(prev) ? "" : prev,
+      };
+    });
     await sql.query(
       `insert into cue_studio (id, artists, updated_at)
        values ($1, $2::jsonb, now())
@@ -195,8 +206,8 @@ export const saveMySong = createServerFn({ method: "POST" })
         genres: ["Indie"],
         bio: acc.bio || "",
         songs: [],
-        label: "Independent",
-        labelApproved: acc.kind === "admin",
+        label: "",
+        labelApproved: false,
         verified: acc.kind === "admin",
       });
       ai = artists.length - 1;

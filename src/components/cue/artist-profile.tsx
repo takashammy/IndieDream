@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { ChevronLeft, MapPin, Play } from "lucide-react";
-import { APP_NAME, eventsForArtist, isISR, liveSongs, type Song } from "@/lib/data";
+import { APP_NAME, ISR_LABEL, claimsISR, eventsForArtist, isISR, liveSongs, type Song } from "@/lib/data";
 import { currentAccount, useCue } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { coverImage } from "@/lib/r2";
+import { grantArtistIsr } from "@/lib/cue-profile";
 import { Confirm, SocialPair, TrackSheet, VerifiedMark } from "./chrome";
 import { eventDateLabel, genreLabel, useLocale, useT, weekdayLabel } from "@/lib/i18n";
 
@@ -20,8 +21,10 @@ export function ArtistProfile({ id }: { id: string }) {
   const deleteArtist = useCue((s) => s.deleteArtist);
   const session = useCue((s) => currentAccount(s));
   const admin = session?.kind === "admin";
+  const ownPage = Boolean(session?.artistId && session.artistId === artist?.id);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [openSong, setOpenSong] = useState<Song | null>(null);
+  const [isrBusy, setIsrBusy] = useState(false);
   const t = useT();
   const { locale } = useLocale();
 
@@ -34,8 +37,36 @@ export function ArtistProfile({ id }: { id: string }) {
     );
   }
 
-  const gigs = eventsForArtist(artist.id, events);
-  const songs = [...liveSongs(artist)].sort((a, b) => Date.parse(b.uploadedAt || "") - Date.parse(a.uploadedAt || ""));
+  const page = artist;
+  const gigs = eventsForArtist(page.id, events);
+  const listed = admin || ownPage
+    ? page.songs.filter((s) => s.status !== "declined")
+    : liveSongs(page);
+  const songs = [...listed].sort((a, b) => Date.parse(b.uploadedAt || "") - Date.parse(a.uploadedAt || ""));
+
+  async function toggleIsr() {
+    if (!admin || isrBusy) return;
+    const on = !page.labelApproved;
+    setIsrBusy(true);
+    try {
+      const res = await grantArtistIsr({ data: { artistId: page.id, on } });
+      if (res.ok) {
+        useCue.setState((s) => ({
+          artists: s.artists.map((a) =>
+            a.id === page.id
+              ? {
+                  ...a,
+                  labelApproved: on,
+                  label: on ? ISR_LABEL : claimsISR(a.label) ? "" : a.label,
+                }
+              : a,
+          ),
+        }));
+      }
+    } finally {
+      setIsrBusy(false);
+    }
+  }
 
   return (
     <div className="cue-enter pb-24">
@@ -112,7 +143,24 @@ export function ArtistProfile({ id }: { id: string }) {
           </ul>
         </section>
       ) : null}
-      {admin ? <div className="px-5 pt-8"><Button variant="outline" className="w-full" onClick={() => setConfirmDelete(true)}>{t("deleteProfile")}</Button></div> : null}
+      {admin ? (
+        <div className="px-5 pt-8 space-y-3">
+          <label className="flex items-start gap-3 rounded-md bg-elevated px-3 py-3 text-sm leading-5">
+            <input
+              type="checkbox"
+              className="mt-1 size-4 accent-current"
+              checked={artist.labelApproved}
+              disabled={isrBusy}
+              onChange={() => void toggleIsr()}
+            />
+            <span>
+              <span className="block font-medium">{t("isrStamp")}</span>
+              <span className="block text-xs text-muted">{t("isrStampHint")}</span>
+            </span>
+          </label>
+          <Button variant="outline" className="w-full" onClick={() => setConfirmDelete(true)}>{t("deleteProfile")}</Button>
+        </div>
+      ) : null}
       {confirmDelete ? <Confirm title={t("deleteProfileQ")} body={t("removeArtist", { name: artist.name, app: APP_NAME })} confirmLabel={t("yes")} cancelLabel={t("cancel")} onConfirm={() => deleteArtist(artist.id)} onClose={() => setConfirmDelete(false)} /> : null}
       {openSong ? <TrackSheet artistName={artist.name} artistId={artist.id} song={openSong} onClose={() => setOpenSong(null)} /> : null}
     </div>
