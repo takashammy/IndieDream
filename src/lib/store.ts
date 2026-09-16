@@ -538,7 +538,10 @@ export const useCue = create<CueState>((set, get) => {
         );
       }
       set({ artists, nowPlaying: { ...np, song }, playing: true });
-      if (isNew) persist();
+      if (isNew) {
+        persist();
+        pushAction({ type: "recordPlay", artistId: np.artistId, songId: np.song.id });
+      }
     },
     togglePlay: () => {
       if (!get().nowPlaying) return;

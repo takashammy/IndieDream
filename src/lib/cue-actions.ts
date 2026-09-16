@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { ISR_LABEL } from "@/lib/data";
+import { ISR_LABEL, formatPlays, parsePlays } from "@/lib/data";
 
 const STUDIO_ID = "indie-dream";
 
@@ -51,6 +51,7 @@ const actionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("banUser"), accountId: z.string() }),
   z.object({ type: z.literal("setAccountKind"), accountId: z.string(), kind: z.enum(["artist", "explorer", "business"]) }),
   z.object({ type: z.literal("addSong"), artistId: z.string(), song: z.any(), notice: noticeSchema.optional() }),
+  z.object({ type: z.literal("recordPlay"), artistId: z.string(), songId: z.string() }),
   z.object({ type: z.literal("patchSong"), artistId: z.string(), songId: z.string(), patch: z.any() }),
   z.object({ type: z.literal("deleteSong"), artistId: z.string(), songId: z.string() }),
   z.object({ type: z.literal("addArtist"), artist: z.any(), notice: noticeSchema.optional() }),
@@ -305,6 +306,23 @@ export const applyStudioAction = createServerFn({ method: "POST" })
         if (action.notice && !notices.some((n) => n.id === action.notice!.id)) {
           notices = [{ ...action.notice, status: "pending", kind: "song" }, ...notices];
         }
+        break;
+      }
+      case "recordPlay": {
+        let found = false;
+        artists = artists.map((a) => {
+          if (String(a.id) !== action.artistId) return a;
+          return {
+            ...a,
+            songs: asArray<Record<string, unknown>>(a.songs).map((s) => {
+              if (String(s.id) !== action.songId) return s;
+              found = true;
+              const next = parsePlays(String(s.plays ?? "0")) + 1;
+              return { ...s, plays: formatPlays(next) };
+            }),
+          };
+        });
+        if (!found) return deny("Track not found.");
         break;
       }
       case "patchSong": {
