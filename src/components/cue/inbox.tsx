@@ -1,5 +1,5 @@
 import { whatsappHref } from "@/lib/data";
-import { useCue, type Notice } from "@/lib/store";
+import { currentAccount, useCue, type Notice } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { coverImage } from "@/lib/r2";
 import { Sheet } from "./chrome";
@@ -44,10 +44,12 @@ export function NoticeSheet({
   readonly?: boolean;
 }) {
   const resolveNotice = useCue((s) => s.resolveNotice);
+  const session = useCue((s) => currentAccount(s));
   const artists = useCue((s) => s.artists);
   const events = useCue((s) => s.events);
   const t = useT();
   const { locale } = useLocale();
+  const desk = session?.kind === "admin";
   const artist =
     notice.kind === "verify" || notice.kind === "label"
       ? artists.find((a) => a.id === notice.refId)
@@ -107,7 +109,7 @@ export function NoticeSheet({
         </div>
       ) : null}
       {enquiry || notice.kind === "enquiry" ? (
-        readonly || notice.status === "completed" ? (
+        !desk || readonly || notice.status === "completed" ? (
           <Button className="mt-6 w-full" variant="ghost" onClick={onClose}>{t("close")}</Button>
         ) : (
           <div className="mt-6 flex gap-2">
@@ -115,11 +117,13 @@ export function NoticeSheet({
             <Button variant="ghost" className="flex-1" onClick={onClose}>{t("cancel")}</Button>
           </div>
         )
-      ) : (
+      ) : desk && notice.status === "pending" ? (
         <div className="mt-6 flex gap-2">
           <Button className="flex-1" onClick={() => resolveNotice(notice.id, "approved")}>{t("approve")}</Button>
           <Button variant="outline" className="flex-1" onClick={() => resolveNotice(notice.id, "declined")}>{t("decline")}</Button>
         </div>
+      ) : (
+        <Button className="mt-6 w-full" variant="ghost" onClick={onClose}>{t("close")}</Button>
       )}
     </Sheet>
   );

@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import { env } from "@/lib/env.server";
 
 const STUDIO_ID = "indie-dream";
@@ -11,16 +12,22 @@ export type BackupRow = {
 };
 
 function bearerSecret() {
-  return env("CRON_SECRET") || env("BACKUP_SECRET") || env("ADMIN_SETUP_SECRET") || "";
+  return env("CRON_SECRET") || env("BACKUP_SECRET") || "";
+}
+
+function tokenOk(given: string, expected: string) {
+  const a = Buffer.from(given);
+  const b = Buffer.from(expected);
+  if (!expected || a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
 }
 
 export function backupAuthorized(request: Request) {
   const expected = bearerSecret();
   const header = request.headers.get("authorization") || "";
   const token = header.toLowerCase().startsWith("bearer ") ? header.slice(7).trim() : "";
-  if (expected && token && token === expected) return true;
-  if (request.headers.get("x-vercel-cron") === "1") return true;
-  return false;
+  if (expected) return tokenOk(token, expected);
+  return request.headers.get("x-vercel-cron") === "1";
 }
 
 export async function takeStudioBackup(source = "cron"): Promise<{ ok: true; id: string; bytes: number } | { ok: false; error: string }> {

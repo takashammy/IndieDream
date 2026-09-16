@@ -35,7 +35,7 @@ const noticeSchema = z.object({
   status: z.string(),
   refId: z.string().optional(),
   createdAt: z.string(),
-  fields: z.record(z.string()).optional(),
+  fields: z.record(z.string(), z.string()).optional(),
 });
 
 const actionSchema = z.discriminatedUnion("type", [
@@ -75,6 +75,7 @@ const actionSchema = z.discriminatedUnion("type", [
 ]);
 
 type Action = z.infer<typeof actionSchema>;
+export type StudioAction = Action;
 
 function asArray<T>(value: unknown): T[] {
   const parsed = typeof value === "string" ? (() => { try { return JSON.parse(value); } catch { return value; } })() : value;
@@ -128,14 +129,47 @@ export const applyStudioAction = createServerFn({ method: "POST" })
     const admin = session.kind === "admin";
     const mine = session.accountId;
     const myArtist = String(session.account.artistId ?? "");
+    const myName = String(session.account.name || session.account.username || "");
+    const myRole = String(session.account.role || session.kind);
 
     const deny = (error: string) => ({ ok: false as const, error });
+    if (bannedUserIds.includes(mine) || (myArtist && bannedUserIds.includes(myArtist))) {
+      return deny("This account is banned.");
+    }
+
+    const ownPage = (artistId: string) => myArtist !== "" && myArtist === artistId;
+
+    const pickSongPatch = (patch: Record<string, unknown>) => {
+      const next: Record<string, unknown> = {};
+      if (typeof patch.title === "string") next.title = patch.title;
+      if (typeof patch.cover === "string") next.cover = patch.cover;
+      if (typeof patch.spotify === "string" || patch.spotify === undefined) next.spotify = patch.spotify;
+      if (typeof patch.youtube === "string" || patch.youtube === undefined) next.youtube = patch.youtube;
+      if (typeof patch.lyrics === "string" || patch.lyrics === undefined) next.lyrics = patch.lyrics;
+      return next;
+    };
+
+    const pickArtistPatch = (patch: Record<string, unknown>) => {
+      const next: Record<string, unknown> = {};
+      for (const key of ["name", "role", "city", "area", "photo", "genres", "bio", "spotify", "youtube", "label"] as const) {
+        if (patch[key] !== undefined) next[key] = patch[key];
+      }
+      return next;
+    };
 
     const action: Action = data;
     switch (action.type) {
       case "addPost": {
         if (posts.some((p) => p.id === action.post.id)) break;
-        posts = [action.post as Record<string, unknown>, ...posts];
+        posts = [
+          {
+            ...action.post,
+            author: myName,
+            authorId: myArtist || mine,
+            role: myRole,
+          } as Record<string, unknown>,
+          ...posts,
+        ];
         break;
       }
       case "addReply": {
@@ -143,7 +177,13 @@ export const applyStudioAction = createServerFn({ method: "POST" })
           if (String(p.id) !== action.postId) return p;
           const thread = asArray<Record<string, unknown>>(p.thread);
           if (thread.some((r) => r.id === action.reply.id)) return p;
-          return { ...p, thread: [...thread, action.reply] };
+          return {
+            ...p,
+            thread: [
+              ...thread,
+              { ...action.reply, author: myName, authorId: myArtist || mine, role: myRole },
+            ],
+          };
         });
         break;
       }
@@ -168,8 +208,15 @@ export const applyStudioAction = createServerFn({ method: "POST" })
         break;
       }
       case "submitEvent": {
-        if (!events.some((e) => e.id === action.event.id)) events = [action.event, ...events];
-        if (action.notice && !notices.some((n) => n.id === action.notice!.id)) notices = [action.notice, ...notices];
+        const event: Record<string, unknown> = {
+          ...(action.event as Record<string, unknown>),
+          status: "pending",
+          postedBy: mine,
+        };
+        if (!events.some((e) => String(e.id) === String(event.id))) events = [event, ...events];
+        if (action.notice && !notices.some((n) => n.id === action.notice!.id)) {
+          notices = [{ ...action.notice, status: "pending" }, ...notices];
+        }
         break;
       }
       case "deleteEvent": {
@@ -247,24 +294,28 @@ export const applyStudioAction = createServerFn({ method: "POST" })
         break;
       }
       case "addSong": {
-        if (!admin && myArtist !== action.artistId) return deny("That artist page is not yours.");
+        if (!ownPage(action.artistId)) return deny("Songs can only be added to your own page.");
+        const song: Record<string, unknown> = { ...(action.song as Record<string, unknown>), status: "pending" };
         artists = artists.map((a) => {
           if (String(a.id) !== action.artistId) return a;
           const songs = asArray<Record<string, unknown>>(a.songs);
-          if (songs.some((s) => s.id === action.song.id)) return a;
-          return { ...a, songs: [action.song, ...songs] };
+          if (songs.some((s) => String(s.id) === String(song.id))) return a;
+          return { ...a, songs: [song, ...songs] };
         });
-        if (action.notice && !notices.some((n) => n.id === action.notice!.id)) notices = [action.notice, ...notices];
+        if (action.notice && !notices.some((n) => n.id === action.notice!.id)) {
+          notices = [{ ...action.notice, status: "pending", kind: "song" }, ...notices];
+        }
         break;
       }
       case "patchSong": {
-        if (!admin && myArtist !== action.artistId) return deny("That artist page is not yours.");
+        if (!admin && !ownPage(action.artistId)) return deny("That artist page is not yours.");
+        const patch = pickSongPatch((action.patch ?? {}) as Record<string, unknown>);
         artists = artists.map((a) => {
           if (String(a.id) !== action.artistId) return a;
           return {
             ...a,
             songs: asArray<Record<string, unknown>>(a.songs).map((s) =>
-              String(s.id) === action.songId ? { ...s, ...action.patch } : s,
+              String(s.id) === action.songId ? { ...s, ...patch } : s,
             ),
           };
         });
@@ -280,8 +331,19 @@ export const applyStudioAction = createServerFn({ method: "POST" })
         break;
       }
       case "addArtist": {
-        if (!artists.some((a) => a.id === action.artist.id)) artists = [...artists, action.artist];
-        if (action.notice && !notices.some((n) => n.id === action.notice!.id)) notices = [action.notice, ...notices];
+        const incoming = action.artist as Record<string, unknown>;
+        if (!incoming?.id) return deny("Missing artist.");
+        if (!admin && String(incoming.id) !== myArtist) return deny("You can only create your own page.");
+        const artist: Record<string, unknown> = {
+          ...incoming,
+          verified: false,
+          labelApproved: false,
+          songs: asArray<Record<string, unknown>>(incoming.songs).map((s) => ({ ...s, status: "pending" })),
+        };
+        if (!artists.some((a) => String(a.id) === String(artist.id))) artists = [...artists, artist];
+        if (action.notice && !notices.some((n) => n.id === action.notice!.id)) {
+          notices = [{ ...action.notice, status: "pending" }, ...notices];
+        }
         break;
       }
       case "patchMe": {
@@ -304,13 +366,22 @@ export const applyStudioAction = createServerFn({ method: "POST" })
         break;
       }
       case "patchProfile": {
-        if (!admin && myArtist !== action.artistId) return deny("That artist page is not yours.");
-        artists = artists.map((a) => (String(a.id) === action.artistId ? { ...a, ...action.artist } : a));
+        if (!ownPage(action.artistId) && !admin) return deny("That artist page is not yours.");
+        if (admin && !ownPage(action.artistId)) return deny("Edit another artist from the Desk queue, not by replacing their page.");
+        const artistPatch = pickArtistPatch((action.artist ?? {}) as Record<string, unknown>);
+        artists = artists.map((a) => (String(a.id) === action.artistId ? { ...a, ...artistPatch } : a));
         accounts = accounts.map((a) => {
           if (String(a.id) !== mine) return a;
-          return { ...a, ...action.account, password: a.password };
+          const acc = (action.account ?? {}) as Record<string, unknown>;
+          const next: Record<string, unknown> = { ...a, password: a.password };
+          if (typeof acc.bio === "string") next.bio = acc.bio;
+          if (typeof acc.location === "string") next.location = acc.location;
+          if (typeof acc.email === "string") next.email = acc.email;
+          if (typeof acc.whatsapp === "string") next.whatsapp = acc.whatsapp;
+          if (typeof acc.name === "string") next.name = acc.name;
+          if (typeof acc.photo === "string") next.photo = acc.photo;
+          return next;
         });
-        if (action.notice && !notices.some((n) => n.id === action.notice!.id)) notices = [action.notice, ...notices];
         break;
       }
       default:

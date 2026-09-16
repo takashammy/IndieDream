@@ -23,6 +23,7 @@ import {
 } from "@/lib/data";
 import { loadStudio } from "@/lib/cue-sync";
 import { saveMyProfile, saveMySong } from "@/lib/cue-profile";
+import { applyStudioAction, type StudioAction } from "@/lib/cue-actions";
 import {
   createFirstAdmin,
   getAuthState,
@@ -326,6 +327,10 @@ export function currentArtist(s: Pick<CueState, "sessionId" | "accounts" | "arti
 export const useCue = create<CueState>((set, get) => {
   const persist = () => {
     writePersist(get());
+  };
+
+  const pushAction = (action: StudioAction) => {
+    void applyStudioAction({ data: action }).catch(() => {});
   };
 
   const pushProfile = (patch: {
@@ -814,9 +819,7 @@ export const useCue = create<CueState>((set, get) => {
 
     addPendingSong: (title, extra) => {
       const artist = currentArtist(get());
-      const acc = currentAccount(get());
       if (!artist) return;
-      const live = acc?.kind === "admin";
       const song: Song = {
         id: extra?.id || uid("song"),
         title: title.trim(),
@@ -824,36 +827,35 @@ export const useCue = create<CueState>((set, get) => {
         plays: "0",
         cover: extra?.cover ?? "/media/covers/vinyl.jpg",
         uploadedAt: new Date().toISOString(),
-        status: live ? "approved" : "pending",
+        status: "pending",
         lyrics: extra?.lyrics?.trim() || undefined,
         spotify: cleanUrl(extra?.spotify),
         youtube: cleanUrl(extra?.youtube),
         audioUrl: extra?.audioUrl,
       };
+      const notice = {
+        id: uid("n"),
+        kind: "song" as const,
+        title: `Track — ${song.title}`,
+        body: `${artist.name} uploaded “${song.title}” for review.`,
+        status: "pending" as const,
+        refId: song.id,
+        createdAt: new Date().toISOString(),
+      };
       set({
         artists: get().artists.map((a) => {
           if (a.id !== artist.id) return a;
           const songs = a.songs.some((s) => s.id === song.id)
-            ? a.songs.map((s) => (s.id === song.id ? song : s))
+            ? a.songs.map((s) => (s.id === song.id ? { ...s, ...song, status: s.status } : s))
             : [song, ...a.songs];
           return { ...a, songs };
         }),
-        notices: live
+        notices: get().notices.some((n) => n.kind === "song" && n.refId === song.id)
           ? get().notices
-          : [
-              {
-                id: uid("n"),
-                kind: "song",
-                title: `Track — ${song.title}`,
-                body: `${artist.name} uploaded “${song.title}” for review.`,
-                status: "pending",
-                refId: song.id,
-                createdAt: new Date().toISOString(),
-              },
-              ...get().notices,
-            ],
+          : [notice, ...get().notices],
       });
       persist();
+      pushAction({ type: "addSong", artistId: artist.id, song, notice });
     },
 
     updateSongLinks: (songId, extra) => {
@@ -882,6 +884,12 @@ export const useCue = create<CueState>((set, get) => {
       });
       persist();
       if (patched) {
+        pushAction({
+          type: "patchSong",
+          artistId: artist.id,
+          songId,
+          patch: { spotify: patched.spotify, youtube: patched.youtube, cover: patched.cover },
+        });
         void saveMySong({
           data: {
             id: patched.id,
@@ -913,6 +921,7 @@ export const useCue = create<CueState>((set, get) => {
           : get().noticeId,
       });
       persist();
+      pushAction({ type: "deleteSong", artistId: artist.id, songId });
     },
 
     acceptUploadTerms: () => {
@@ -922,6 +931,7 @@ export const useCue = create<CueState>((set, get) => {
         accounts: get().accounts.map((a) => (a.id === acc.id ? { ...a, acceptedUploadTerms: true } : a)),
       });
       persist();
+      pushAction({ type: "patchMe", acceptedUploadTerms: true });
     },
 
     addPost: (input) => {
@@ -946,6 +956,7 @@ export const useCue = create<CueState>((set, get) => {
       };
       set({ posts: [post, ...get().posts] });
       persist();
+      pushAction({ type: "addPost", post });
     },
 
     addReply: (postId, body) => {
@@ -971,6 +982,7 @@ export const useCue = create<CueState>((set, get) => {
         ),
       });
       persist();
+      pushAction({ type: "addReply", postId, reply });
     },
 
     deletePost: (id) => {
@@ -981,6 +993,7 @@ export const useCue = create<CueState>((set, get) => {
         postId: get().postId === id ? null : get().postId,
       });
       persist();
+      pushAction({ type: "deletePost", id });
     },
 
     deleteReply: (postId, replyId) => {
@@ -990,6 +1003,7 @@ export const useCue = create<CueState>((set, get) => {
         ),
       });
       persist();
+      pushAction({ type: "deleteReply", postId, replyId });
     },
 
     deleteArtist: (artistId) => {
@@ -1007,6 +1021,7 @@ export const useCue = create<CueState>((set, get) => {
         playing: get().nowPlaying?.artistId === artistId ? false : get().playing,
       });
       persist();
+      pushAction({ type: "deleteArtist", artistId });
     },
 
     setAccountKind: (accountId, kind) => {
@@ -1051,6 +1066,7 @@ export const useCue = create<CueState>((set, get) => {
         artists,
       });
       persist();
+      pushAction({ type: "setAccountKind", accountId, kind });
     },
 
     banUser: (authorId) => {
@@ -1082,6 +1098,7 @@ export const useCue = create<CueState>((set, get) => {
         postId: toDelete.includes(next.postId ?? "") ? null : next.postId,
       });
       persist();
+      if (accountId) pushAction({ type: "banUser", accountId });
     },
 
     deleteEvent: (id) => {
@@ -1090,6 +1107,7 @@ export const useCue = create<CueState>((set, get) => {
         eventId: get().eventId === id ? null : get().eventId,
       });
       persist();
+      pushAction({ type: "deleteEvent", id });
     },
 
     submitEvent: (input) => {
@@ -1117,23 +1135,21 @@ export const useCue = create<CueState>((set, get) => {
         artistIds: input.artistIds,
         blurb: input.blurb,
         isoDate: input.isoDate,
-        status: acc.kind === "admin" ? "approved" : "pending",
+        status: "pending",
         postedBy: acc.id,
       };
-      const notices = [...get().notices];
-      if (event.status === "pending") {
-        notices.unshift({
-          id: uid("n"),
-          kind: "event",
-          title: `Event — ${event.title}`,
-          body: `${acc.name} posted ${event.title} at ${event.venue} on ${event.date}.`,
-          status: "pending",
-          refId: id,
-          createdAt: new Date().toISOString(),
-        });
-      }
-      set({ events: [event, ...get().events], notices, eventComposer: false });
+      const notice = {
+        id: uid("n"),
+        kind: "event" as const,
+        title: `Event — ${event.title}`,
+        body: `${acc.name} posted ${event.title} at ${event.venue} on ${event.date}.`,
+        status: "pending" as const,
+        refId: id,
+        createdAt: new Date().toISOString(),
+      };
+      set({ events: [event, ...get().events], notices: [notice, ...get().notices], eventComposer: false });
       persist();
+      pushAction({ type: "submitEvent", event, notice });
       return null;
     },
 
@@ -1143,28 +1159,29 @@ export const useCue = create<CueState>((set, get) => {
         set({ gate: "register" });
         return;
       }
+      const notice = {
+        id: uid("n"),
+        kind: "enquiry" as const,
+        title,
+        body,
+        status: "pending" as const,
+        createdAt: new Date().toISOString(),
+        fields: {
+          From: acc.name,
+          Account: acc.username,
+          ...fields,
+        },
+      };
       set({
-        notices: [
-          {
-            id: uid("n"),
-            kind: "enquiry",
-            title,
-            body,
-            status: "pending",
-            createdAt: new Date().toISOString(),
-            fields: {
-              From: acc.name,
-              Account: acc.username,
-              ...fields,
-            },
-          },
-          ...get().notices,
-        ],
+        notices: [notice, ...get().notices],
       });
       persist();
+      pushAction({ type: "submitEnquiry", notice });
     },
 
     resolveNotice: (id, status) => {
+      const acc = currentAccount(get());
+      if (acc?.kind !== "admin") return;
       const notice = get().notices.find((n) => n.id === id);
       if (!notice) return;
       let artists = get().artists;
@@ -1205,6 +1222,7 @@ export const useCue = create<CueState>((set, get) => {
         noticeId: get().noticeId === id ? null : get().noticeId,
       });
       persist();
+      pushAction({ type: "resolveNotice", id, status });
     },
   };
 });

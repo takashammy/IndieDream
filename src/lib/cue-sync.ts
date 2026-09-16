@@ -68,6 +68,15 @@ export const loadStudio = createServerFn({ method: "GET" }).handler(async (): Pr
     if (!row) return null;
     const admin = session?.kind === "admin";
     const selfId = session?.accountId;
+    const selfName = session?.account.username ? String(session.account.username) : "";
+    const allNotices = asArray<Record<string, unknown>>(row.notices);
+    const notices = admin
+      ? allNotices
+      : allNotices.filter((n) => {
+          if (n.kind !== "enquiry") return false;
+          const fields = (n.fields ?? {}) as Record<string, unknown>;
+          return String(fields.Account ?? "") === selfName || String(fields.FromId ?? "") === selfId;
+        });
     return {
       artists: asArray(row.artists),
       accounts: asArray<Record<string, unknown>>(row.accounts).map((account) =>
@@ -75,10 +84,10 @@ export const loadStudio = createServerFn({ method: "GET" }).handler(async (): Pr
       ),
       events: asArray(row.events),
       posts: asArray(row.posts),
-      notices: asArray(row.notices),
+      notices,
       deletedPostIds: asStringArray(row.deleted_post_ids),
       deletedArtistIds: asStringArray(row.deleted_artist_ids),
-      bannedUserIds: asStringArray(row.banned_user_ids),
+      bannedUserIds: admin ? asStringArray(row.banned_user_ids) : [],
     };
   } catch {
     return null;

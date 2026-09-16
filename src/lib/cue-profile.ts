@@ -170,13 +170,15 @@ export const saveMySong = createServerFn({ method: "POST" })
       youtube: z.string().optional(),
       lyrics: z.string().optional(),
       audioUrl: z.string().optional(),
-      status: z.enum(["approved", "pending", "declined"]).optional(),
     }),
   )
   .handler(async ({ data }) => {
     const sessionMod = await import("@/lib/cue-session.server");
     const session = await sessionMod.readCueSession();
     if (!session) return { ok: false as const, error: "Log in first." };
+    if (session.kind !== "artist" && session.kind !== "admin") {
+      return { ok: false as const, error: "Only artists can upload songs." };
+    }
 
     const sql = await sessionMod.getSqlSafe();
     const rows = await sql.query<{ accounts: unknown; artists: unknown }>(
@@ -208,14 +210,16 @@ export const saveMySong = createServerFn({ method: "POST" })
         songs: [],
         label: "",
         labelApproved: false,
-        verified: acc.kind === "admin",
+        verified: false,
       });
       ai = artists.length - 1;
     }
 
     const art = { ...artists[ai] };
+    if (String(art.id) !== String(acc.artistId)) {
+      return { ok: false as const, error: "Songs can only be added to your own page." };
+    }
     const songs = parseArray<Record<string, unknown>>(art.songs);
-    const live = acc.kind === "admin";
     const song = {
       id: data.id,
       title: data.title.trim(),
@@ -223,15 +227,22 @@ export const saveMySong = createServerFn({ method: "POST" })
       plays: "0",
       cover: data.cover || "/media/covers/vinyl.jpg",
       uploadedAt: new Date().toISOString(),
-      status: live ? "approved" : "pending",
+      status: "pending",
       lyrics: data.lyrics?.trim() || undefined,
       spotify: data.spotify?.trim() || undefined,
       youtube: data.youtube?.trim() || undefined,
       audioUrl: asR2Audio(data.audioUrl),
     };
     const si = songs.findIndex((s) => String(s.id) === data.id);
-    if (si >= 0) songs[si] = { ...songs[si], ...song, status: live ? "approved" : songs[si].status ?? "pending" };
-    else songs.unshift(song);
+    if (si >= 0) {
+      const prev = songs[si];
+      songs[si] = {
+        ...prev,
+        ...song,
+        status: prev.status === "approved" || prev.status === "declined" ? prev.status : "pending",
+        uploadedAt: prev.uploadedAt || song.uploadedAt,
+      };
+    } else songs.unshift(song);
     art.songs = songs;
     artists[ai] = art;
 

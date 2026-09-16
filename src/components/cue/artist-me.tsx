@@ -157,7 +157,6 @@ export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
           youtube: trackYoutube,
           lyrics,
           audioUrl: `r2:${put.key}`,
-          status: acc.kind === "admin" ? "approved" : "pending",
         },
       });
     } catch {

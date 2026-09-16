@@ -24,4 +24,4 @@ Old demo passwords (`inner-soul`, `Harbour88`, `Lantern88`) are dead. Do not put
 
 Vercel calls `/api/backup` every night at 00:00 Hong Kong time. That copies the live studio row into `cue_backups` and keeps the last 14 days. If R2 is configured, the same snapshot is also stored as `backups/indie-dream-YYYY-MM-DD.json`.
 
-A signed-in admin can take a snapshot immediately by opening `/api/backup`. Optional: set `CRON_SECRET` on Vercel (same value is sent as `Authorization: Bearer …` on the cron request).
+A signed-in admin can take a snapshot immediately with a POST to `/api/backup`. Set `CRON_SECRET` on Vercel so the nightly job can authenticate (`Authorization: Bearer …`). Do not leave that secret empty if you want the night copy to run.
