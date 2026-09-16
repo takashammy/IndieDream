@@ -338,29 +338,28 @@ export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
   );
 }
 
-function SongLinksRow({ song, onSave, onDelete }: { song: Song; onSave: (extra: { spotify?: string; youtube?: string; cover?: string }) => void; onDelete: () => void }) {
+function SongLinksRow({ song, onSave, onDelete }: { song: Song; onSave: (extra: { spotify?: string; youtube?: string; cover?: string; lyrics?: string }) => void; onDelete: () => void }) {
   const [sp, setSp] = useState(song.spotify ?? "");
   const [yt, setYt] = useState(song.youtube ?? "");
-  const dirty = sp !== (song.spotify ?? "") || yt !== (song.youtube ?? "");
+  const [words, setWords] = useState(song.lyrics ?? "");
+  const dirty = sp !== (song.spotify ?? "") || yt !== (song.youtube ?? "") || words !== (song.lyrics ?? "");
   const t = useT();
   const { locale } = useLocale();
   return (
     <li className="py-3">
       <div className="flex items-center gap-3">
-        <PhotoPick src={coverImage(song.cover)} label={t("changeCoverFor", { title: song.title })} className="size-12 shrink-0" onChange={(cover) => { const key = r2KeyFromCover(song.cover); onSave({ spotify: sp, youtube: yt, cover: key ? withR2Cover(cover, key) : cover }); }} />
+        <PhotoPick src={coverImage(song.cover)} label={t("changeCoverFor", { title: song.title })} className="size-12 shrink-0" onChange={(cover) => { const key = r2KeyFromCover(song.cover); onSave({ spotify: sp, youtube: yt, lyrics: words, cover: key ? withR2Cover(cover, key) : cover }); }} />
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium">{song.title}</p>
           <p className="text-xs text-muted">{songStatusLabel(locale, song.status)}</p>
         </div>
       </div>
       <SongPreview song={song} />
-      {song.lyrics?.trim() ? (
-        <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted">{song.lyrics}</p>
-      ) : null}
       <div className="mt-2 space-y-2">
         <TextInput type="url" value={sp} onChange={(e) => setSp(e.target.value)} placeholder={t("spotifySong")} />
         <TextInput type="url" value={yt} onChange={(e) => setYt(e.target.value)} placeholder={t("youtubeSong")} />
-        {dirty ? <Button type="button" variant="subtle" size="sm" className="w-full" onClick={() => onSave({ spotify: sp, youtube: yt })}>{t("saveSongLinks")}</Button> : null}
+        <AreaInput rows={5} value={words} onChange={(e) => setWords(e.target.value)} placeholder={t("lyrics")} />
+        {dirty ? <Button type="button" variant="subtle" size="sm" className="w-full" onClick={() => onSave({ spotify: sp, youtube: yt, lyrics: words })}>{t("saveSongLinks")}</Button> : null}
         <Button type="button" variant="ghost" size="sm" className="w-full" onClick={onDelete}>{t("deleteSong")}</Button>
       </div>
     </li>

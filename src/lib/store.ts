@@ -186,7 +186,7 @@ export type CueState = PersistSlice & {
     },
   ) => void;
   rememberDuration: (artistId: string, songId: string, duration: string) => void;
-  updateSongLinks: (songId: string, extra: { spotify?: string; youtube?: string; cover?: string }) => void;
+  updateSongLinks: (songId: string, extra: { spotify?: string; youtube?: string; cover?: string; lyrics?: string }) => void;
   deleteSong: (songId: string) => void;
   acceptUploadTerms: () => void;
   setProfilePhoto: (photo: string) => void;
@@ -957,6 +957,7 @@ export const useCue = create<CueState>((set, get) => {
             spotify: extra.spotify !== undefined ? cleanUrl(extra.spotify) : nextSong.spotify,
             youtube: extra.youtube !== undefined ? cleanUrl(extra.youtube) : nextSong.youtube,
             cover: extra.cover !== undefined ? extra.cover : nextSong.cover,
+            lyrics: extra.lyrics !== undefined ? extra.lyrics.trim() || undefined : nextSong.lyrics,
           }
         : null;
       const np = get().nowPlaying;
@@ -977,7 +978,12 @@ export const useCue = create<CueState>((set, get) => {
           type: "patchSong",
           artistId: artist.id,
           songId,
-          patch: { spotify: patched.spotify, youtube: patched.youtube, cover: patched.cover },
+          patch: {
+            spotify: patched.spotify,
+            youtube: patched.youtube,
+            cover: patched.cover,
+            lyrics: patched.lyrics,
+          },
         });
         void enqueueWrite(() =>
           saveMySong({
