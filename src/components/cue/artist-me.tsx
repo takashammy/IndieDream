@@ -1,19 +1,17 @@
-import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
 import { GENRE_OPTIONS, LOCATIONS, APP_NAME, type LocationArea, type Song } from "@/lib/data";
 import { currentAccount, currentArtist, useCue } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { AreaInput, Confirm, Field, PhotoPick, ScreenHead, SelectInput, Sheet, TextInput, VerifiedMark } from "./chrome";
 import { AUDIO_PICK_ACCEPT, inspectAudioFile } from "@/lib/audio-limits";
-import { coverImage, putTrackFile, r2KeyFromCover, withR2Cover } from "@/lib/r2";
+import { putTrackFile, r2KeyFromCover, withR2Cover } from "@/lib/r2";
 import { LanguageToggle } from "./language-toggle";
 import { ensureOwnArtist } from "@/lib/ensure-artist";
 import { saveMySong } from "@/lib/cue-profile";
-import { SongPreview } from "./r2-audio";
 import {
   audioReason,
   genreLabel,
   locationLabel,
-  songStatusLabel,
   useLocale,
   useT,
 } from "@/lib/i18n";
@@ -30,19 +28,140 @@ function AudioLimitWarn({ reasons, onClose }: { reasons: string[]; onClose: () =
   );
 }
 
+type TrackDraft = {
+  title: string;
+  genre: string;
+  writers: string;
+  year: string;
+  lyrics: string;
+  cover: string | null;
+  file: File | null;
+  fileName: string | null;
+  duration: string;
+};
+
+function emptyDraft(): TrackDraft {
+  return {
+    title: "",
+    genre: GENRE_OPTIONS[0],
+    writers: "",
+    year: "",
+    lyrics: "",
+    cover: null,
+    file: null,
+    fileName: null,
+    duration: "—",
+  };
+}
+
+function draftFromSong(song: Song): TrackDraft {
+  return {
+    title: song.title,
+    genre: song.genre && GENRE_OPTIONS.includes(song.genre) ? song.genre : GENRE_OPTIONS[0],
+    writers: song.writers ?? "",
+    year: song.year ?? "",
+    lyrics: song.lyrics ?? "",
+    cover: song.cover ?? null,
+    file: null,
+    fileName: null,
+    duration: song.duration && song.duration !== "—" ? song.duration : "—",
+  };
+}
+
+function TrackForm({
+  editing,
+  busy,
+  error,
+  submitLabel,
+  onSubmit,
+  onFileReject,
+  extra,
+}: {
+  editing?: Song;
+  busy: boolean;
+  error: string | null;
+  submitLabel: string;
+  onSubmit: (draft: TrackDraft) => void;
+  onFileReject: (reasons: string[]) => void;
+  extra?: ReactNode;
+}) {
+  const [draft, setDraft] = useState<TrackDraft>(() => (editing ? draftFromSong(editing) : emptyDraft()));
+  const fileRef = useRef<HTMLInputElement>(null);
+  const t = useT();
+  const { locale } = useLocale();
+
+  async function onFile(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const check = await inspectAudioFile(file);
+    if (!check.ok) {
+      e.target.value = "";
+      setDraft((d) => ({ ...d, file: null, fileName: null }));
+      onFileReject(check.reasons);
+      return;
+    }
+    setDraft((d) => ({
+      ...d,
+      file,
+      fileName: file.name,
+      duration: check.duration || d.duration,
+      title: d.title.trim() ? d.title : file.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " "),
+    }));
+  }
+
+  return (
+    <form
+      className="space-y-3"
+      onSubmit={(e: FormEvent) => {
+        e.preventDefault();
+        onSubmit(draft);
+      }}
+    >
+      <div className="flex items-start gap-3">
+        <PhotoPick src={draft.cover ?? "/media/covers/vinyl.jpg"} label={t("chooseCover")} className="size-16 shrink-0" onChange={(cover) => setDraft((d) => ({ ...d, cover }))} />
+        <p className="pt-1 text-xs leading-5 text-subtle">{t("coverHint")}</p>
+      </div>
+      <Field label={t("trackTitle")}><TextInput value={draft.title} onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))} required /></Field>
+      <Field label={t("genre")}>
+        <SelectInput value={draft.genre} onChange={(e) => setDraft((d) => ({ ...d, genre: e.target.value }))}>
+          {GENRE_OPTIONS.map((g) => <option key={g} value={g}>{genreLabel(locale, g)}</option>)}
+        </SelectInput>
+      </Field>
+      <Field label={t("writers")}><TextInput value={draft.writers} onChange={(e) => setDraft((d) => ({ ...d, writers: e.target.value }))} /></Field>
+      <Field label={t("year")}><TextInput value={draft.year} onChange={(e) => setDraft((d) => ({ ...d, year: e.target.value }))} /></Field>
+      <Field label={t("lyrics")}><AreaInput rows={6} value={draft.lyrics} onChange={(e) => setDraft((d) => ({ ...d, lyrics: e.target.value }))} placeholder={t("optional")} /></Field>
+      <p className="text-xs leading-5 text-subtle">{editing ? t("keepCurrentFile") : t("phoneMp3Hint")}</p>
+      <label className="relative mt-1 flex h-11 w-full items-center justify-center overflow-hidden rounded-md bg-elevated px-3 text-sm">
+        <span className="pointer-events-none truncate">{draft.fileName ?? (editing ? t("replaceMp3") : t("chooseMp3"))}</span>
+        <input
+          ref={fileRef}
+          type="file"
+          accept={AUDIO_PICK_ACCEPT}
+          className="absolute inset-0 cursor-pointer opacity-0"
+          onChange={onFile}
+        />
+      </label>
+      {error ? <p className="text-sm text-accent">{error}</p> : null}
+      <Button type="submit" className="w-full" disabled={busy}>{busy ? t("sending") : submitLabel}</Button>
+      {extra}
+    </form>
+  );
+}
+
 export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
   const acc = useCue((s) => currentAccount(s))!;
   const artist = useCue((s) => currentArtist(s));
   const saveArtistProfile = useCue((s) => s.saveArtistProfile);
   const setProfilePhoto = useCue((s) => s.setProfilePhoto);
   const addPendingSong = useCue((s) => s.addPendingSong);
-  const updateSongLinks = useCue((s) => s.updateSongLinks);
+  const saveSong = useCue((s) => s.saveSong);
   const deleteSong = useCue((s) => s.deleteSong);
   const acceptUploadTerms = useCue((s) => s.acceptUploadTerms);
   const logout = useCue((s) => s.logout);
   const [openDetails, setOpenDetails] = useState(false);
   const [openSongs, setOpenSongs] = useState(false);
   const [openUpload, setOpenUpload] = useState(false);
+  const [editSong, setEditSong] = useState<Song | null>(null);
   const [name, setName] = useState(artist?.name ?? acc.name);
   const [role, setRole] = useState(artist?.role ?? acc.role);
   const [area, setArea] = useState<LocationArea>(artist?.area ?? acc.location);
@@ -54,32 +173,16 @@ export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
   const [email, setEmail] = useState(acc.email);
   const [whatsapp, setWhatsapp] = useState(acc.whatsapp);
   const [saved, setSaved] = useState(false);
-  const [title, setTitle] = useState("");
-  const [trackGenre, setTrackGenre] = useState(GENRE_OPTIONS[0]);
-  const [writers, setWriters] = useState("");
-  const [year, setYear] = useState("");
-  const [lyrics, setLyrics] = useState("");
-  const [trackSpotify, setTrackSpotify] = useState("");
-  const [trackYoutube, setTrackYoutube] = useState("");
-  const [trackCover, setTrackCover] = useState<string | null>(null);
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [trackFile, setTrackFile] = useState<File | null>(null);
-  const [trackDuration, setTrackDuration] = useState("—");
   const [fileError, setFileError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [limitWarn, setLimitWarn] = useState<string[] | null>(null);
   const [termsOpen, setTermsOpen] = useState(false);
   const [dropSong, setDropSong] = useState<Song | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
-  const trackFileRef = useRef<File | null>(null);
+  const pendingDraft = useRef<TrackDraft | null>(null);
   const t = useT();
   const { locale } = useLocale();
   const pendingSongs = (artist?.songs ?? []).filter((s) => s.status !== "approved").length;
   const awaitingAdmin = Boolean(artist && (!artist.verified || pendingSongs > 0));
-
-  function pickedFile() {
-    return trackFileRef.current || trackFile || fileRef.current?.files?.[0] || null;
-  }
 
   function onSave(e: FormEvent) {
     e.preventDefault();
@@ -101,33 +204,11 @@ export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
     window.setTimeout(() => setSaved(false), 1600);
   }
 
-  async function onFile(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const check = await inspectAudioFile(file);
-    if (!check.ok) {
-      e.target.value = "";
-      setFileName(null);
-      setTrackFile(null);
-      trackFileRef.current = null;
-      setTrackDuration("—");
-      setLimitWarn(check.reasons);
-      return;
-    }
-    setLimitWarn(null);
-    setFileError(null);
-    setFileName(file.name);
-    setTrackFile(file);
-    trackFileRef.current = file;
-    setTrackDuration(check.duration || "—");
-    if (!title.trim()) setTitle(file.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " "));
-  }
-
-  async function finishUpload() {
-    const picked = pickedFile();
+  async function writeNewTrack(draft: TrackDraft) {
+    const picked = draft.file;
     const own = ensureOwnArtist();
     const artistId = own?.id || artist?.id || acc.artistId;
-    const nameOf = title.trim() || fileName?.replace(/\.[^.]+$/, "") || picked?.name.replace(/\.[^.]+$/, "") || "";
+    const nameOf = draft.title.trim() || draft.fileName?.replace(/\.[^.]+$/, "") || picked?.name.replace(/\.[^.]+$/, "") || "";
     if (!picked) {
       setFileError(t("errChooseMp3"));
       return;
@@ -148,73 +229,91 @@ export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
       setFileError(put.error);
       return;
     }
-    const cover = withR2Cover(trackCover ?? undefined, put.key);
+    const cover = withR2Cover(draft.cover ?? undefined, put.key);
     const songId = `song-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+    const payload = {
+      id: songId,
+      cover,
+      lyrics: draft.lyrics,
+      audioUrl: `r2:${put.key}` as const,
+      duration: draft.duration,
+      genre: draft.genre,
+      writers: draft.writers,
+      year: draft.year,
+    };
     try {
       await saveMySong({
         data: {
           id: songId,
           title: nameOf,
           cover,
-          spotify: trackSpotify,
-          youtube: trackYoutube,
-          lyrics,
+          lyrics: draft.lyrics,
           audioUrl: `r2:${put.key}`,
-          duration: trackDuration,
+          duration: draft.duration,
+          genre: draft.genre,
+          writers: draft.writers,
+          year: draft.year,
         },
       });
     } catch {
       /* addPendingSong still writes the track */
     }
-    await Promise.resolve(
-      addPendingSong(nameOf, {
-        id: songId,
-        spotify: trackSpotify,
-        youtube: trackYoutube,
-        cover,
-        lyrics,
-        audioUrl: `r2:${put.key}`,
-        duration: trackDuration,
-      }),
-    );
+    await Promise.resolve(addPendingSong(nameOf, payload));
     setBusy(false);
-    setTitle("");
-    setTrackGenre(GENRE_OPTIONS[0]);
-    setWriters("");
-    setYear("");
-    setLyrics("");
-    setTrackSpotify("");
-    setTrackYoutube("");
-    setTrackCover(null);
-    setFileName(null);
-    setTrackFile(null);
-    trackFileRef.current = null;
-    setTrackDuration("—");
+    pendingDraft.current = null;
     setOpenUpload(false);
     setOpenSongs(true);
-    if (fileRef.current) fileRef.current.value = "";
   }
 
-  async function onUpload(e: FormEvent) {
-    e.preventDefault();
-    const picked = pickedFile();
-    const own = ensureOwnArtist();
-    const artistId = own?.id || artist?.id || acc.artistId;
-    const nameOf = title.trim() || fileName?.replace(/\.[^.]+$/, "") || picked?.name.replace(/\.[^.]+$/, "") || "";
-    if (!nameOf) return;
-    if (!picked) {
-      setFileError(t("errChooseMp3"));
-      return;
-    }
-    if (!artistId) {
-      setFileError(t("errLoginFirst"));
-      return;
-    }
+  async function onCreate(draft: TrackDraft) {
+    pendingDraft.current = draft;
     if (!acc.acceptedUploadTerms) {
       setTermsOpen(true);
       return;
     }
-    await finishUpload();
+    await writeNewTrack(draft);
+  }
+
+  async function onEdit(song: Song, draft: TrackDraft) {
+    const nameOf = draft.title.trim();
+    if (!nameOf) {
+      setFileError(t("errChooseMp3"));
+      return;
+    }
+    const own = ensureOwnArtist();
+    const artistId = own?.id || artist?.id || acc.artistId;
+    setBusy(true);
+    setFileError(null);
+    let audioUrl = song.audioUrl;
+    let cover = draft.cover ?? song.cover;
+    let duration = draft.duration;
+    if (draft.file) {
+      if (!artistId) {
+        setBusy(false);
+        setFileError(t("errLoginFirst"));
+        return;
+      }
+      const put = await putTrackFile(draft.file, artistId);
+      if (!put.ok) {
+        setBusy(false);
+        setFileError(put.error);
+        return;
+      }
+      audioUrl = `r2:${put.key}`;
+      cover = withR2Cover(cover, put.key);
+    }
+    saveSong(song.id, {
+      title: nameOf,
+      cover,
+      lyrics: draft.lyrics,
+      audioUrl,
+      duration,
+      genre: draft.genre,
+      writers: draft.writers,
+      year: draft.year,
+    });
+    setBusy(false);
+    setEditSong(null);
   }
 
   const songs = artist?.songs ?? [];
@@ -236,7 +335,7 @@ export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
       </div>
       <div className="mt-6 space-y-2 px-5">
         <Button type="button" variant="outline" className="w-full" onClick={() => setOpenDetails(true)}>{t("personalInfo")}</Button>
-        <Button type="button" className="w-full" onClick={() => setOpenUpload(true)}>{t("uploadSong")}</Button>
+        <Button type="button" className="w-full" onClick={() => { setFileError(null); setOpenUpload(true); }}>{t("uploadSong")}</Button>
         <Button type="button" variant="outline" className="w-full" onClick={() => setOpenSongs((v) => !v)}>{openSongs ? t("hideUploaded") : t("uploadedSongs")}</Button>
       </div>
       {openDetails ? (
@@ -267,9 +366,20 @@ export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
       ) : null}
       {openSongs ? (
         <section className="mt-4 px-5">
-          <p className="text-sm text-muted">{t("mp3OnlyMax")}</p>
           {songs.length === 0 ? <p className="mt-3 text-sm text-subtle">{t("nothingQueue")}</p> : (
-            <ul className="mt-3 divide-y divide-line border-y border-line">{songs.map((song) => <SongLinksRow key={song.id} song={song} onSave={(extra) => updateSongLinks(song.id, extra)} onDelete={() => setDropSong(song)} />)}</ul>
+            <ul className="mt-1 divide-y divide-line border-y border-line">
+              {songs.map((song) => (
+                <li key={song.id}>
+                  <button
+                    type="button"
+                    className="flex min-h-12 w-full items-center px-0 py-3 text-left text-sm font-medium"
+                    onClick={() => { setFileError(null); setEditSong(song); }}
+                  >
+                    <span className="truncate">{song.title}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
           )}
         </section>
       ) : null}
@@ -281,34 +391,31 @@ export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
       )}
       {openUpload ? (
         <Sheet title={t("uploadSong")} kicker={t("newTrack")} onClose={() => setOpenUpload(false)}>
-          <form onSubmit={onUpload} className="space-y-3">
-            <div className="flex items-start gap-3">
-              <PhotoPick src={trackCover ?? "/media/covers/vinyl.jpg"} label={t("chooseCover")} className="size-16 shrink-0" onChange={setTrackCover} />
-              <p className="pt-1 text-xs leading-5 text-subtle">{t("coverHint")}</p>
-            </div>
-            <Field label={t("trackTitle")}><TextInput value={title} onChange={(e) => setTitle(e.target.value)} required /></Field>
-            <Field label={t("genre")}>
-              <SelectInput value={trackGenre} onChange={(e) => setTrackGenre(e.target.value)}>
-                {GENRE_OPTIONS.map((g) => <option key={g} value={g}>{genreLabel(locale, g)}</option>)}
-              </SelectInput>
-            </Field>
-            <Field label={t("writers")}><TextInput value={writers} onChange={(e) => setWriters(e.target.value)} /></Field>
-            <Field label={t("year")}><TextInput value={year} onChange={(e) => setYear(e.target.value)} /></Field>
-            <Field label={t("lyrics")}><AreaInput rows={6} value={lyrics} onChange={(e) => setLyrics(e.target.value)} placeholder={t("optional")} /></Field>
-            <p className="text-xs leading-5 text-subtle">{t("phoneMp3Hint")}</p>
-            <label className="relative mt-1 flex h-11 w-full items-center justify-center overflow-hidden rounded-md bg-elevated px-3 text-sm">
-              <span className="pointer-events-none truncate">{fileName ?? t("chooseMp3")}</span>
-              <input
-                ref={fileRef}
-                type="file"
-                accept={AUDIO_PICK_ACCEPT}
-                className="absolute inset-0 cursor-pointer opacity-0"
-                onChange={onFile}
-              />
-            </label>
-            {fileError ? <p className="text-sm text-accent">{fileError}</p> : null}
-            <Button type="submit" className="w-full" disabled={busy}>{busy ? t("sending") : t("submitApproval")}</Button>
-          </form>
+          <TrackForm
+            busy={busy}
+            error={fileError}
+            submitLabel={t("submitApproval")}
+            onFileReject={setLimitWarn}
+            onSubmit={(draft) => void onCreate(draft)}
+          />
+        </Sheet>
+      ) : null}
+      {editSong ? (
+        <Sheet title={editSong.title} kicker={t("uploadedSongs")} onClose={() => setEditSong(null)}>
+          <TrackForm
+            key={editSong.id}
+            editing={editSong}
+            busy={busy}
+            error={fileError}
+            submitLabel={t("saveTrack")}
+            onFileReject={setLimitWarn}
+            onSubmit={(draft) => void onEdit(editSong, draft)}
+            extra={
+              <Button type="button" variant="ghost" className="w-full" onClick={() => { setDropSong(editSong); }}>
+                {t("deleteSong")}
+              </Button>
+            }
+          />
         </Sheet>
       ) : null}
       {limitWarn ? <AudioLimitWarn reasons={limitWarn} onClose={() => setLimitWarn(null)} /> : null}
@@ -320,7 +427,9 @@ export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
           cancelLabel={t("notNow")}
           onConfirm={() => {
             acceptUploadTerms();
-            void finishUpload();
+            const draft = pendingDraft.current;
+            setTermsOpen(false);
+            if (draft) void writeNewTrack(draft);
           }}
           onClose={() => setTermsOpen(false)}
         />
@@ -330,38 +439,13 @@ export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
           title={t("deleteSongQ")}
           body={t("removeSong", { title: dropSong.title, app: APP_NAME })}
           confirmLabel={t("deleteSong")}
-          onConfirm={() => deleteSong(dropSong.id)}
+          onConfirm={() => {
+            deleteSong(dropSong.id);
+            setEditSong(null);
+          }}
           onClose={() => setDropSong(null)}
         />
       ) : null}
     </div>
-  );
-}
-
-function SongLinksRow({ song, onSave, onDelete }: { song: Song; onSave: (extra: { spotify?: string; youtube?: string; cover?: string; lyrics?: string }) => void; onDelete: () => void }) {
-  const [sp, setSp] = useState(song.spotify ?? "");
-  const [yt, setYt] = useState(song.youtube ?? "");
-  const [words, setWords] = useState(song.lyrics ?? "");
-  const dirty = sp !== (song.spotify ?? "") || yt !== (song.youtube ?? "") || words !== (song.lyrics ?? "");
-  const t = useT();
-  const { locale } = useLocale();
-  return (
-    <li className="py-3">
-      <div className="flex items-center gap-3">
-        <PhotoPick src={coverImage(song.cover)} label={t("changeCoverFor", { title: song.title })} className="size-12 shrink-0" onChange={(cover) => { const key = r2KeyFromCover(song.cover); onSave({ spotify: sp, youtube: yt, lyrics: words, cover: key ? withR2Cover(cover, key) : cover }); }} />
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium">{song.title}</p>
-          <p className="text-xs text-muted">{songStatusLabel(locale, song.status)}</p>
-        </div>
-      </div>
-      <SongPreview song={song} />
-      <div className="mt-2 space-y-2">
-        <TextInput type="url" value={sp} onChange={(e) => setSp(e.target.value)} placeholder={t("spotifySong")} />
-        <TextInput type="url" value={yt} onChange={(e) => setYt(e.target.value)} placeholder={t("youtubeSong")} />
-        <AreaInput rows={5} value={words} onChange={(e) => setWords(e.target.value)} placeholder={t("lyrics")} />
-        {dirty ? <Button type="button" variant="subtle" size="sm" className="w-full" onClick={() => onSave({ spotify: sp, youtube: yt, lyrics: words })}>{t("saveSongLinks")}</Button> : null}
-        <Button type="button" variant="ghost" size="sm" className="w-full" onClick={onDelete}>{t("deleteSong")}</Button>
-      </div>
-    </li>
   );
 }

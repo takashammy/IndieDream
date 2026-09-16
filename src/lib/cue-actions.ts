@@ -149,6 +149,10 @@ export const applyStudioAction = createServerFn({ method: "POST" })
       if (typeof patch.youtube === "string" || patch.youtube === undefined) next.youtube = patch.youtube;
       if (typeof patch.lyrics === "string" || patch.lyrics === undefined) next.lyrics = patch.lyrics;
       if (typeof patch.duration === "string" && patch.duration.trim()) next.duration = patch.duration.trim();
+      if (typeof patch.genre === "string") next.genre = patch.genre;
+      if (typeof patch.writers === "string" || patch.writers === undefined) next.writers = patch.writers;
+      if (typeof patch.year === "string" || patch.year === undefined) next.year = patch.year;
+      if (typeof patch.audioUrl === "string") next.audioUrl = patch.audioUrl;
       return next;
     };
 

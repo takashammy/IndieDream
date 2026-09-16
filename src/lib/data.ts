@@ -16,6 +16,9 @@ export type Song = {
   spotify?: string;
   youtube?: string;
   audioUrl?: string;
+  genre?: string;
+  writers?: string;
+  year?: string;
 };
 
 export type Artist = {

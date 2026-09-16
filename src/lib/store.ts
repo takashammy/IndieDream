@@ -183,10 +183,27 @@ export type CueState = PersistSlice & {
       lyrics?: string;
       audioUrl?: string;
       duration?: string;
+      genre?: string;
+      writers?: string;
+      year?: string;
     },
   ) => void;
   rememberDuration: (artistId: string, songId: string, duration: string) => void;
-  updateSongLinks: (songId: string, extra: { spotify?: string; youtube?: string; cover?: string; lyrics?: string }) => void;
+  saveSong: (
+    songId: string,
+    extra: {
+      title?: string;
+      spotify?: string;
+      youtube?: string;
+      cover?: string;
+      lyrics?: string;
+      audioUrl?: string;
+      duration?: string;
+      genre?: string;
+      writers?: string;
+      year?: string;
+    },
+  ) => void;
   deleteSong: (songId: string) => void;
   acceptUploadTerms: () => void;
   setProfilePhoto: (photo: string) => void;
@@ -899,6 +916,9 @@ export const useCue = create<CueState>((set, get) => {
         spotify: cleanUrl(extra?.spotify),
         youtube: cleanUrl(extra?.youtube),
         audioUrl: extra?.audioUrl,
+        genre: extra?.genre?.trim() || undefined,
+        writers: extra?.writers?.trim() || undefined,
+        year: extra?.year?.trim() || undefined,
       };
       const notice = live
         ? null
@@ -947,17 +967,24 @@ export const useCue = create<CueState>((set, get) => {
       pushAction({ type: "noteDuration", artistId, songId, duration: clock });
     },
 
-    updateSongLinks: (songId, extra) => {
+    saveSong: (songId, extra) => {
       const artist = currentArtist(get());
       if (!artist) return;
       const nextSong = artist.songs.find((s) => s.id === songId);
       const patched = nextSong
         ? {
             ...nextSong,
+            title: extra.title?.trim() || nextSong.title,
             spotify: extra.spotify !== undefined ? cleanUrl(extra.spotify) : nextSong.spotify,
             youtube: extra.youtube !== undefined ? cleanUrl(extra.youtube) : nextSong.youtube,
             cover: extra.cover !== undefined ? extra.cover : nextSong.cover,
             lyrics: extra.lyrics !== undefined ? extra.lyrics.trim() || undefined : nextSong.lyrics,
+            audioUrl: extra.audioUrl !== undefined ? extra.audioUrl : nextSong.audioUrl,
+            duration:
+              extra.duration && extra.duration !== "—" ? extra.duration : nextSong.duration,
+            genre: extra.genre !== undefined ? extra.genre.trim() || undefined : nextSong.genre,
+            writers: extra.writers !== undefined ? extra.writers.trim() || undefined : nextSong.writers,
+            year: extra.year !== undefined ? extra.year.trim() || undefined : nextSong.year,
           }
         : null;
       const np = get().nowPlaying;
@@ -979,10 +1006,16 @@ export const useCue = create<CueState>((set, get) => {
           artistId: artist.id,
           songId,
           patch: {
+            title: patched.title,
             spotify: patched.spotify,
             youtube: patched.youtube,
             cover: patched.cover,
             lyrics: patched.lyrics,
+            audioUrl: patched.audioUrl,
+            duration: patched.duration,
+            genre: patched.genre,
+            writers: patched.writers,
+            year: patched.year,
           },
         });
         void enqueueWrite(() =>
@@ -995,6 +1028,10 @@ export const useCue = create<CueState>((set, get) => {
               youtube: patched.youtube,
               lyrics: patched.lyrics,
               audioUrl: patched.audioUrl,
+              duration: patched.duration,
+              genre: patched.genre,
+              writers: patched.writers,
+              year: patched.year,
             },
           }),
         );

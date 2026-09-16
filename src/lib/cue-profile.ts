@@ -175,6 +175,9 @@ export const saveMySong = createServerFn({ method: "POST" })
       lyrics: z.string().optional(),
       audioUrl: z.string().optional(),
       duration: z.string().optional(),
+      genre: z.string().optional(),
+      writers: z.string().optional(),
+      year: z.string().optional(),
     }),
   )
   .handler(async ({ data }) => {
@@ -241,6 +244,9 @@ export const saveMySong = createServerFn({ method: "POST" })
       spotify: data.spotify?.trim() || undefined,
       youtube: data.youtube?.trim() || undefined,
       audioUrl: asR2Audio(data.audioUrl),
+      genre: data.genre?.trim() || undefined,
+      writers: data.writers?.trim() || undefined,
+      year: data.year?.trim() || undefined,
     };
     const si = songs.findIndex((s) => String(s.id) === data.id);
     if (si >= 0) {
