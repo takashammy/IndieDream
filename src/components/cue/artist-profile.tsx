@@ -149,7 +149,7 @@ export function ArtistProfile({ id }: { id: string }) {
             <input
               type="checkbox"
               className="mt-1 size-4 accent-current"
-              checked={artist.labelApproved}
+              checked={artist.labelApproved === true}
               disabled={isrBusy}
               onChange={() => void toggleIsr()}
             />

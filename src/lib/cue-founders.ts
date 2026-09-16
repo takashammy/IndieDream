@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { ISR_LABEL, type Artist, type LocationArea } from "@/lib/data";
+import { type Artist, type LocationArea } from "@/lib/data";
 import { passwordTooWeak } from "@/lib/pass";
 import type { AuthAccount } from "@/lib/cue-auth";
 
@@ -58,8 +58,8 @@ function founderArtist(spec: FounderSpec): Artist {
     photo: spec.photo,
     genres: spec.genres,
     bio: spec.bio,
-    label: ISR_LABEL,
-    labelApproved: true,
+    label: "",
+    labelApproved: false,
     verified: true,
     songs: [
       {

@@ -32,8 +32,8 @@ export function ensureOwnArtist(): Artist | null {
     genres: ["Indie"],
     bio: acc.bio || "",
     songs: [],
-    label: "Independent",
-    labelApproved: acc.kind === "admin",
+    label: "",
+    labelApproved: false,
     verified: acc.kind === "admin",
   };
 
