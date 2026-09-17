@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { BackRow, Confirm, ScreenHead, SelectInput, TextInput, VerifiedMark } from "./chrome";
 import { NoticeSheet } from "./inbox";
 import { LanguageToggle } from "./language-toggle";
+import { MartinPushCard } from "./martin-push";
 import {
   ageText,
   categoryLabel,
@@ -246,6 +247,7 @@ export function AdminMe({ artistPanel }: { artistPanel?: ReactNode }) {
             onOpenNotice={(id) => openNotice(id)}
           />
           {artistPanel}
+          <MartinPushCard />
         </>
       ) : (
         <DeskNav page={page} counts={counts} onOpen={go} />

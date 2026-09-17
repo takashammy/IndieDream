@@ -1,4 +1,4 @@
-const VERSION = "indie-dream-shell-v6";
+const VERSION = "indie-dream-shell-v7";
 const SHELL = [
   "/",
   "/offline.html",
@@ -86,4 +86,38 @@ self.addEventListener("fetch", (event) => {
   if (STATIC.test(url.pathname) || url.pathname.startsWith("/assets/")) {
     event.respondWith(staleWhileRevalidate(request));
   }
+});
+
+self.addEventListener("push", (event) => {
+  let data = { title: "Dreamin' Indie", body: "Someone new registered.", url: "/" };
+  try {
+    if (event.data) data = { ...data, ...event.data.json() };
+  } catch {
+    /* keep defaults */
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: "/icon-192.png",
+      badge: "/icon-192.png",
+      data: { url: data.url || "/" },
+    }),
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url || "/";
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((windows) => {
+      for (const client of windows) {
+        if ("focus" in client) {
+          client.focus();
+          if ("navigate" in client && url) client.navigate(url);
+          return;
+        }
+      }
+      return self.clients.openWindow(url);
+    }),
+  );
 });

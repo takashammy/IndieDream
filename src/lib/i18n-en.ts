@@ -509,4 +509,11 @@ export const EN = {
   staffReadyBody: "Both accounts can open Desk and the artist profile. Passwords are not stored in the app source.",
   errResetAdmin: "Password changes are handled by an admin.",
   errLoginFirst: "Log in first.",
+  signupAlerts: "Signup alerts",
+  turnOnAlerts: "Turn on signup alerts",
+  alertsOn: "Signup alerts are on for this phone.",
+  alertsDenied: "Notifications are blocked on this phone.",
+  alertsNeedInstall: "Add the app to your Home Screen, open it from there, then turn this on.",
+  alertsUnsupported: "This browser cannot receive alerts.",
+  alertsError: "Could not turn on alerts. Try again.",
 } as const;

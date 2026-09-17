@@ -115,6 +115,12 @@ export const registerAccount = createServerFn({ method: "POST" })
     };
     await sessionMod.writeStudioAccounts(sql, [...accounts, account]);
     await sessionMod.createSession(sql, id);
+    try {
+      const push = await import("@/lib/cue-push.server");
+      await push.notifyMartinOfSignup(sql, { name: account.name, kind: account.kind });
+    } catch {
+      /* signup still succeeds if the alert cannot send */
+    }
     return { ok: true as const, account: asAccount(account) };
   });
 

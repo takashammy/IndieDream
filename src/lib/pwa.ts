@@ -60,3 +60,44 @@ export function registerServiceWorker() {
   if (import.meta.env.DEV) return;
   void navigator.serviceWorker.register("/sw.js");
 }
+
+function urlBase64ToUint8Array(base64: string) {
+  const padding = "=".repeat((4 - (base64.length % 4)) % 4);
+  const padded = (base64 + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const binary = atob(padded);
+  const out = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) out[i] = binary.charCodeAt(i);
+  return out;
+}
+
+export async function armMartinPush(): Promise<"on" | "denied" | "unsupported" | "need-install" | "error"> {
+  if (typeof window === "undefined") return "unsupported";
+  if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
+    return "unsupported";
+  }
+  const ios = isIosSafari();
+  if (ios && !isStandalone()) return "need-install";
+  if (import.meta.env.DEV) return "need-install";
+  try {
+    const { getPushPublicKey, savePushSubscription } = await import("@/lib/cue-push");
+    const { key } = await getPushPublicKey();
+    if (!key) return "error";
+    let permission = Notification.permission;
+    if (permission === "default") permission = await Notification.requestPermission();
+    if (permission !== "granted") return "denied";
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(key),
+    });
+    const json = sub.toJSON();
+    const p256dh = json.keys?.p256dh;
+    const auth = json.keys?.auth;
+    if (!json.endpoint || !p256dh || !auth) return "error";
+    const saved = await savePushSubscription({ data: { endpoint: json.endpoint, p256dh, auth } });
+    return saved.ok ? "on" : "error";
+  } catch {
+    return "error";
+  }
+}
+

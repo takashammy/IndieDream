@@ -507,4 +507,11 @@ export const ZH: Record<string, string> = {
   createBothStaff: "建立兩位職員音樂人",
   staffReady: "Martin 與 Sin Lam 已就緒",
   couldNotReach: "無法連接伺服器。",
+  signupAlerts: "註冊通知",
+  turnOnAlerts: "開啟註冊通知",
+  alertsOn: "此手機已開啟註冊通知。",
+  alertsDenied: "此手機已封鎖通知。",
+  alertsNeedInstall: "請先將應用程式加入主畫面，從主畫面開啟後再開啟通知。",
+  alertsUnsupported: "此瀏覽器無法接收通知。",
+  alertsError: "無法開啟通知。請再試一次。",
 };
