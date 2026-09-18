@@ -44,6 +44,23 @@ export function publicAccount(row: CueAccountRow): PublicAccount {
   return rest;
 }
 
+/** Normalise a login identifier (username or email used at sign-in). */
+export function normalizeLoginName(value: string) {
+  return value.trim().toLowerCase();
+}
+
+/** True when `candidate` matches an existing account username or email (login names must be unique). */
+export function loginNameTaken(
+  accounts: Array<Pick<CueAccountRow, "username" | "email">>,
+  candidate: string,
+): boolean {
+  const id = normalizeLoginName(candidate);
+  if (!id) return false;
+  return accounts.some(
+    (a) => normalizeLoginName(a.username) === id || normalizeLoginName(a.email) === id,
+  );
+}
+
 export function setupSecretConfigured() {
   return Boolean(env("ADMIN_SETUP_SECRET"));
 }

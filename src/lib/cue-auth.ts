@@ -104,42 +104,52 @@ export const registerAccount = createServerFn({ method: "POST" })
     const sql = await sessionMod.getSqlSafe();
     const limited = await rate.checkAuthRateLimit(sql, "register");
     if (!limited.ok) return limited;
-    const accounts = await sessionMod.readStudioAccounts(sql);
+    const { withStudioTx } = await import("@/lib/db");
     const username = data.username.trim();
-    if (accounts.some((a) => a.username.toLowerCase() === username.toLowerCase())) {
-      const blocked = await rate.recordAuthFailure(sql, "register");
-      if (blocked) return blocked;
-      return { ok: false as const, error: "That username is taken." };
-    }
-    if (accounts.some((a) => a.email.trim().toLowerCase() === email)) {
-      const blocked = await rate.recordAuthFailure(sql, "register");
-      if (blocked) return blocked;
-      return { ok: false as const, error: "That email is already registered." };
-    }
-    const id = `acc-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
-    const account = {
-      id,
-      username,
-      password: await sessionMod.hashPassword(data.password),
-      kind: data.kind,
-      name: data.name.trim() || username,
-      role: data.role.trim(),
-      location: data.location,
-      bio: data.bio.trim(),
-      photo: "/media/user.jpg",
-      email,
-      whatsapp: "",
-    };
-    await sessionMod.writeStudioAccounts(sql, [...accounts, account]);
-    await rate.clearAuthRateLimit(sql, "register");
-    await sessionMod.createSession(sql, id);
-    try {
-      const push = await import("@/lib/cue-push.server");
-      await push.notifyMartinOfSignup(sql, { name: account.name, kind: account.kind });
-    } catch {
-      /* signup still succeeds if the alert cannot send */
-    }
-    return { ok: true as const, account: asAccount(account) };
+
+    return withStudioTx(async (tx) => {
+      const accounts = await sessionMod.readStudioAccounts(tx);
+      if (sessionMod.loginNameTaken(accounts, username)) {
+        const blocked = await rate.recordAuthFailure(tx, "register");
+        if (blocked) return blocked;
+        return {
+          ok: false as const,
+          error: "That login name is already in use. Please choose another.",
+        };
+      }
+      if (sessionMod.loginNameTaken(accounts, email)) {
+        const blocked = await rate.recordAuthFailure(tx, "register");
+        if (blocked) return blocked;
+        return {
+          ok: false as const,
+          error: "That email is already registered. Please use another or log in.",
+        };
+      }
+      const id = `acc-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+      const account = {
+        id,
+        username,
+        password: await sessionMod.hashPassword(data.password),
+        kind: data.kind,
+        name: data.name.trim() || username,
+        role: data.role.trim(),
+        location: data.location,
+        bio: data.bio.trim(),
+        photo: "/media/user.jpg",
+        email,
+        whatsapp: "",
+      };
+      await sessionMod.writeStudioAccounts(tx, [...accounts, account]);
+      await rate.clearAuthRateLimit(tx, "register");
+      await sessionMod.createSession(tx, id);
+      try {
+        const push = await import("@/lib/cue-push.server");
+        await push.notifyMartinOfSignup(tx, { name: account.name, kind: account.kind });
+      } catch {
+        /* signup still succeeds if the alert cannot send */
+      }
+      return { ok: true as const, account: asAccount(account) };
+    });
   });
 
 export const logoutAccount = createServerFn({ method: "POST" }).handler(async () => {
@@ -185,8 +195,18 @@ export const createFirstAdmin = createServerFn({ method: "POST" })
       }
       const accounts = await sessionMod.readStudioAccounts(tx);
       const username = data.username.trim();
-      if (accounts.some((a) => a.username.toLowerCase() === username.toLowerCase())) {
-        return { ok: false as const, error: "That username is taken." };
+      const email = data.email.trim();
+      if (sessionMod.loginNameTaken(accounts, username)) {
+        return {
+          ok: false as const,
+          error: "That login name is already in use. Please choose another.",
+        };
+      }
+      if (sessionMod.loginNameTaken(accounts, email)) {
+        return {
+          ok: false as const,
+          error: "That email is already registered. Please use another or log in.",
+        };
       }
       const id = `acc-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
       const account = {
@@ -199,7 +219,7 @@ export const createFirstAdmin = createServerFn({ method: "POST" })
         location: "HK Island" as const,
         bio: "Inner Soul Records.",
         photo: "/media/covers/vinyl.jpg",
-        email: data.email.trim(),
+        email,
         whatsapp: "",
       };
       await sessionMod.writeStudioAccounts(tx, [...accounts, account]);

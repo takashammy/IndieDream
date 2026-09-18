@@ -101,8 +101,8 @@ export function audioReason(locale: Locale, raw: string) {
 export const STORE_ERR: Record<string, Msg> = {
   "Username and password are required.": "errRequired",
   "Enter a valid email.": "errEmail",
-  "That username is taken.": "errUsernameTaken",
-  "That email is already registered.": "errEmailTaken",
+  "That login name is already in use. Please choose another.": "errUsernameTaken",
+  "That email is already registered. Please use another or log in.": "errEmailTaken",
   "Name and role are required.": "errNameRole",
   "Upload one track so we can review you.": "errUploadTrack",
   "Username or password is wrong.": "errWrong",
