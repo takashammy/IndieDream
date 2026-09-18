@@ -12,6 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StyleIdRouteImport } from './routes/$styleId'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as ApiBackupRouteImport } from './routes/api/backup'
+import { Route as ApiTrackUploadRouteImport } from './routes/api/track-upload'
+import { Route as ApiHavenNotificationsRouteImport } from './routes/api/haven/notifications'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -28,35 +31,81 @@ const TermsRoute = TermsRouteImport.update({
   path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiBackupRoute = ApiBackupRouteImport.update({
+  id: '/api/backup',
+  path: '/api/backup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTrackUploadRoute = ApiTrackUploadRouteImport.update({
+  id: '/api/track-upload',
+  path: '/api/track-upload',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiHavenNotificationsRoute = ApiHavenNotificationsRouteImport.update({
+  id: '/api/haven/notifications',
+  path: '/api/haven/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$styleId': typeof StyleIdRoute
   '/terms': typeof TermsRoute
+  '/api/backup': typeof ApiBackupRoute
+  '/api/track-upload': typeof ApiTrackUploadRoute
+  '/api/haven/notifications': typeof ApiHavenNotificationsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$styleId': typeof StyleIdRoute
   '/terms': typeof TermsRoute
+  '/api/backup': typeof ApiBackupRoute
+  '/api/track-upload': typeof ApiTrackUploadRoute
+  '/api/haven/notifications': typeof ApiHavenNotificationsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/$styleId': typeof StyleIdRoute
   '/terms': typeof TermsRoute
+  '/api/backup': typeof ApiBackupRoute
+  '/api/track-upload': typeof ApiTrackUploadRoute
+  '/api/haven/notifications': typeof ApiHavenNotificationsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/$styleId' | '/terms'
+  fullPaths:
+    | '/'
+    | '/$styleId'
+    | '/terms'
+    | '/api/backup'
+    | '/api/track-upload'
+    | '/api/haven/notifications'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/$styleId' | '/terms'
-  id: '__root__' | '/' | '/$styleId' | '/terms'
+  to:
+    | '/'
+    | '/$styleId'
+    | '/terms'
+    | '/api/backup'
+    | '/api/track-upload'
+    | '/api/haven/notifications'
+  id:
+    | '__root__'
+    | '/'
+    | '/$styleId'
+    | '/terms'
+    | '/api/backup'
+    | '/api/track-upload'
+    | '/api/haven/notifications'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   StyleIdRoute: typeof StyleIdRoute
   TermsRoute: typeof TermsRoute
+  ApiBackupRoute: typeof ApiBackupRoute
+  ApiTrackUploadRoute: typeof ApiTrackUploadRoute
+  ApiHavenNotificationsRoute: typeof ApiHavenNotificationsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -82,6 +131,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/backup': {
+      id: '/api/backup'
+      path: '/api/backup'
+      fullPath: '/api/backup'
+      preLoaderRoute: typeof ApiBackupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/track-upload': {
+      id: '/api/track-upload'
+      path: '/api/track-upload'
+      fullPath: '/api/track-upload'
+      preLoaderRoute: typeof ApiTrackUploadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/haven/notifications': {
+      id: '/api/haven/notifications'
+      path: '/api/haven/notifications'
+      fullPath: '/api/haven/notifications'
+      preLoaderRoute: typeof ApiHavenNotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -89,6 +159,9 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   StyleIdRoute: StyleIdRoute,
   TermsRoute: TermsRoute,
+  ApiBackupRoute: ApiBackupRoute,
+  ApiTrackUploadRoute: ApiTrackUploadRoute,
+  ApiHavenNotificationsRoute: ApiHavenNotificationsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
