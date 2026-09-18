@@ -44,6 +44,48 @@ function stripAccount(account: Record<string, unknown>, revealContact: boolean) 
   return next;
 }
 
+/** Minimal account rows for catalog visibility without exposing the full roster. */
+function catalogAccountStub(account: Record<string, unknown>) {
+  return stripAccount(
+    {
+      id: "",
+      username: "",
+      name: "",
+      role: "",
+      location: "",
+      bio: "",
+      photo: "",
+      email: "",
+      whatsapp: "",
+      kind: account.kind,
+      artistId: account.artistId,
+    },
+    false,
+  );
+}
+
+function accountsForSession(
+  allAccounts: Record<string, unknown>[],
+  admin: boolean,
+  selfId: string | undefined,
+) {
+  if (admin) {
+    return allAccounts.map((account) => stripAccount(account, true));
+  }
+  if (!selfId) {
+    return allAccounts
+      .filter((a) => (a.kind === "artist" || a.kind === "admin") && a.artistId)
+      .map(catalogAccountStub);
+  }
+  return allAccounts
+    .filter(
+      (a) =>
+        String(a.id) === selfId ||
+        ((a.kind === "artist" || a.kind === "admin") && a.artistId),
+    )
+    .map((account) => stripAccount(account, String(account.id) === selfId));
+}
+
 export const loadStudio = createServerFn({ method: "GET" }).handler(async (): Promise<StudioSlice | null> => {
   try {
     const { getSql } = await import("@/lib/db");
@@ -105,11 +147,10 @@ export const loadStudio = createServerFn({ method: "GET" }).handler(async (): Pr
     } catch {
       /* plays table is optional until the migration runs */
     }
+    const allAccounts = asArray<Record<string, unknown>>(row.accounts);
     return {
       artists,
-      accounts: asArray<Record<string, unknown>>(row.accounts).map((account) =>
-        stripAccount(account, Boolean(admin || account.id === selfId)),
-      ),
+      accounts: accountsForSession(allAccounts, admin, selfId),
       events: asArray(row.events),
       posts: asArray(row.posts),
       notices,
@@ -126,6 +167,8 @@ export const loadStudio = createServerFn({ method: "GET" }).handler(async (): Pr
 export const saveStudio = createServerFn({ method: "POST" })
   .validator(studioSliceSchema)
   .handler(async (): Promise<{ ok: true }> => {
+    const { assertCueSessionSafeRequest } = await import("@/lib/auth/cue-session-guard.server");
+    assertCueSessionSafeRequest();
     const sessionMod = await import("@/lib/cue-session.server");
     const session = await sessionMod.readCueSession();
     if (!session) {

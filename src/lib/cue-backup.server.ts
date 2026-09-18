@@ -22,11 +22,18 @@ function tokenOk(given: string, expected: string) {
   return timingSafeEqual(a, b);
 }
 
+function isProductionDeploy() {
+  return Boolean(
+    env("DATABASE_URL") || env("GROK_PROJECT_ID") || process.env.NODE_ENV === "production",
+  );
+}
+
 export function backupAuthorized(request: Request) {
   const expected = bearerSecret();
   const header = request.headers.get("authorization") || "";
   const token = header.toLowerCase().startsWith("bearer ") ? header.slice(7).trim() : "";
   if (expected) return tokenOk(token, expected);
+  if (isProductionDeploy()) return false;
   return request.headers.get("x-vercel-cron") === "1";
 }
 

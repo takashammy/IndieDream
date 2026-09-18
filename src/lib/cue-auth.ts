@@ -52,18 +52,26 @@ export const getAuthState = createServerFn({ method: "GET" }).handler(async () =
 export const loginAccount = createServerFn({ method: "POST" })
   .validator(z.object({ username: z.string().min(1), password: z.string().min(1) }))
   .handler(async ({ data }) => {
+    const { assertCueSessionSafeRequest } = await import("@/lib/auth/cue-session-guard.server");
+    assertCueSessionSafeRequest();
     const sessionMod = await import("@/lib/cue-session.server");
+    const rate = await import("@/lib/auth-rate-limit.server");
     const sql = await sessionMod.getSqlSafe();
-    const accounts = await sessionMod.readStudioAccounts(sql);
     const name = data.username.trim().toLowerCase();
+    const limited = await rate.checkAuthRateLimit(sql, "login", name);
+    if (!limited.ok) return limited;
+    const accounts = await sessionMod.readStudioAccounts(sql);
     const acc = accounts.find(
       (a) =>
         a.username.toLowerCase() === name ||
         a.email.trim().toLowerCase() === name,
     );
     if (!acc || !(await sessionMod.verifyPassword(acc.password, data.password))) {
+      const blocked = await rate.recordAuthFailure(sql, "login", name);
+      if (blocked) return blocked;
       return { ok: false as const, error: "Username or password is wrong." };
     }
+    await rate.clearAuthRateLimit(sql, "login", name);
     await sessionMod.createSession(sql, acc.id);
     return { ok: true as const, account: asAccount(acc as unknown as Record<string, unknown>) };
   });
@@ -82,6 +90,8 @@ export const registerAccount = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }) => {
+    const { assertCueSessionSafeRequest } = await import("@/lib/auth/cue-session-guard.server");
+    assertCueSessionSafeRequest();
     if (passwordTooWeak(data.password)) {
       return { ok: false as const, error: "Password must be at least 8 characters." };
     }
@@ -90,13 +100,20 @@ export const registerAccount = createServerFn({ method: "POST" })
       return { ok: false as const, error: "Enter a valid email." };
     }
     const sessionMod = await import("@/lib/cue-session.server");
+    const rate = await import("@/lib/auth-rate-limit.server");
     const sql = await sessionMod.getSqlSafe();
+    const limited = await rate.checkAuthRateLimit(sql, "register");
+    if (!limited.ok) return limited;
     const accounts = await sessionMod.readStudioAccounts(sql);
     const username = data.username.trim();
     if (accounts.some((a) => a.username.toLowerCase() === username.toLowerCase())) {
+      const blocked = await rate.recordAuthFailure(sql, "register");
+      if (blocked) return blocked;
       return { ok: false as const, error: "That username is taken." };
     }
     if (accounts.some((a) => a.email.trim().toLowerCase() === email)) {
+      const blocked = await rate.recordAuthFailure(sql, "register");
+      if (blocked) return blocked;
       return { ok: false as const, error: "That email is already registered." };
     }
     const id = `acc-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
@@ -114,6 +131,7 @@ export const registerAccount = createServerFn({ method: "POST" })
       whatsapp: "",
     };
     await sessionMod.writeStudioAccounts(sql, [...accounts, account]);
+    await rate.clearAuthRateLimit(sql, "register");
     await sessionMod.createSession(sql, id);
     try {
       const push = await import("@/lib/cue-push.server");
@@ -125,6 +143,8 @@ export const registerAccount = createServerFn({ method: "POST" })
   });
 
 export const logoutAccount = createServerFn({ method: "POST" }).handler(async () => {
+  const { assertCueSessionSafeRequest } = await import("@/lib/auth/cue-session-guard.server");
+  assertCueSessionSafeRequest();
   const sessionMod = await import("@/lib/cue-session.server");
   const sql = await sessionMod.getSqlSafe().catch(() => null);
   await sessionMod.clearSession(sql ?? undefined);
@@ -142,77 +162,49 @@ export const createFirstAdmin = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }) => {
+    const { assertCueSessionSafeRequest } = await import("@/lib/auth/cue-session-guard.server");
+    assertCueSessionSafeRequest();
     const sessionMod = await import("@/lib/cue-session.server");
+    const rate = await import("@/lib/auth-rate-limit.server");
+    const { withStudioTx } = await import("@/lib/db");
     if (!sessionMod.setupSecretOk(data.secret)) {
+      const sql = await sessionMod.getSqlSafe();
+      const blocked = await rate.recordAuthFailure(sql, "createFirstAdmin");
+      if (blocked) return blocked;
       return { ok: false as const, error: "Setup key is wrong." };
     }
     if (passwordTooWeak(data.password)) {
       return { ok: false as const, error: "Password must be at least 8 characters." };
     }
-    const sql = await sessionMod.getSqlSafe();
-    if ((await sessionMod.adminCount(sql)) > 0) {
-      return { ok: false as const, error: "An admin already exists. Log in instead." };
-    }
-    const accounts = await sessionMod.readStudioAccounts(sql);
-    const username = data.username.trim();
-    if (accounts.some((a) => a.username.toLowerCase() === username.toLowerCase())) {
-      return { ok: false as const, error: "That username is taken." };
-    }
-    const id = `acc-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
-    const account = {
-      id,
-      username,
-      password: await sessionMod.hashPassword(data.password),
-      kind: "admin" as const,
-      name: data.name.trim(),
-      role: "Admin",
-      location: "HK Island" as const,
-      bio: "Inner Soul Records.",
-      photo: "/media/covers/vinyl.jpg",
-      email: data.email.trim(),
-      whatsapp: "",
-    };
-    await sessionMod.writeStudioAccounts(sql, [...accounts, account]);
-    await sessionMod.createSession(sql, id);
-    return { ok: true as const, account: asAccount(account) };
-  });
+    const limited = await rate.checkAuthRateLimit(await sessionMod.getSqlSafe(), "createFirstAdmin");
+    if (!limited.ok) return limited;
 
-export const createStaffAdmin = createServerFn({ method: "POST" })
-  .validator(
-    z.object({
-      username: z.string().min(1),
-      password: z.string().min(1),
-      name: z.string().min(1),
-      email: z.string().min(3),
-    }),
-  )
-  .handler(async ({ data }) => {
-    const sessionMod = await import("@/lib/cue-session.server");
-    const session = await sessionMod.readCueSession();
-    sessionMod.requireAdmin(session);
-    if (passwordTooWeak(data.password)) {
-      return { ok: false as const, error: "Password must be at least 8 characters." };
-    }
-    const sql = await sessionMod.getSqlSafe();
-    const accounts = await sessionMod.readStudioAccounts(sql);
-    const username = data.username.trim();
-    if (accounts.some((a) => a.username.toLowerCase() === username.toLowerCase())) {
-      return { ok: false as const, error: "That username is taken." };
-    }
-    const id = `acc-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
-    const account = {
-      id,
-      username,
-      password: await sessionMod.hashPassword(data.password),
-      kind: "admin" as const,
-      name: data.name.trim(),
-      role: "Admin",
-      location: "HK Island" as const,
-      bio: "Inner Soul Records.",
-      photo: "/media/covers/vinyl.jpg",
-      email: data.email.trim(),
-      whatsapp: "",
-    };
-    await sessionMod.writeStudioAccounts(sql, [...accounts, account]);
-    return { ok: true as const, account: asAccount(account) };
+    return withStudioTx(async (tx) => {
+      if ((await sessionMod.adminCount(tx)) > 0) {
+        return { ok: false as const, error: "An admin already exists. Log in instead." };
+      }
+      const accounts = await sessionMod.readStudioAccounts(tx);
+      const username = data.username.trim();
+      if (accounts.some((a) => a.username.toLowerCase() === username.toLowerCase())) {
+        return { ok: false as const, error: "That username is taken." };
+      }
+      const id = `acc-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+      const account = {
+        id,
+        username,
+        password: await sessionMod.hashPassword(data.password),
+        kind: "admin" as const,
+        name: data.name.trim(),
+        role: "Admin",
+        location: "HK Island" as const,
+        bio: "Inner Soul Records.",
+        photo: "/media/covers/vinyl.jpg",
+        email: data.email.trim(),
+        whatsapp: "",
+      };
+      await sessionMod.writeStudioAccounts(tx, [...accounts, account]);
+      await rate.clearAuthRateLimit(tx, "createFirstAdmin");
+      await sessionMod.createSession(tx, id);
+      return { ok: true as const, account: asAccount(account) };
+    });
   });

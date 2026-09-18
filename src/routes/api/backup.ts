@@ -5,11 +5,17 @@ async function handle(request: Request) {
   const sessionMod = await import("@/lib/cue-session.server");
   const session = await sessionMod.readCueSession().catch(() => null);
   const cron = backupAuthorized(request);
-  const desk = session?.kind === "admin" && request.method === "POST";
-  if (!cron && !desk) {
+  const admin = session?.kind === "admin";
+
+  if (admin) {
+    const { assertCueSessionSafeRequest } = await import("@/lib/auth/cue-session-guard.server");
+    assertCueSessionSafeRequest();
+  }
+
+  if (!cron && !admin) {
     return Response.json({ ok: false, error: "Forbidden." }, { status: 403 });
   }
-  const result = await takeStudioBackup(desk ? "desk" : "cron");
+  const result = await takeStudioBackup(admin ? "desk" : "cron");
   return Response.json(result, { status: result.ok ? 200 : 500 });
 }
 
