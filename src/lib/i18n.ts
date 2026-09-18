@@ -218,6 +218,7 @@ export function noticeKindLabel(locale: Locale, kind: string) {
 export function enquiryTypeLabel(locale: Locale, title: string, fields?: Record<string, string> | null) {
   if (fields?.Package) return t(locale, "purchase");
   if (title.startsWith("Lesson")) return t(locale, "lessonType");
+  if (title.startsWith("Composing")) return t(locale, "composingType");
   if (title.startsWith("MaaS")) return t(locale, "maasShort");
   if (title.startsWith("Shop")) return t(locale, "shopType");
   if (title.startsWith("Custom")) return t(locale, "customType");
@@ -231,8 +232,34 @@ export function fieldValue(locale: Locale, key: string, value: string) {
   if (key === "Level") return lessonLevelLabel(locale, value);
   if (key === "Build") return guitarKindLabel(locale, value);
   if (key === "Instrument") return lessonInstrumentLabel(locale, value);
+  if (key === "Service") return composingServiceLabel(locale, value);
+  if (key === "Project") return composingProjectLabel(locale, value);
+  if (key === "Language") return composingLanguageLabel(locale, value);
   if (key === "Kind") return guitarKindLabel(locale, value) !== value ? guitarKindLabel(locale, value) : value;
   return value;
+}
+
+export function composingServiceLabel(locale: Locale, name: string) {
+  if (name === "Composing") return t(locale, "composeOnly");
+  if (name === "Lyrics") return t(locale, "lyricsOnly");
+  if (name === "Composing and lyrics") return t(locale, "composeAndLyrics");
+  return name;
+}
+
+export function composingProjectLabel(locale: Locale, name: string) {
+  if (name === "Full song") return t(locale, "composeProjectFull");
+  if (name === "Melody only") return t(locale, "composeProjectMelody");
+  if (name === "Lyrics only") return t(locale, "composeProjectLyrics");
+  if (name === "Lyrics for your melody") return t(locale, "composeProjectLyricsFor");
+  return name;
+}
+
+export function composingLanguageLabel(locale: Locale, name: string) {
+  if (name === "Cantonese") return t(locale, "langCantonese");
+  if (name === "English") return t(locale, "langEnglish");
+  if (name === "Mandarin") return t(locale, "langMandarin");
+  if (name === "Mixed") return t(locale, "langMixed");
+  return name;
 }
 
 export function imageReason(locale: Locale, raw: string) {

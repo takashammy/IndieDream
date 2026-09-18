@@ -8,6 +8,9 @@ import { AreaInput, Field, ScreenHead, SelectInput, TextInput } from "./chrome";
 import { NoticeSheet } from "./inbox";
 import { InstrumentShop } from "./instrument-shop";
 import {
+  composingLanguageLabel,
+  composingProjectLabel,
+  composingServiceLabel,
   enquiryTypeLabel,
   guitarKindLabel,
   lessonInstrumentLabel,
@@ -29,6 +32,7 @@ const CARDS: Array<{
   { id: "publishing", kicker: "cardPubKicker", title: "cardPubTitle", body: "cardPubBody" },
   { id: "maas", kicker: "cardMaasKicker", title: "cardMaasTitle", body: "cardMaasBody" },
   { id: "lessons", kicker: "cardLessonsKicker", title: "cardLessonsTitle", body: "cardLessonsBody" },
+  { id: "composing", kicker: "cardComposeKicker", title: "cardComposeTitle", body: "cardComposeBody" },
 ];
 
 const EXTRA_CARDS: Array<{ id: "custom-instruments" | "shop"; kicker: Msg; title: Msg; body: Msg }> = [
@@ -51,6 +55,7 @@ function UserServices() {
   if (panel === "publishing") return <PublishingForm />;
   if (panel === "maas") return <MaasForm />;
   if (panel === "lessons") return <LessonsForm />;
+  if (panel === "composing") return <ComposingForm />;
 
   return (
     <div className="cue-enter">
@@ -420,6 +425,117 @@ function LessonsForm() {
               </Field>
               <Field label={t("message")}>
                 <AreaInput rows={4} value={message} onChange={(e) => setMessage(e.target.value)} />
+              </Field>
+              {ok ? (
+                <Button type="submit" className="w-full">
+                  {t("sendEnquiry")}
+                </Button>
+              ) : null}
+            </form>
+          )}
+        </NeedAccount>
+      )}
+    </div>
+  );
+}
+
+function ComposingForm() {
+  const session = useCue((s) => currentAccount(s));
+  const submitEnquiry = useCue((s) => s.submitEnquiry);
+  const [name, setName] = useState(session?.name ?? "");
+  const [service, setService] = useState("Composing and lyrics");
+  const [project, setProject] = useState("Full song");
+  const [language, setLanguage] = useState("Cantonese");
+  const [genre, setGenre] = useState("");
+  const [area, setArea] = useState<LocationArea>(session?.location ?? "HK Island");
+  const [whatsapp, setWhatsapp] = useState(session?.whatsapp ?? "");
+  const [brief, setBrief] = useState("");
+  const [sent, setSent] = useState(false);
+  const t = useT();
+  const { locale } = useLocale();
+  useLayoutEffect(() => { scrollMainToTop(); }, []);
+
+  return (
+    <div className="cue-enter px-5 pb-10 pt-3">
+      <Back />
+      <p className="cue-kicker mt-2 text-xs text-muted">{t("cardComposeKicker")}</p>
+      <h1 className="cue-name mt-1 font-display text-3xl leading-none">{t("composingTitle")}</h1>
+      <p className="mt-3 text-sm leading-6 text-muted">{t("composingIntro")}</p>
+      {sent ? (
+        <p className="mt-5 text-sm leading-6 text-muted">{t("enquiryReceived")}</p>
+      ) : (
+        <NeedAccount>
+          {(ok) => (
+            <form
+              className="mt-5 space-y-4"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!ok) return;
+                submitEnquiry(
+                  `Composing & lyrics — ${service}`,
+                  brief.trim() || `${service}. ${project}${genre ? `. ${genre}` : ""}`.trim(),
+                  {
+                    Name: name,
+                    Service: service,
+                    Project: project,
+                    Language: language,
+                    Genre: genre.trim() || "—",
+                    Location: area,
+                    WhatsApp: whatsapp,
+                  },
+                );
+                setSent(true);
+              }}
+            >
+              <Field label={t("name")}>
+                <TextInput value={name} onChange={(e) => setName(e.target.value)} required />
+              </Field>
+              <Field label={t("composingService")}>
+                <SelectInput value={service} onChange={(e) => setService(e.target.value)} required>
+                  {["Composing", "Lyrics", "Composing and lyrics"].map((k) => (
+                    <option key={k} value={k}>{composingServiceLabel(locale, k)}</option>
+                  ))}
+                </SelectInput>
+              </Field>
+              <Field label={t("composingProject")}>
+                <SelectInput value={project} onChange={(e) => setProject(e.target.value)} required>
+                  {["Full song", "Melody only", "Lyrics only", "Lyrics for your melody"].map((k) => (
+                    <option key={k} value={k}>{composingProjectLabel(locale, k)}</option>
+                  ))}
+                </SelectInput>
+              </Field>
+              <Field label={t("composingLanguage")}>
+                <SelectInput value={language} onChange={(e) => setLanguage(e.target.value)} required>
+                  {["Cantonese", "English", "Mandarin", "Mixed"].map((k) => (
+                    <option key={k} value={k}>{composingLanguageLabel(locale, k)}</option>
+                  ))}
+                </SelectInput>
+              </Field>
+              <Field label={t("composingGenre")}>
+                <TextInput
+                  value={genre}
+                  onChange={(e) => setGenre(e.target.value)}
+                  placeholder={t("composingGenrePlaceholder")}
+                />
+              </Field>
+              <Field label={t("location")}>
+                <SelectInput value={area} onChange={(e) => setArea(e.target.value as LocationArea)}>
+                  {LOCATIONS.map((l) => (
+                    <option key={l} value={l}>{locationLabel(locale, l)}</option>
+                  ))}
+                </SelectInput>
+              </Field>
+              <Field label={t("whatsapp")}>
+                <TextInput
+                  type="tel"
+                  value={whatsapp}
+                  onChange={(e) => setWhatsapp(e.target.value)}
+                  placeholder="+852 5123 4567"
+                  required
+                />
+              </Field>
+              <Field label={t("composingBrief")}>
+                <AreaInput rows={4} value={brief} onChange={(e) => setBrief(e.target.value)} />
               </Field>
               {ok ? (
                 <Button type="submit" className="w-full">

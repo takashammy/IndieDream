@@ -45,7 +45,7 @@ export type TabId =
   | "inbox";
 
 export type GateKind = "listen" | "board" | "event" | "verify" | "register" | null;
-export type ServicePanel = "publishing" | "maas" | "lessons" | null;
+export type ServicePanel = "publishing" | "maas" | "lessons" | "composing" | null;
 export type MeMode = "idle" | "login" | "register" | "reset" | "setup";
 
 export type Account = {
