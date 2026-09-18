@@ -87,6 +87,8 @@ function asArray<T>(value: unknown): T[] {
 export const applyStudioAction = createServerFn({ method: "POST" })
   .validator(actionSchema)
   .handler(async ({ data }): Promise<{ ok: true } | { ok: false; error: string }> => {
+    const { assertCueSessionSafeRequest } = await import("@/lib/auth/cue-session-guard.server");
+    assertCueSessionSafeRequest();
     const sessionMod = await import("@/lib/cue-session.server");
     const session = await sessionMod.readCueSession();
     if (!session) return { ok: false, error: "Log in first." };

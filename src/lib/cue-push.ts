@@ -21,9 +21,11 @@ export const savePushSubscription = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }) => {
+    const { assertCueSessionSafeRequest } = await import("@/lib/auth/cue-session-guard.server");
+    assertCueSessionSafeRequest();
     const sessionMod = await import("@/lib/cue-session.server");
     const session = await sessionMod.readCueSession();
-    if (!session?.account || !isMartinAccount(session.account)) {
+    if (!session?.account || !isMartinAccount({ ...session.account, id: session.accountId })) {
       return { ok: false as const, error: "Only Martin can turn on these alerts." };
     }
     const sql = await sessionMod.getSqlSafe();

@@ -39,6 +39,8 @@ export const saveMyProfile = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }) => {
+    const { assertCueSessionSafeRequest } = await import("@/lib/auth/cue-session-guard.server");
+    assertCueSessionSafeRequest();
     const sessionMod = await import("@/lib/cue-session.server");
     const session = await sessionMod.readCueSession();
     if (!session) return { ok: false as const, error: "Log in first." };
@@ -137,6 +139,8 @@ export const saveMyProfile = createServerFn({ method: "POST" })
 export const grantArtistIsr = createServerFn({ method: "POST" })
   .validator(z.object({ artistId: z.string().min(1), on: z.boolean() }))
   .handler(async ({ data }) => {
+    const { assertCueSessionSafeRequest } = await import("@/lib/auth/cue-session-guard.server");
+    assertCueSessionSafeRequest();
     const sessionMod = await import("@/lib/cue-session.server");
     const session = await sessionMod.readCueSession();
     if (!session || session.kind !== "admin") return { ok: false as const, error: "Desk only." };
@@ -181,6 +185,8 @@ export const saveMySong = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }) => {
+    const { assertCueSessionSafeRequest } = await import("@/lib/auth/cue-session-guard.server");
+    assertCueSessionSafeRequest();
     const sessionMod = await import("@/lib/cue-session.server");
     const session = await sessionMod.readCueSession();
     if (!session) return { ok: false as const, error: "Log in first." };

@@ -15,13 +15,73 @@ export function withR2Cover(cover: string | undefined, key: string) {
   return `${coverImage(cover)}#r2=${encodeURIComponent(key)}`;
 }
 
+function trackKeyFromAudioUrl(audioUrl?: string): string | null {
+  const raw = (audioUrl ?? "").trim();
+  if (!raw) return null;
+  let key = raw.startsWith("r2:") ? raw.slice(3) : raw;
+  if (!key.startsWith("tracks/")) return null;
+  key = key.split("?")[0]?.split("#")[0] ?? key;
+  return key;
+}
+
 export const requestTrackPlay = createServerFn({ method: "POST" })
   .validator(z.object({ key: z.string().min(1) }))
   .handler(async ({ data }) => {
     try {
+      const { assertCueSessionSafeRequest } = await import("@/lib/auth/cue-session-guard.server");
+      assertCueSessionSafeRequest();
+      const sessionMod = await import("@/lib/cue-session.server");
+      const session = await sessionMod.readCueSession();
+      if (!session) return { ok: false as const, error: "Log in to play tracks." };
+
       const { r2Configured, presign, assertTrackKey } = await import("@/lib/r2.server");
       if (!r2Configured()) return { ok: false as const, error: "R2 is not configured on the server." };
-      const signed = await presign("GET", assertTrackKey(data.key), undefined, 3600);
+      const trackKey = assertTrackKey(data.key);
+
+      const sql = await sessionMod.getSqlSafe();
+      const rows = await sql.query<{ artists: unknown }>(
+        `select artists from cue_studio where id = $1`,
+        ["indie-dream"],
+      );
+      const artists = rows[0]?.artists;
+      const list = Array.isArray(artists)
+        ? artists
+        : typeof artists === "string"
+          ? (JSON.parse(artists) as unknown[])
+          : [];
+
+      let matched: { status: string; artistId: string } | null = null;
+      for (const artist of list) {
+        if (!artist || typeof artist !== "object") continue;
+        const record = artist as Record<string, unknown>;
+        const songs = Array.isArray(record.songs) ? record.songs : [];
+        for (const song of songs) {
+          if (!song || typeof song !== "object") continue;
+          const s = song as Record<string, unknown>;
+          if (trackKeyFromAudioUrl(String(s.audioUrl ?? "")) !== trackKey) continue;
+          matched = {
+            status: String(s.status ?? ""),
+            artistId: String(record.id ?? ""),
+          };
+          break;
+        }
+        if (matched) break;
+      }
+      if (!matched) {
+        return { ok: false as const, error: "Track not found or not available to play." };
+      }
+      const ownsPage =
+        session.account.artistId != null &&
+        String(session.account.artistId) === matched.artistId;
+      if (
+        session.kind !== "admin" &&
+        matched.status !== "approved" &&
+        !ownsPage
+      ) {
+        return { ok: false as const, error: "This track is not available to play." };
+      }
+
+      const signed = await presign("GET", trackKey, undefined, 900);
       return { ok: true as const, url: signed.url };
     } catch (err) {
       return { ok: false as const, error: err instanceof Error ? err.message : "Could not sign playback." };
@@ -37,6 +97,8 @@ export const requestTrackUpload = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     try {
+      const { assertCueSessionSafeRequest } = await import("@/lib/auth/cue-session-guard.server");
+      assertCueSessionSafeRequest();
       const sessionMod = await import("@/lib/cue-session.server");
       const session = await sessionMod.readCueSession();
       const gate = sessionMod.canUploadToArtist(session, data.artistId);

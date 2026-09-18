@@ -86,6 +86,8 @@ export const installFounderStaff = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }) => {
+    const { assertCueSessionSafeRequest } = await import("@/lib/auth/cue-session-guard.server");
+    assertCueSessionSafeRequest();
     const sessionMod = await import("@/lib/cue-session.server");
     const session = await sessionMod.readCueSession();
     sessionMod.requireAdmin(session);

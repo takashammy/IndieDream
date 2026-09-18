@@ -14,6 +14,8 @@ export async function handleTrackUpload(request: Request): Promise<Response> {
   const json = (status: number, body: { ok: false; error: string } | { ok: true; key: string }) =>
     Response.json(body, { status });
 
+  const { assertCueSessionSafeRequest } = await import("@/lib/auth/cue-session-guard.server");
+  assertCueSessionSafeRequest();
   const sessionMod = await import("@/lib/cue-session.server");
   const session = await sessionMod.readCueSession();
   const gate = sessionMod.canUploadToArtist(session, artistId);
