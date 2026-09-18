@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { AreaInput, Confirm, Field, PhotoPick, ScreenHead, SelectInput, Sheet, TextInput, VerifiedMark } from "./chrome";
 import { AUDIO_PICK_ACCEPT, inspectAudioFile } from "@/lib/audio-limits";
 import { putTrackFile, r2KeyFromCover, withR2Cover } from "@/lib/r2";
+import { SongPreview } from "./r2-audio";
 import { LanguageToggle } from "./language-toggle";
 import { ensureOwnArtist } from "@/lib/ensure-artist";
 import { saveMySong } from "@/lib/cue-profile";
@@ -34,6 +35,8 @@ type TrackDraft = {
   writers: string;
   year: string;
   lyrics: string;
+  spotify: string;
+  youtube: string;
   cover: string | null;
   file: File | null;
   fileName: string | null;
@@ -47,6 +50,8 @@ function emptyDraft(): TrackDraft {
     writers: "",
     year: "",
     lyrics: "",
+    spotify: "",
+    youtube: "",
     cover: null,
     file: null,
     fileName: null,
@@ -61,6 +66,8 @@ function draftFromSong(song: Song): TrackDraft {
     writers: song.writers ?? "",
     year: song.year ?? "",
     lyrics: song.lyrics ?? "",
+    spotify: song.spotify ?? "",
+    youtube: song.youtube ?? "",
     cover: song.cover ?? null,
     file: null,
     fileName: null,
@@ -130,6 +137,21 @@ function TrackForm({
       <Field label={t("writers")}><TextInput value={draft.writers} onChange={(e) => setDraft((d) => ({ ...d, writers: e.target.value }))} /></Field>
       <Field label={t("year")}><TextInput value={draft.year} onChange={(e) => setDraft((d) => ({ ...d, year: e.target.value }))} /></Field>
       <Field label={t("lyrics")}><AreaInput rows={6} value={draft.lyrics} onChange={(e) => setDraft((d) => ({ ...d, lyrics: e.target.value }))} placeholder={t("optional")} /></Field>
+      <Field label={t("spotifySong")}>
+        <TextInput type="url" value={draft.spotify} onChange={(e) => setDraft((d) => ({ ...d, spotify: e.target.value }))} placeholder={t("spotifySong")} />
+      </Field>
+      <Field label={t("youtubeSong")}>
+        <TextInput type="url" value={draft.youtube} onChange={(e) => setDraft((d) => ({ ...d, youtube: e.target.value }))} placeholder={t("youtubeSong")} />
+      </Field>
+      {editing ? (
+        <SongPreview
+          song={{
+            ...editing,
+            spotify: draft.spotify.trim() || undefined,
+            youtube: draft.youtube.trim() || undefined,
+          }}
+        />
+      ) : null}
       <p className="text-xs leading-5 text-subtle">{editing ? t("keepCurrentFile") : t("phoneMp3Hint")}</p>
       <label className="relative mt-1 flex h-11 w-full items-center justify-center overflow-hidden rounded-md bg-elevated px-3 text-sm">
         <span className="pointer-events-none truncate">{draft.fileName ?? (editing ? t("replaceMp3") : t("chooseMp3"))}</span>
@@ -234,6 +256,8 @@ export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
     const payload = {
       id: songId,
       cover,
+      spotify: draft.spotify.trim() || undefined,
+      youtube: draft.youtube.trim() || undefined,
       lyrics: draft.lyrics,
       audioUrl: `r2:${put.key}` as const,
       duration: draft.duration,
@@ -247,6 +271,8 @@ export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
           id: songId,
           title: nameOf,
           cover,
+          spotify: draft.spotify.trim() || undefined,
+          youtube: draft.youtube.trim() || undefined,
           lyrics: draft.lyrics,
           audioUrl: `r2:${put.key}`,
           duration: draft.duration,
@@ -305,6 +331,8 @@ export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
     saveSong(song.id, {
       title: nameOf,
       cover,
+      spotify: draft.spotify,
+      youtube: draft.youtube,
       lyrics: draft.lyrics,
       audioUrl,
       duration,
