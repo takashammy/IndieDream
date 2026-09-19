@@ -68,6 +68,7 @@ export function kindLabel(locale: Locale, kind: string) {
   if (kind === "artist") return t(locale, "kindArtist");
   if (kind === "explorer") return t(locale, "kindExplorer");
   if (kind === "business") return t(locale, "kindBusiness");
+  if (kind === "musician") return t(locale, "kindMusician");
   return kind;
 }
 
@@ -104,6 +105,7 @@ export const STORE_ERR: Record<string, Msg> = {
   "That login name is already in use. Please choose another.": "errUsernameTaken",
   "That email is already registered. Please use another or log in.": "errEmailTaken",
   "Name and role are required.": "errNameRole",
+  "Instrument is required.": "errInstrumentRequired",
   "Upload one track so we can review you.": "errUploadTrack",
   "Username or password is wrong.": "errWrong",
   "No account uses that email.": "errNoAccount",

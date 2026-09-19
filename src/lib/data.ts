@@ -1,6 +1,6 @@
 export type LocationArea = "HK Island" | "Kowloon" | "New Territories";
 
-export type AccountKind = "admin" | "artist" | "explorer" | "business";
+export type AccountKind = "admin" | "artist" | "explorer" | "business" | "musician";
 
 export type SongStatus = "approved" | "pending" | "declined";
 
@@ -146,11 +146,20 @@ export const KIND_LABEL: Record<AccountKind, string> = {
   artist: "Artist",
   explorer: "Explorer",
   business: "Business",
+  musician: "Musician",
 };
 
 export function migrateAccountKind(kind: string | undefined): AccountKind {
   if (kind === "listener") return "explorer";
-  if (kind === "admin" || kind === "artist" || kind === "explorer" || kind === "business") return kind;
+  if (
+    kind === "admin" ||
+    kind === "artist" ||
+    kind === "explorer" ||
+    kind === "business" ||
+    kind === "musician"
+  ) {
+    return kind;
+  }
   return "explorer";
 }
 

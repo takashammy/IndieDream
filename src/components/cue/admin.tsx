@@ -679,7 +679,7 @@ function DeskPeople({
   const [kind, setKind] = useState<"all" | AccountKind>("all");
   const t = useT();
   const { locale } = useLocale();
-  const kinds: AccountKind[] = ["artist", "explorer", "business", "admin"];
+  const kinds: AccountKind[] = ["artist", "musician", "explorer", "business", "admin"];
   const query = q.trim().toLowerCase();
   const shown = accounts
     .filter((a) => (kind === "all" ? true : a.kind === kind))

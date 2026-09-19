@@ -49,7 +49,7 @@ const actionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("resolveNotice"), id: z.string(), status: z.enum(["approved", "declined", "completed"]) }),
   z.object({ type: z.literal("deleteArtist"), artistId: z.string() }),
   z.object({ type: z.literal("banUser"), accountId: z.string() }),
-  z.object({ type: z.literal("setAccountKind"), accountId: z.string(), kind: z.enum(["artist", "explorer", "business"]) }),
+  z.object({ type: z.literal("setAccountKind"), accountId: z.string(), kind: z.enum(["artist", "explorer", "business", "musician"]) }),
   z.object({ type: z.literal("addSong"), artistId: z.string(), song: z.any(), notice: noticeSchema.optional() }),
   z.object({ type: z.literal("recordPlay"), artistId: z.string(), songId: z.string() }),
   z.object({ type: z.literal("noteDuration"), artistId: z.string(), songId: z.string(), duration: z.string().min(1).max(12) }),
@@ -64,6 +64,7 @@ const actionSchema = z.discriminatedUnion("type", [
     email: z.string().optional(),
     whatsapp: z.string().optional(),
     name: z.string().optional(),
+    role: z.string().optional(),
     photo: z.string().optional(),
     acceptedUploadTerms: z.boolean().optional(),
   }),
@@ -251,12 +252,14 @@ export const applyStudioAction = createServerFn({ method: "POST" })
             });
           }
           if (notice.kind === "song" && notice.refId) {
-            artists = artists.map((a) => ({
-              ...a,
-              songs: asArray<Record<string, unknown>>(a.songs).map((s) =>
+            artists = artists.map((a) => {
+              const songs = asArray<Record<string, unknown>>(a.songs).map((s) =>
                 String(s.id) === String(notice.refId) ? { ...s, status: "approved" } : s,
-              ),
-            }));
+              );
+              const hasLiveTrack = songs.some((s) => String(s.status) === "approved");
+              if (!songs.some((s) => String(s.id) === String(notice.refId))) return a;
+              return { ...a, songs, verified: hasLiveTrack ? true : a.verified };
+            });
           }
           if (notice.kind === "event" && notice.refId) {
             events = events.map((e) => (String(e.id) === String(notice.refId) ? { ...e, status: "approved" } : e));
@@ -437,6 +440,7 @@ export const applyStudioAction = createServerFn({ method: "POST" })
           if (action.email !== undefined) next.email = action.email;
           if (action.whatsapp !== undefined) next.whatsapp = action.whatsapp;
           if (action.name !== undefined) next.name = action.name;
+          if (action.role !== undefined) next.role = action.role;
           if (action.photo !== undefined) next.photo = action.photo;
           if (action.acceptedUploadTerms !== undefined) next.acceptedUploadTerms = action.acceptedUploadTerms;
           return next;

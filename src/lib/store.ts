@@ -147,7 +147,7 @@ export type CueState = PersistSlice & {
     genre: string;
     label: string;
     bio: string;
-    trackTitle?: string;
+    instrument?: string;
   }) => Promise<string | null>;
   logout: () => void;
   saveLocale: (locale: Locale) => void;
@@ -172,6 +172,7 @@ export type CueState = PersistSlice & {
     whatsapp?: string;
     name?: string;
     photo?: string;
+    instrument?: string;
   }) => void;
   addPendingSong: (
     title: string,
@@ -695,7 +696,9 @@ export const useCue = create<CueState>((set, get) => {
       if (!validEmail(email)) return "Enter a valid email.";
       if (input.kind === "artist") {
         if (!input.name.trim() || !input.role.trim()) return "Name and role are required.";
-        if (!input.trackTitle?.trim()) return "Upload one track so we can review you.";
+      }
+      if (input.kind === "musician" && !input.instrument?.trim()) {
+        return "Instrument is required.";
       }
       try {
         const res = await registerAccount({
@@ -705,7 +708,12 @@ export const useCue = create<CueState>((set, get) => {
             email,
             kind: input.kind,
             name: input.kind === "artist" ? input.name.trim() : name,
-            role: input.kind === "artist" ? input.role.trim() : KIND_LABEL[input.kind],
+            role:
+              input.kind === "artist"
+                ? input.role.trim()
+                : input.kind === "musician"
+                  ? input.instrument!.trim()
+                  : KIND_LABEL[input.kind],
             location: input.location,
             bio: input.bio.trim(),
           },
@@ -725,17 +733,7 @@ export const useCue = create<CueState>((set, get) => {
                 photo: "/media/user.jpg",
                 genres: [input.genre],
                 bio: input.bio.trim(),
-                songs: [
-                  {
-                    id: uid("song"),
-                    title: input.trackTitle!.trim(),
-                    duration: "—",
-                    plays: "0",
-                    cover: "/media/covers/vinyl.jpg",
-                    uploadedAt: new Date().toISOString(),
-                    status: "pending",
-                  },
-                ],
+                songs: [],
                 label: wantsISR ? ISR_LABEL : input.label.trim() || "Independent",
                 labelApproved: false,
                 verified: false,
@@ -744,40 +742,19 @@ export const useCue = create<CueState>((set, get) => {
         const account: Account = {
           ...acc,
           artistId,
-          acceptedUploadTerms: input.kind === "artist" ? true : undefined,
           locale: useLocaleStore.getState().locale,
         };
         const notices = [...get().notices];
-        if (artist) {
+        if (artist && wantsISR) {
           notices.unshift({
             id: uid("n"),
-            kind: "verify",
-            title: `Verify ${artist.name}`,
-            body: `${artist.name} registered as ${artist.role} in ${artist.area} and uploaded “${artist.songs[0]?.title}”.`,
+            kind: "label",
+            title: `Inner Soul stamp — ${artist.name}`,
+            body: `${artist.name} asked to be listed under ${ISR_LABEL}.`,
             status: "pending",
             refId: artist.id,
             createdAt: new Date().toISOString(),
           });
-          notices.unshift({
-            id: uid("n"),
-            kind: "song",
-            title: `Track — ${artist.songs[0]?.title}`,
-            body: `${artist.name} uploaded a first track for review.`,
-            status: "pending",
-            refId: artist.songs[0]!.id,
-            createdAt: new Date().toISOString(),
-          });
-          if (wantsISR) {
-            notices.unshift({
-              id: uid("n"),
-              kind: "label",
-              title: `Inner Soul stamp — ${artist.name}`,
-              body: `${artist.name} asked to be listed under ${ISR_LABEL}.`,
-              status: "pending",
-              refId: artist.id,
-              createdAt: new Date().toISOString(),
-            });
-          }
         }
         set({
           accounts: upsertAccount(get().accounts, account),
@@ -789,6 +766,13 @@ export const useCue = create<CueState>((set, get) => {
           tab: "me",
         });
         persist();
+        if (artist) {
+          pushAction({
+            type: "addArtist",
+            artist,
+            notice: wantsISR ? notices.find((n) => n.kind === "label" && n.refId === artist.id) : undefined,
+          });
+        }
         return null;
       } catch {
         return "Could not reach the server.";
@@ -874,15 +858,27 @@ export const useCue = create<CueState>((set, get) => {
       const whatsapp = patch.whatsapp !== undefined ? patch.whatsapp.trim() : acc.whatsapp;
       const name = patch.name?.trim() || acc.name;
       const photo = patch.photo ?? acc.photo;
+      const role =
+        acc.kind === "musician" && patch.instrument !== undefined
+          ? patch.instrument.trim() || acc.role
+          : acc.role;
       set({
         accounts: get().accounts.map((a) =>
           a.id === acc.id
-            ? { ...a, bio: patch.bio, location: patch.location, email, whatsapp, name, photo }
+            ? { ...a, bio: patch.bio, location: patch.location, email, whatsapp, name, photo, role }
             : a,
         ),
       });
       persist();
-      pushProfile({ name, bio: patch.bio, location: patch.location, email, whatsapp, photo });
+      pushProfile({
+        name,
+        role: acc.kind === "musician" ? role : undefined,
+        bio: patch.bio,
+        location: patch.location,
+        email,
+        whatsapp,
+        photo,
+      });
     },
 
     setProfilePhoto: (photo) => {

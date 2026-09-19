@@ -82,7 +82,7 @@ export const registerAccount = createServerFn({ method: "POST" })
       username: z.string().min(1),
       password: z.string().min(1),
       email: z.string().min(3),
-      kind: z.enum(["artist", "explorer", "business"]),
+      kind: z.enum(["artist", "explorer", "business", "musician"]),
       name: z.string(),
       role: z.string(),
       location: z.enum(["HK Island", "Kowloon", "New Territories"]),
