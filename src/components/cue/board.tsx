@@ -10,6 +10,7 @@ import {
   type BoardReply,
 } from "@/lib/data";
 import { currentAccount, useCue, type Account } from "@/lib/store";
+import { photoImage } from "@/lib/r2";
 import { Button } from "@/components/ui/button";
 import { AreaInput, BackRow, Confirm, Field, ScreenHead, TextInput, VerifiedMark, readLocalImage } from "./chrome";
 import { cn } from "@/lib/utils";
@@ -379,7 +380,7 @@ export function BoardScreen() {
                     onClick={() => openPost(post.id)}
                     className="flex min-w-0 flex-1 gap-3 px-5 py-4 text-left"
                   >
-                    <img src={face.photo} alt="" className="size-12 shrink-0 rounded-md object-cover" />
+                    <img src={photoImage(face.photo)} alt="" className="size-12 shrink-0 rounded-md object-cover" />
                     <div className="min-w-0 flex-1">
                       <p className="cue-kicker text-xs text-accent">
                         {categoryLabel(locale, post.category)}
@@ -588,10 +589,10 @@ function ReplyRow({
             onClick={() => onOpenArtist(face.artistId!)}
             aria-label={t("onRosterAria", { name: item.author })}
           >
-            <img src={face.photo} alt="" className="size-full object-cover" />
+            <img src={photoImage(face.photo)} alt="" className="size-full object-cover" />
           </button>
         ) : (
-          <img src={face.photo} alt="" className="size-10 shrink-0 rounded-md object-cover" />
+          <img src={photoImage(face.photo)} alt="" className="size-10 shrink-0 rounded-md object-cover" />
         )}
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium">

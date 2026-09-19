@@ -265,7 +265,13 @@ function PlainMe() {
     <div className="cue-enter pb-12">
       <ScreenHead kicker={t("you")} title={t("profile")} note={kindLabel(locale, acc.kind)} />
       <div className="flex items-end gap-4 px-5">
-        <PhotoPick src={acc.photo} label={t("changePhoto")} className="size-20 shrink-0" onChange={setProfilePhoto} />
+        <PhotoPick
+          src={acc.photo}
+          label={t("changePhoto")}
+          className="size-20 shrink-0"
+          upload={{ kind: "photo", accountId: acc.id }}
+          onChange={setProfilePhoto}
+        />
         <div className="min-w-0">
           <p className="cue-name font-display text-2xl leading-tight">{acc.name}</p>
           <p className="text-sm text-muted">@{acc.username}</p>

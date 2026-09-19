@@ -2,17 +2,97 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { inspectAudioFile, mp3Filename } from "@/lib/audio-limits";
 
+function stripLegacyCoverSuffix(value: string) {
+  return value.split("#r2=")[0] ?? value;
+}
+
+function r2KeyFromRef(value?: string): string | null {
+  const raw = (value ?? "").trim();
+  if (!raw) return null;
+  if (raw.startsWith("r2:")) return raw.slice(3).split("?")[0]?.split("#")[0] ?? null;
+  if (raw.startsWith("photos/") || raw.startsWith("covers/")) return raw.split("?")[0]?.split("#")[0] ?? raw;
+  return null;
+}
+
+function imageServeUrl(key: string) {
+  return `/api/r2-image?key=${encodeURIComponent(key)}`;
+}
+
+function resolveStoredImage(value: string | undefined, fallback: string) {
+  const raw = (value ?? "").trim();
+  if (!raw) return fallback;
+  const legacy = stripLegacyCoverSuffix(raw);
+  if (legacy.startsWith("data:") || legacy.startsWith("/")) return legacy || fallback;
+  const key = r2KeyFromRef(raw);
+  if (key?.startsWith("photos/") || key?.startsWith("covers/")) return imageServeUrl(key);
+  return legacy || fallback;
+}
+
 export function coverImage(cover?: string) {
-  return (cover ?? "").split("#r2=")[0] || "/media/covers/vinyl.jpg";
+  return resolveStoredImage(cover, "/media/covers/vinyl.jpg");
+}
+
+export function photoImage(photo?: string) {
+  return resolveStoredImage(photo, "/media/user.jpg");
 }
 
 export function r2KeyFromCover(cover?: string) {
-  const raw = (cover ?? "").split("#r2=")[1];
-  return raw ? decodeURIComponent(raw) : null;
+  const legacy = (cover ?? "").split("#r2=")[1];
+  return legacy ? decodeURIComponent(legacy) : null;
 }
 
+export function asR2Image(value?: string) {
+  const raw = value?.trim();
+  if (!raw) return undefined;
+  if (raw.startsWith("r2:")) return raw;
+  if (raw.startsWith("photos/") || raw.startsWith("covers/")) return `r2:${raw}`;
+  return raw;
+}
+
+/** @deprecated Legacy cover+audio coupling — prefer `r2:covers/...` plus `audioUrl`. */
 export function withR2Cover(cover: string | undefined, key: string) {
   return `${coverImage(cover)}#r2=${encodeURIComponent(key)}`;
+}
+
+export type ImageUploadTarget =
+  | { kind: "photo"; accountId: string }
+  | { kind: "cover"; artistId: string; songId: string };
+
+export async function putImageBlob(blob: Blob, target: ImageUploadTarget) {
+  try {
+    const contentType = blob.type.startsWith("image/") ? blob.type : "image/jpeg";
+    const qs =
+      target.kind === "photo"
+        ? `kind=photo&accountId=${encodeURIComponent(target.accountId)}`
+        : `kind=cover&artistId=${encodeURIComponent(target.artistId)}&songId=${encodeURIComponent(target.songId)}`;
+    const res = await fetch(`/api/image-upload?${qs}`, {
+      method: "POST",
+      headers: { "Content-Type": contentType },
+      body: blob,
+    });
+    const json = (await res.json()) as { ok?: boolean; key?: string; error?: string };
+    if (json.ok && json.key) return { ok: true as const, key: json.key };
+    return { ok: false as const, error: json.error || "Could not store the image." };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Could not store the image.",
+    };
+  }
+}
+
+export async function uploadCoverFromDraft(cover: string | null | undefined, artistId: string, songId: string) {
+  const raw = (cover ?? "").trim();
+  if (!raw || !raw.startsWith("data:image/")) return asR2Image(raw || undefined) ?? "/media/covers/vinyl.jpg";
+  const blob = await dataUrlToBlob(raw);
+  const put = await putImageBlob(blob, { kind: "cover", artistId, songId });
+  if (!put.ok) throw new Error(put.error);
+  return `r2:${put.key}`;
+}
+
+async function dataUrlToBlob(dataUrl: string) {
+  const res = await fetch(dataUrl);
+  return res.blob();
 }
 
 function trackKeyFromAudioUrl(audioUrl?: string): string | null {

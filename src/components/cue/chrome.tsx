@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import type { Song } from "@/lib/data";
 import { useCue } from "@/lib/store";
 import { imageReason, useLocale, useT } from "@/lib/i18n";
+import { type ImageUploadTarget, photoImage, putImageBlob, coverImage } from "@/lib/r2";
 
 export function BackRow({ label, onClick }: { label: string; onClick: () => void }) {
   return (
@@ -140,7 +141,7 @@ export function Field({
   );
 }
 
-export async function readLocalImage(file: File, maxEdge = 900, maxBytes = 8 * 1024 * 1024): Promise<string> {
+export async function prepareLocalImageBlob(file: File, maxEdge = 900, maxBytes = 8 * 1024 * 1024): Promise<Blob> {
   if (!file.type.startsWith("image/")) throw new Error("Images only.");
   if (file.size > maxBytes) {
     const mb = Math.round(maxBytes / (1024 * 1024));
@@ -160,7 +161,24 @@ export async function readLocalImage(file: File, maxEdge = 900, maxBytes = 8 * 1
   }
   ctx.drawImage(bitmap, 0, 0, w, h);
   bitmap.close();
-  return canvas.toDataURL("image/jpeg", 0.82);
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Could not read image."))), "image/jpeg", 0.82);
+  });
+  return blob;
+}
+
+async function blobToDataUrl(blob: Blob) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error("Could not read image."));
+    reader.readAsDataURL(blob);
+  });
+}
+
+export async function readLocalImage(file: File, maxEdge = 900, maxBytes = 8 * 1024 * 1024): Promise<string> {
+  const blob = await prepareLocalImageBlob(file, maxEdge, maxBytes);
+  return blobToDataUrl(blob);
 }
 
 export function PhotoPick({
@@ -168,25 +186,32 @@ export function PhotoPick({
   label,
   onChange,
   className,
+  upload,
+  imageKind = "photo",
 }: {
   src: string;
   label: string;
-  onChange: (dataUrl: string) => void;
+  onChange: (ref: string) => void;
   className?: string;
+  upload?: ImageUploadTarget;
+  imageKind?: "photo" | "cover";
 }) {
   const ref = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const { locale } = useLocale();
+  const shown = imageKind === "cover" ? coverImage(src) : photoImage(src);
 
   return (
     <div className="shrink-0">
       <button
         type="button"
         onClick={() => ref.current?.click()}
+        disabled={busy}
         className={cn("relative block overflow-hidden rounded-lg bg-elevated", className)}
         aria-label={label}
       >
-        <img src={src} alt="" className="size-full object-cover" />
+        <img src={shown} alt="" className="size-full object-cover" />
         <span className="absolute bottom-1 right-1 flex size-8 items-center justify-center rounded-md bg-bg/80 text-fg">
           <ImagePlus className="size-3.5" />
         </span>
@@ -200,14 +225,23 @@ export function PhotoPick({
           const file = e.target.files?.[0];
           e.target.value = "";
           if (!file) return;
-          readLocalImage(file)
-            .then((url) => {
+          setBusy(true);
+          prepareLocalImageBlob(file)
+            .then(async (blob) => {
+              if (upload) {
+                const put = await putImageBlob(blob, upload);
+                if (!put.ok) throw new Error(put.error);
+                setError(null);
+                onChange(`r2:${put.key}`);
+                return;
+              }
               setError(null);
-              onChange(url);
+              onChange(await blobToDataUrl(blob));
             })
             .catch((err: unknown) => {
               setError(err instanceof Error ? imageReason(locale, err.message) : imageReason(locale, ""));
-            });
+            })
+            .finally(() => setBusy(false));
         }}
       />
       {error ? <p className="mt-1 text-xs text-accent">{error}</p> : null}

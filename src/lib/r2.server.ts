@@ -51,6 +51,60 @@ export function safeTrackKey(artistId: string, filename: string) {
   return `tracks/${id}/${Date.now()}-${base}`;
 }
 
+export function safePhotoKey(accountId: string) {
+  const id = accountId.replace(/[^a-zA-Z0-9_-]+/g, "-").slice(0, 40) || "user";
+  return `photos/${id}/${Date.now()}.jpg`;
+}
+
+export function safeCoverKey(artistId: string, songId: string) {
+  const artist = artistId.replace(/[^a-zA-Z0-9_-]+/g, "-").slice(0, 40) || "artist";
+  const song = songId.replace(/[^a-zA-Z0-9_-]+/g, "-").slice(0, 40) || "song";
+  return `covers/${artist}/${song}.jpg`;
+}
+
+function normalizeObjectKey(key: string) {
+  let k = key.trim();
+  if (k.startsWith("r2:")) k = k.slice(3);
+  try {
+    k = decodeURIComponent(k);
+  } catch {
+    /* keep raw */
+  }
+  k = k.split("?")[0]?.split("#")[0] ?? k;
+  if (k.startsWith("/")) k = k.slice(1);
+  return k;
+}
+
+export function assertImageKey(key: string) {
+  const k = normalizeObjectKey(key);
+  if ((!k.startsWith("photos/") && !k.startsWith("covers/")) || k.includes("..") || k.includes("//")) {
+    throw new Error("Invalid image key");
+  }
+  return k;
+}
+
+export function publicImageUrl(key: string) {
+  const base = env("R2_PUBLIC_BASE_URL")?.replace(/\/$/, "");
+  if (!base) return null;
+  const k = normalizeObjectKey(key);
+  return `${base}/${k.split("/").map(encodeURIComponent).join("/")}`;
+}
+
+export function parseDataUrl(dataUrl: string) {
+  const match = /^data:(image\/[a-z0-9.+-]+);base64,(.+)$/i.exec(dataUrl.trim());
+  if (!match) throw new Error("Invalid image data URL");
+  const contentType = match[1].toLowerCase() === "image/png" ? "image/png" : "image/jpeg";
+  const buf = Uint8Array.from(atob(match[2]), (c) => c.charCodeAt(0));
+  return { buf, contentType };
+}
+
+export async function migrateDataUrlToR2(dataUrl: string, key: string) {
+  if (!r2Configured()) return dataUrl;
+  const { buf, contentType } = parseDataUrl(dataUrl);
+  await putObject(key, buf, contentType);
+  return `r2:${key}`;
+}
+
 export function assertTrackKey(key: string) {
   let k = key.trim();
   if (k.startsWith("r2:")) k = k.slice(3);

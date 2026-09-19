@@ -10,6 +10,7 @@ import {
   type Song,
 } from "@/lib/data";
 import { currentAccount, useCue } from "@/lib/store";
+import { coverImage, photoImage } from "@/lib/r2";
 import { ScreenHead, TrackSheet, VerifiedMark } from "./chrome";
 import { eventDateParts, useLocale, useT, weekdayLabel } from "@/lib/i18n";
 
@@ -80,7 +81,7 @@ export function HomeScreen() {
               onClick={() => openArtist(artist.id)}
               className="bg-bg p-2 text-left"
             >
-              <img src={artist.photo} alt="" className="aspect-[3/4] w-full object-cover" />
+              <img src={photoImage(artist.photo)} alt="" className="aspect-[3/4] w-full object-cover" />
               <p className="mt-2 flex items-center gap-1 font-display text-sm leading-tight">
                 <span className="min-w-0 truncate">{artist.name}</span>
                 {artist.verified ? <VerifiedMark className="size-3" /> : null}
@@ -111,7 +112,7 @@ export function HomeScreen() {
                     onClick={() => setOpenTrack({ song, artistName: artist.name, artistId: artist.id })}
                     className="flex min-w-0 flex-1 items-center gap-3 text-left"
                   >
-                    <img src={song.cover} alt="" className="size-12 shrink-0 rounded-sm object-cover" />
+                    <img src={coverImage(song.cover)} alt="" className="size-12 shrink-0 rounded-sm object-cover" />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">{song.title}</p>
                       <p className="truncate text-xs text-muted">{artist.name}</p>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { APP_NAME, isISR, catalogVisible, shufflePick, type Artist } from "@/lib/data";
 import { useCue } from "@/lib/store";
+import { photoImage } from "@/lib/r2";
 import { ScreenHead, VerifiedMark } from "./chrome";
 import { useT } from "@/lib/i18n";
 
@@ -55,7 +56,7 @@ function CatalogGrid({ artists }: { artists: Artist[] }) {
           className="bg-bg p-3 text-left"
         >
           <div className="aspect-[3/4] overflow-hidden">
-            <img src={artist.photo} alt="" className="size-full object-cover" />
+            <img src={photoImage(artist.photo)} alt="" className="size-full object-cover" />
           </div>
           <p className="mt-3 cue-kicker text-xs text-accent">{artist.role}</p>
           <p className="cue-name mt-1 flex items-center gap-1.5 font-display text-xl leading-tight">

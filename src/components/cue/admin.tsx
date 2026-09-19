@@ -13,6 +13,7 @@ import {
   type CueEvent,
 } from "@/lib/data";
 import { currentAccount, useCue, type Account, type Notice } from "@/lib/store";
+import { photoImage } from "@/lib/r2";
 import { scrollMainToTop } from "@/lib/scroll-main";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -726,7 +727,7 @@ function DeskPeople({
             return (
               <li key={user.id} className="border-t border-line">
                 <button type="button" onClick={() => onOpen(user.id)} className="flex w-full items-center gap-3 px-5 py-4 text-left">
-                  <img src={user.photo} alt="" className="size-12 rounded-md object-cover" />
+                  <img src={photoImage(user.photo)} alt="" className="size-12 rounded-md object-cover" />
                   <div className="min-w-0 flex-1">
                     <p className="flex items-center gap-1.5 truncate font-medium">
                       {user.name}
@@ -807,7 +808,7 @@ function DeskRoster({
                     onClick={() => (acc ? onOpenUser(acc.id) : onOpenArtist(artist.id))}
                     className="flex min-w-0 flex-1 items-center gap-3 text-left"
                   >
-                    <img src={artist.photo} alt="" className="size-12 rounded-md object-cover" />
+                    <img src={photoImage(artist.photo)} alt="" className="size-12 rounded-md object-cover" />
                     <div className="min-w-0">
                       <p className="flex items-center gap-1.5 truncate font-medium">
                         {artist.name}
@@ -996,7 +997,7 @@ function AdminUserProfile({
     <div className="cue-enter pb-12">
       <BackRow label={t("people")} onClick={onBack} />
       <div className="flex items-end gap-4 px-5 pt-2">
-        <img src={user.photo} alt="" className="size-20 rounded-lg object-cover" />
+        <img src={photoImage(user.photo)} alt="" className="size-20 rounded-lg object-cover" />
         <div>
           <p className="cue-name flex items-center gap-1.5 font-display text-2xl leading-tight">
             {user.name}

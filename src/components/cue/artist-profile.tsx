@@ -3,7 +3,7 @@ import { ChevronLeft, MapPin, Play } from "lucide-react";
 import { APP_NAME, ISR_LABEL, claimsISR, eventsForArtist, isISR, liveSongs, type Song } from "@/lib/data";
 import { currentAccount, useCue } from "@/lib/store";
 import { Button } from "@/components/ui/button";
-import { coverImage } from "@/lib/r2";
+import { coverImage, photoImage } from "@/lib/r2";
 import { grantArtistIsr } from "@/lib/cue-profile";
 import { Confirm, SocialPair, TrackSheet, VerifiedMark } from "./chrome";
 import { eventDateLabel, genreLabel, useLocale, useT, weekdayLabel } from "@/lib/i18n";
@@ -71,7 +71,7 @@ export function ArtistProfile({ id }: { id: string }) {
   return (
     <div className="cue-enter pb-24">
       <div className="relative h-[52vh] min-h-72">
-        <img src={artist.photo} alt="" className="absolute inset-0 size-full object-cover" />
+        <img src={photoImage(artist.photo)} alt="" className="absolute inset-0 size-full object-cover" />
         <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, color-mix(in oklab, var(--bg) 35%, transparent) 0%, transparent 30%, color-mix(in oklab, var(--bg) 92%, transparent) 100%)" }} />
         <button type="button" onClick={closeArtist} className="absolute left-3 top-3 z-20 flex size-11 items-center justify-center rounded-md bg-bg/70 text-fg backdrop-blur-sm" aria-label={t("backToRoster")}>
           <ChevronLeft className="size-5" />
@@ -132,7 +132,7 @@ export function ArtistProfile({ id }: { id: string }) {
             {gigs.map((gig) => (
               <li key={gig.id}>
                 <button type="button" onClick={() => openEvent(gig.id)} className="flex w-full items-center gap-3 rounded-lg bg-surface p-3 text-left">
-                  <img src={gig.photo} alt="" className="size-14 shrink-0 rounded-md object-cover" />
+                  <img src={photoImage(gig.photo)} alt="" className="size-14 shrink-0 rounded-md object-cover" />
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">{gig.title}</p>
                     <p className="text-xs text-muted">{weekdayLabel(locale, gig.weekday)} {eventDateLabel(locale, gig.date)} · {gig.venue}</p>

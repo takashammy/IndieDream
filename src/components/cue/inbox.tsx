@@ -1,7 +1,7 @@
 import { whatsappHref } from "@/lib/data";
 import { currentAccount, useCue, type Notice } from "@/lib/store";
 import { Button } from "@/components/ui/button";
-import { coverImage } from "@/lib/r2";
+import { coverImage, photoImage } from "@/lib/r2";
 import { Sheet } from "./chrome";
 import { SongPreview } from "./r2-audio";
 import { eventDateLabel, fieldLabel, fieldValue, locationLabel, noticeKindLabel, songStatusLabel, useLocale, useT, weekdayLabel } from "@/lib/i18n";
@@ -81,7 +81,7 @@ export function NoticeSheet({
       ) : null}
       {artist ? (
         <div className="mt-4 flex gap-3 rounded-md bg-surface p-3">
-          <img src={artist.photo} alt="" className="size-14 rounded-md object-cover" />
+          <img src={photoImage(artist.photo)} alt="" className="size-14 rounded-md object-cover" />
           <div>
             <p className="font-medium">{artist.name}</p>
             <p className="text-xs text-muted">{artist.role} · {locationLabel(locale, artist.area)}</p>

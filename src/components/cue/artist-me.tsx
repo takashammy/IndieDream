@@ -4,7 +4,7 @@ import { currentAccount, currentArtist, useCue } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { AreaInput, Confirm, Field, PhotoPick, ScreenHead, SelectInput, Sheet, TextInput, VerifiedMark } from "./chrome";
 import { AUDIO_PICK_ACCEPT, inspectAudioFile } from "@/lib/audio-limits";
-import { putTrackFile, r2KeyFromCover, withR2Cover } from "@/lib/r2";
+import { putTrackFile, uploadCoverFromDraft } from "@/lib/r2";
 import { SongPreview } from "./r2-audio";
 import { LanguageToggle } from "./language-toggle";
 import { ensureOwnArtist } from "@/lib/ensure-artist";
@@ -125,7 +125,13 @@ function TrackForm({
       }}
     >
       <div className="flex items-start gap-3">
-        <PhotoPick src={draft.cover ?? "/media/covers/vinyl.jpg"} label={t("chooseCover")} className="size-16 shrink-0" onChange={(cover) => setDraft((d) => ({ ...d, cover }))} />
+        <PhotoPick
+          src={draft.cover ?? "/media/covers/vinyl.jpg"}
+          label={t("chooseCover")}
+          className="size-16 shrink-0"
+          imageKind="cover"
+          onChange={(cover) => setDraft((d) => ({ ...d, cover }))}
+        />
         <p className="pt-1 text-xs leading-5 text-subtle">{t("coverHint")}</p>
       </div>
       <Field label={t("trackTitle")}><TextInput value={draft.title} onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))} required /></Field>
@@ -251,8 +257,15 @@ export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
       setFileError(put.error);
       return;
     }
-    const cover = withR2Cover(draft.cover ?? undefined, put.key);
     const songId = `song-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+    let cover: string;
+    try {
+      cover = await uploadCoverFromDraft(draft.cover, artistId, songId);
+    } catch (err) {
+      setBusy(false);
+      setFileError(err instanceof Error ? err.message : t("couldNotRead"));
+      return;
+    }
     const payload = {
       id: songId,
       cover,
@@ -326,7 +339,13 @@ export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
         return;
       }
       audioUrl = `r2:${put.key}`;
-      cover = withR2Cover(cover, put.key);
+      try {
+        cover = await uploadCoverFromDraft(cover, artistId, song.id);
+      } catch (err) {
+        setBusy(false);
+        setFileError(err instanceof Error ? err.message : t("couldNotRead"));
+        return;
+      }
     }
     saveSong(song.id, {
       title: nameOf,
@@ -355,7 +374,13 @@ export function ArtistMe({ embedded = false }: { embedded?: boolean }) {
         </p>
       ) : null}
       <div className="flex items-end gap-4 px-5">
-        <PhotoPick src={artist?.photo ?? acc.photo} label={t("changePhoto")} className="size-20 shrink-0" onChange={setProfilePhoto} />
+        <PhotoPick
+          src={artist?.photo ?? acc.photo}
+          label={t("changePhoto")}
+          className="size-20 shrink-0"
+          upload={{ kind: "photo", accountId: acc.id }}
+          onChange={setProfilePhoto}
+        />
         <div className="min-w-0">
           <p className="cue-name flex items-center gap-1.5 font-display text-2xl leading-tight">{artist?.name ?? acc.name}{artist?.verified ? <VerifiedMark /> : null}</p>
           <p className="text-sm text-muted">{artist?.role} · {artist?.area ? locationLabel(locale, artist.area) : ""}</p>

@@ -12,7 +12,13 @@ function livePool(artists: ReturnType<typeof useCue.getState>["artists"], accoun
   const session = currentAccount(useCue.getState());
   return artists.filter((a) => catalogVisible(a, accounts) || (session && session.artistId === a.id)).flatMap((artist) => {
     const own = session && (session.kind === "admin" || session.artistId === artist.id);
-    const songs = own ? artist.songs.filter((s) => s.status !== "declined" && (s.audioUrl || s.cover?.includes("#r2="))) : liveSongs(artist);
+    const songs = own
+      ? artist.songs.filter(
+          (s) =>
+            s.status !== "declined" &&
+            (s.audioUrl || s.cover?.includes("#r2=") || s.cover?.startsWith("r2:covers/") || s.cover?.startsWith("covers/")),
+        )
+      : liveSongs(artist);
     return songs.map((song) => ({ song, artistName: artist.name, artistId: artist.id }));
   });
 }

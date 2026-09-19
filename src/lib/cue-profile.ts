@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { ISR_LABEL, claimsISR } from "@/lib/data";
+import { asR2Image } from "@/lib/r2";
 
 const STUDIO_ID = "indie-dream";
 
@@ -67,7 +68,11 @@ export const saveMyProfile = createServerFn({ method: "POST" })
     if (data.bio !== undefined) acc.bio = data.bio;
     if (email) acc.email = email;
     if (data.whatsapp !== undefined) acc.whatsapp = data.whatsapp.trim();
-    if (data.photo !== undefined) acc.photo = data.photo;
+    if (data.photo !== undefined) {
+      const { maybeMigrateStoredImage } = await import("@/lib/image-upload.server");
+      const { safePhotoKey } = await import("@/lib/r2.server");
+      acc.photo = await maybeMigrateStoredImage(data.photo, () => safePhotoKey(session.accountId));
+    }
 
     const canHaveArtist = acc.kind === "artist" || acc.kind === "admin";
     let artistId = acc.artistId ? String(acc.artistId) : "";
@@ -238,12 +243,17 @@ export const saveMySong = createServerFn({ method: "POST" })
     const live = session.kind === "admin";
     const clock = (data.duration || "").trim();
     const lyricsIn = data.lyrics?.trim() || "";
+    const { maybeMigrateStoredImage } = await import("@/lib/image-upload.server");
+    const { safeCoverKey } = await import("@/lib/r2.server");
+    const rawCover = data.cover || "/media/covers/vinyl.jpg";
+    const migratedCover = await maybeMigrateStoredImage(rawCover, () => safeCoverKey(artistId, data.id));
+    const cover = asR2Image(migratedCover) ?? "/media/covers/vinyl.jpg";
     const song = {
       id: data.id,
       title: data.title.trim(),
       duration: clock && clock !== "—" ? clock : "—",
       plays: "0",
-      cover: data.cover || "/media/covers/vinyl.jpg",
+      cover,
       uploadedAt: new Date().toISOString(),
       status: live ? "approved" : "pending",
       lyrics: lyricsIn || undefined,

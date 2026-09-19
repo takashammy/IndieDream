@@ -1,6 +1,7 @@
 import { ChevronLeft } from "lucide-react";
 import { APP_NAME, artistsByGenre, genresFromCatalog, catalogVisible } from "@/lib/data";
 import { useCue } from "@/lib/store";
+import { photoImage } from "@/lib/r2";
 import { ScreenHead, VerifiedMark } from "./chrome";
 import { genreLabel, useLocale, useT } from "@/lib/i18n";
 
@@ -52,7 +53,7 @@ export function DiscoverScreen() {
           {people.map((artist) => (
             <li key={artist.id} className="border-t border-line">
               <button type="button" onClick={() => openArtist(artist.id)} className="flex w-full items-center gap-3 px-5 py-3 text-left">
-                <img src={artist.photo} alt="" className="size-14 object-cover" />
+                <img src={photoImage(artist.photo)} alt="" className="size-14 object-cover" />
                 <div>
                   <p className="cue-name flex items-center gap-1.5 font-display text-xl leading-tight">
                     {artist.name}

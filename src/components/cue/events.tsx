@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ChevronLeft, Clock, MapPin, Plus } from "lucide-react";
 import { APP_NAME, catalogVisible, type LocationArea, LOCATIONS } from "@/lib/data";
 import { currentAccount, currentArtist, useCue } from "@/lib/store";
+import { photoImage } from "@/lib/r2";
 import { Button } from "@/components/ui/button";
 import { AreaInput, Confirm, Field, ScreenHead, SelectInput, TextInput, Sheet, VerifiedMark } from "./chrome";
 import { eventDateParts, locationLabel, useLocale, useT, weekdayLabel } from "@/lib/i18n";
@@ -30,7 +31,7 @@ export function EventsScreen() {
     return (
       <div className="cue-enter pb-8">
         <div className="relative h-[42vh] min-h-56">
-          <img src={selected.photo} alt="" className="absolute inset-0 size-full object-cover" />
+          <img src={photoImage(selected.photo)} alt="" className="absolute inset-0 size-full object-cover" />
           <div
             className="absolute inset-0"
             style={{
@@ -72,7 +73,7 @@ export function EventsScreen() {
                   onClick={() => openArtist(artist.id)}
                   className="flex w-full items-center gap-3 rounded-lg bg-surface p-3 text-left"
                 >
-                  <img src={artist.photo} alt="" className="size-12 rounded-md object-cover" />
+                  <img src={photoImage(artist.photo)} alt="" className="size-12 rounded-md object-cover" />
                   <div>
                     <p className="cue-name flex items-center gap-1.5 font-display text-lg leading-tight">
                       {artist.name}
@@ -122,7 +123,7 @@ export function EventsScreen() {
                   <p className="text-xs text-muted">{parts.month}</p>
                 </div>
                 <div>
-                  <img src={event.photo} alt="" className="mb-3 h-28 w-full rounded-md object-cover" />
+                  <img src={photoImage(event.photo)} alt="" className="mb-3 h-28 w-full rounded-md object-cover" />
                   <p className="cue-name font-display text-xl leading-tight">{event.title}</p>
                   <p className="mt-1 text-sm text-muted">
                     {event.time} · {event.venue}
