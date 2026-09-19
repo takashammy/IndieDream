@@ -1,4 +1,4 @@
-#!/usr/bin/env node --experimental-strip-types
+#!/usr/bin/env node
 /**
  * One-off migration: inline data:image/ profile photos and cover art in cue_studio
  * JSON → Cloudflare R2 object keys (stored as r2:photos/... and r2:covers/...).
@@ -6,10 +6,10 @@
  * Usage:
  *   DATABASE_URL=... R2_ACCOUNT_ID=... R2_ACCESS_KEY_ID=... \
  *   R2_SECRET_ACCESS_KEY=... R2_BUCKET_NAME=... \
- *   node --experimental-strip-types scripts/migrate-images-to-r2.mjs
+ *   node scripts/migrate-images-to-r2.mjs
  *
  * Dry run (no writes):
- *   ... node --experimental-strip-types scripts/migrate-images-to-r2.mjs --dry-run
+ *   ... node scripts/migrate-images-to-r2.mjs --dry-run
  */
 import pg from "pg";
 import {
@@ -17,7 +17,7 @@ import {
   r2Configured,
   safeCoverKey,
   safePhotoKey,
-} from "../src/lib/r2.server.ts";
+} from "./r2-migrate-lib.mjs";
 
 const STUDIO_ID = "indie-dream";
 const dryRun = process.argv.includes("--dry-run");
