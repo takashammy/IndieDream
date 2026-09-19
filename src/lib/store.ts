@@ -605,21 +605,22 @@ export const useCue = create<CueState>((set, get) => {
       }
       const prevId = get().nowPlaying?.song.id;
       const isNew = prevId !== np.song.id;
-      let artists = get().artists;
-      let song = np.song;
+      const song = isNew
+        ? { ...np.song, plays: formatPlays(parsePlays(np.song.plays) + 1) }
+        : np.song;
+      set({ nowPlaying: { ...np, song }, playing: true });
       if (isNew) {
-        const plays = formatPlays(parsePlays(np.song.plays) + 1);
-        song = { ...np.song, plays };
-        artists = artists.map((a) =>
-          a.id !== np.artistId
-            ? a
-            : { ...a, songs: a.songs.map((s) => (s.id === np.song.id ? { ...s, plays } : s)) },
-        );
-      }
-      set({ artists, nowPlaying: { ...np, song }, playing: true });
-      if (isNew) {
-        persist();
-        pushAction({ type: "recordPlay", artistId: np.artistId, songId: np.song.id });
+        queueMicrotask(() => {
+          set({
+            artists: get().artists.map((a) =>
+              a.id !== np.artistId
+                ? a
+                : { ...a, songs: a.songs.map((s) => (s.id === np.song.id ? { ...s, plays: song.plays } : s)) },
+            ),
+          });
+          persist();
+          pushAction({ type: "recordPlay", artistId: np.artistId, songId: np.song.id });
+        });
       }
     },
     togglePlay: () => {

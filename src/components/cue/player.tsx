@@ -5,7 +5,7 @@ import { currentAccount, useCue, type NowPlaying } from "@/lib/store";
 import { coverImage } from "@/lib/r2";
 import { formatClock } from "@/lib/audio-limits";
 import { useT } from "@/lib/i18n";
-import { useSongSrc } from "./r2-audio";
+import { preloadSongSrc, useSongSrc } from "./r2-audio";
 import { TrackSheet } from "./chrome";
 
 function livePool(artists: ReturnType<typeof useCue.getState>["artists"], accounts: ReturnType<typeof useCue.getState>["accounts"]) {
@@ -59,8 +59,21 @@ export function Player() {
   }, [nowPlaying?.song.id, playing]);
 
   useEffect(() => {
+    if (!shown) return;
+    preloadSongSrc(shown.song);
+    let exclude = shown.song.id;
+    for (let i = 0; i < 2; i += 1) {
+      const candidate = pickUnheard(artists, accounts, heardRef.current, exclude);
+      if (!candidate) break;
+      preloadSongSrc(candidate.song);
+      exclude = candidate.song.id;
+    }
+  }, [shown?.song.id, artists, accounts]);
+
+  useEffect(() => {
     const el = audioRef.current;
     if (!el || !src) return;
+    el.load();
     if (playing) void el.play().catch(() => undefined);
     else el.pause();
   }, [playing, src]);
@@ -76,6 +89,7 @@ export function Player() {
   function onNext() {
     const next = pickUnheard(artists, accounts, heardRef.current, shown?.song.id);
     if (!next) return;
+    audioRef.current?.pause();
     setIdle(next);
     if (playing || nowPlaying) play(next);
   }
@@ -116,14 +130,21 @@ export function Player() {
         >
           {playing ? <Pause className="size-4" fill="currentColor" /> : <Play className="size-4 translate-x-px" fill="currentColor" />}
         </button>
-        <button type="button" onClick={onNext} disabled={!shown} className="flex size-11 shrink-0 items-center justify-center text-fg disabled:opacity-40" aria-label={t("nextTrack")}>
+        <button
+          type="button"
+          onClick={onNext}
+          disabled={!shown}
+          className="flex size-11 shrink-0 items-center justify-center text-fg transition-transform active:scale-90 disabled:opacity-40"
+          aria-label={t("nextTrack")}
+        >
           <SkipForward className="size-4" />
         </button>
       </div>
-      {src ? (
+      {nowPlaying ? (
         <audio
           ref={audioRef}
-          src={src}
+          src={src ?? undefined}
+          preload="auto"
           className="hidden"
           onEnded={() => {
             if (useCue.getState().playing) togglePlay();

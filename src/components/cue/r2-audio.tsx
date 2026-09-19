@@ -21,40 +21,82 @@ function objectKey(song: Song) {
   return null;
 }
 
-export function useSongSrc(song?: Song | null) {
-  const [src, setSrc] = useState<string | null>(null);
-  useEffect(() => {
-    let alive = true;
-    async function resolve() {
-      if (!song) {
-        if (alive) setSrc(null);
-        return;
+function cacheKey(song: Song) {
+  const key = objectKey(song);
+  return key ? `r2:${key}` : song.id;
+}
+
+const srcCache = new Map<string, { url: string; expires: number }>();
+const CACHE_TTL_MS = 840_000; // presigned URLs last ~15 min
+
+function readCache(song: Song) {
+  const hit = srcCache.get(cacheKey(song));
+  if (hit && hit.expires > Date.now()) return hit.url;
+  return null;
+}
+
+function writeCache(song: Song, url: string) {
+  srcCache.set(cacheKey(song), { url, expires: Date.now() + CACHE_TTL_MS });
+}
+
+export async function resolveSongSrc(song: Song): Promise<string | null> {
+  const cached = readCache(song);
+  if (cached) return cached;
+
+  const direct = httpUrl(song.audioUrl);
+  if (direct) {
+    writeCache(song, direct);
+    return direct;
+  }
+
+  const key = objectKey(song);
+  if (key) {
+    try {
+      const play = await requestTrackPlay({ data: { key } });
+      if (play.ok) {
+        writeCache(song, play.url);
+        return play.url;
       }
-      const direct = httpUrl(song.audioUrl);
-      if (direct) {
-        if (alive) setSrc(direct);
-        return;
-      }
-      const key = objectKey(song);
-      if (key) {
-        try {
-          const play = await requestTrackPlay({ data: { key } });
-          if (alive && play.ok) {
-            setSrc(play.url);
-            return;
-          }
-        } catch {
-          /* fall through */
-        }
-      }
-      const local = await recallAudio(song.id);
-      if (alive) setSrc(local);
+    } catch {
+      /* fall through */
     }
-    void resolve();
+  }
+
+  const local = await recallAudio(song.id);
+  if (local) writeCache(song, local);
+  return local;
+}
+
+export function preloadSongSrc(song: Song) {
+  if (readCache(song)) return;
+  void resolveSongSrc(song);
+}
+
+export function useSongSrc(song?: Song | null) {
+  const [src, setSrc] = useState<string | null>(() => (song ? readCache(song) : null));
+
+  useEffect(() => {
+    if (!song) {
+      setSrc(null);
+      return;
+    }
+
+    const cached = readCache(song);
+    if (cached) {
+      setSrc(cached);
+      return;
+    }
+
+    setSrc(null);
+    let alive = true;
+    void resolveSongSrc(song).then((url) => {
+      if (alive) setSrc(url);
+    });
     return () => {
       alive = false;
     };
   }, [song?.id, song?.cover, song?.audioUrl]);
+
   return src;
 }
 
