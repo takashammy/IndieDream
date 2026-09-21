@@ -48,6 +48,8 @@ export function Player() {
   const play = useCue((s) => s.play);
   const togglePlay = useCue((s) => s.togglePlay);
   const rememberDuration = useCue((s) => s.rememberDuration);
+  const setContinuousPlayLoop = useCue((s) => s.setContinuousPlayLoop);
+  const session = useCue((s) => currentAccount(s));
   const [idle, setIdle] = useState<NowPlaying | null>(null);
   const [openTrack, setOpenTrack] = useState(false);
   const heardRef = useRef<Set<string>>(new Set());
@@ -55,6 +57,9 @@ export function Player() {
   const src = useSongSrc(nowPlaying?.song);
   const audioRef = useRef<HTMLAudioElement>(null);
   const t = useT();
+
+  const canLoop = session?.kind === "business" && session.allowContinuousPlay === true;
+  const loopOn = canLoop && session?.continuousPlayLoop === true;
 
   useEffect(() => {
     setIdle((current) => current ?? pickUnheard(artists, accounts, heardRef.current));
@@ -100,51 +105,75 @@ export function Player() {
     if (playing || nowPlaying) play(next);
   }
 
+  function onEnded() {
+    if (!useCue.getState().playing) return;
+    const acc = currentAccount(useCue.getState());
+    const keepGoing = acc?.kind === "business" && acc.allowContinuousPlay === true && acc.continuousPlayLoop === true;
+    if (keepGoing) {
+      onNext();
+      return;
+    }
+    togglePlay();
+  }
+
   return (
     <div className="border-b border-line bg-bg/95 px-5 py-3 backdrop-blur-md">
-      <div className="mx-auto flex max-w-lg items-center gap-3 rounded-lg bg-elevated p-3">
-        {shown ? (
+      <div className="mx-auto flex max-w-lg flex-col gap-2">
+        <div className="flex items-center gap-3 rounded-lg bg-elevated p-3">
+          {shown ? (
+            <button
+              type="button"
+              onClick={() => setOpenTrack(true)}
+              className="flex min-w-0 flex-1 items-center gap-3 text-left"
+              aria-label={`${t("lyricsFor")} ${shown.song.title}`}
+            >
+              <img src={coverImage(shown.song.cover)} alt="" className="size-14 shrink-0 rounded-md object-cover" />
+              <div className="min-w-0 flex-1">
+                <p className="cue-kicker text-xs text-muted">{playing ? t("nowPlaying") : t("randomRoster")}</p>
+                <p className="truncate font-medium leading-tight">{shown.song.title}</p>
+                <p className="truncate text-xs text-muted">{shown.artistName}</p>
+              </div>
+            </button>
+          ) : (
+            <>
+              <div className="size-14 shrink-0 rounded-md bg-surface" />
+              <div className="min-w-0 flex-1">
+                <p className="cue-kicker text-xs text-muted">{t("randomRoster")}</p>
+                <p className="truncate font-medium leading-tight">{t("nothingLive")}</p>
+                <p className="truncate text-xs text-muted">Inner Soul Records</p>
+              </div>
+            </>
+          )}
           <button
             type="button"
-            onClick={() => setOpenTrack(true)}
-            className="flex min-w-0 flex-1 items-center gap-3 text-left"
-            aria-label={`${t("lyricsFor")} ${shown.song.title}`}
+            onClick={onPlayPause}
+            disabled={!shown}
+            className="flex size-11 shrink-0 items-center justify-center rounded-md bg-accent text-accent-fg disabled:opacity-40"
+            aria-label={playing ? t("pause") : t("play")}
           >
-            <img src={coverImage(shown.song.cover)} alt="" className="size-14 shrink-0 rounded-md object-cover" />
-            <div className="min-w-0 flex-1">
-              <p className="cue-kicker text-xs text-muted">{playing ? t("nowPlaying") : t("randomRoster")}</p>
-              <p className="truncate font-medium leading-tight">{shown.song.title}</p>
-              <p className="truncate text-xs text-muted">{shown.artistName}</p>
-            </div>
+            {playing ? <Pause className="size-4" fill="currentColor" /> : <Play className="size-4 translate-x-px" fill="currentColor" />}
           </button>
-        ) : (
-          <>
-            <div className="size-14 shrink-0 rounded-md bg-surface" />
-            <div className="min-w-0 flex-1">
-              <p className="cue-kicker text-xs text-muted">{t("randomRoster")}</p>
-              <p className="truncate font-medium leading-tight">{t("nothingLive")}</p>
-              <p className="truncate text-xs text-muted">Inner Soul Records</p>
-            </div>
-          </>
-        )}
-        <button
-          type="button"
-          onClick={onPlayPause}
-          disabled={!shown}
-          className="flex size-11 shrink-0 items-center justify-center rounded-md bg-accent text-accent-fg disabled:opacity-40"
-          aria-label={playing ? t("pause") : t("play")}
-        >
-          {playing ? <Pause className="size-4" fill="currentColor" /> : <Play className="size-4 translate-x-px" fill="currentColor" />}
-        </button>
-        <button
-          type="button"
-          onClick={onNext}
-          disabled={!shown}
-          className="flex size-11 shrink-0 items-center justify-center text-fg transition-transform active:scale-90 disabled:opacity-40"
-          aria-label={t("nextTrack")}
-        >
-          <SkipForward className="size-4" />
-        </button>
+          <button
+            type="button"
+            onClick={onNext}
+            disabled={!shown}
+            className="flex size-11 shrink-0 items-center justify-center text-fg transition-transform active:scale-90 disabled:opacity-40"
+            aria-label={t("nextTrack")}
+          >
+            <SkipForward className="size-4" />
+          </button>
+        </div>
+        {canLoop ? (
+          <label className="flex items-center gap-2 px-1 text-xs text-muted">
+            <input
+              type="checkbox"
+              className="size-3.5 accent-current"
+              checked={loopOn}
+              onChange={(e) => setContinuousPlayLoop(e.target.checked)}
+            />
+            <span>{t("continuousPlayLoop")}</span>
+          </label>
+        ) : null}
       </div>
       {nowPlaying ? (
         <audio
@@ -152,9 +181,7 @@ export function Player() {
           src={src ?? undefined}
           preload="auto"
           className="hidden"
-          onEnded={() => {
-            if (useCue.getState().playing) togglePlay();
-          }}
+          onEnded={onEnded}
           onLoadedMetadata={() => {
             const el = audioRef.current;
             const np = useCue.getState().nowPlaying;

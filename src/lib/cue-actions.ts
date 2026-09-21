@@ -50,6 +50,7 @@ const actionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("deleteArtist"), artistId: z.string() }),
   z.object({ type: z.literal("banUser"), accountId: z.string() }),
   z.object({ type: z.literal("setAccountKind"), accountId: z.string(), kind: z.enum(["artist", "explorer", "business", "musician"]) }),
+  z.object({ type: z.literal("setAllowContinuousPlay"), accountId: z.string(), allow: z.boolean() }),
   z.object({ type: z.literal("addSong"), artistId: z.string(), song: z.any(), notice: noticeSchema.optional() }),
   z.object({ type: z.literal("recordPlay"), artistId: z.string(), songId: z.string() }),
   z.object({ type: z.literal("noteDuration"), artistId: z.string(), songId: z.string(), duration: z.string().min(1).max(12) }),
@@ -67,6 +68,7 @@ const actionSchema = z.discriminatedUnion("type", [
     role: z.string().optional(),
     photo: z.string().optional(),
     acceptedUploadTerms: z.boolean().optional(),
+    continuousPlayLoop: z.boolean().optional(),
   }),
   z.object({
     type: z.literal("patchProfile"),
@@ -301,9 +303,25 @@ export const applyStudioAction = createServerFn({ method: "POST" })
       }
       case "setAccountKind": {
         if (!admin) return deny("Desk only.");
-        accounts = accounts.map((a) =>
-          String(a.id) === action.accountId && a.kind !== "admin" ? { ...a, kind: action.kind } : a,
-        );
+        accounts = accounts.map((a) => {
+          if (String(a.id) !== action.accountId || a.kind === "admin") return a;
+          const next: Record<string, unknown> = { ...a, kind: action.kind };
+          if (action.kind !== "business") {
+            next.allowContinuousPlay = false;
+            next.continuousPlayLoop = false;
+          }
+          return next;
+        });
+        break;
+      }
+      case "setAllowContinuousPlay": {
+        if (!admin) return deny("Desk only.");
+        accounts = accounts.map((a) => {
+          if (String(a.id) !== action.accountId || a.kind !== "business") return a;
+          const next: Record<string, unknown> = { ...a, allowContinuousPlay: action.allow };
+          if (!action.allow) next.continuousPlayLoop = false;
+          return next;
+        });
         break;
       }
       case "addSong": {
@@ -443,6 +461,10 @@ export const applyStudioAction = createServerFn({ method: "POST" })
           if (action.role !== undefined) next.role = action.role;
           if (action.photo !== undefined) next.photo = action.photo;
           if (action.acceptedUploadTerms !== undefined) next.acceptedUploadTerms = action.acceptedUploadTerms;
+          if (action.continuousPlayLoop !== undefined) {
+            next.continuousPlayLoop =
+              a.kind === "business" && a.allowContinuousPlay ? action.continuousPlayLoop : false;
+          }
           return next;
         });
         if (action.photo && myArtist) {

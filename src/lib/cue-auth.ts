@@ -16,6 +16,8 @@ export type AuthAccount = {
   whatsapp: string;
   artistId?: string;
   acceptedUploadTerms?: boolean;
+  allowContinuousPlay?: boolean;
+  continuousPlayLoop?: boolean;
   locale?: "en" | "zh";
 };
 
@@ -33,6 +35,8 @@ function asAccount(row: Record<string, unknown>): AuthAccount {
     whatsapp: String(row.whatsapp ?? ""),
     artistId: row.artistId ? String(row.artistId) : undefined,
     acceptedUploadTerms: Boolean(row.acceptedUploadTerms) || undefined,
+    allowContinuousPlay: Boolean(row.allowContinuousPlay) || undefined,
+    continuousPlayLoop: Boolean(row.continuousPlayLoop) || undefined,
     locale: row.locale === "zh" || row.locale === "en" ? row.locale : undefined,
   };
 }

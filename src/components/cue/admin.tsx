@@ -987,6 +987,7 @@ function AdminUserProfile({
   onOpenArtist?: () => void;
 }) {
   const setAccountKind = useCue((s) => s.setAccountKind);
+  const setAllowContinuousPlay = useCue((s) => s.setAllowContinuousPlay);
   const wa = whatsappHref(user.whatsapp);
   const t = useT();
   const { locale } = useLocale();
@@ -1044,6 +1045,22 @@ function AdminUserProfile({
             <option value="artist">{t("kindArtist")}</option>
             <option value="business">{t("kindBusiness")}</option>
           </SelectInput>
+        </div>
+      ) : null}
+      {user.kind === "business" ? (
+        <div className="mt-4 px-5">
+          <label className="flex items-start gap-3 rounded-md bg-elevated px-3 py-3 text-sm leading-5">
+            <input
+              type="checkbox"
+              className="mt-1 size-4 accent-current"
+              checked={user.allowContinuousPlay === true}
+              onChange={(e) => setAllowContinuousPlay(user.id, e.target.checked)}
+            />
+            <span>
+              <span className="block font-medium">{t("allowContinuousPlay")}</span>
+              <span className="block text-xs text-muted">{t("allowContinuousPlayHint")}</span>
+            </span>
+          </label>
         </div>
       ) : null}
       {user.bio ? <p className="mt-6 px-5 text-sm leading-6 text-muted">{user.bio}</p> : null}

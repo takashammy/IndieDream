@@ -62,6 +62,10 @@ export type Account = {
   whatsapp: string;
   artistId?: string;
   acceptedUploadTerms?: boolean;
+  /** Desk: business accounts may enable continuous catalogue play. */
+  allowContinuousPlay?: boolean;
+  /** User preference: keep advancing after each track (business + allowContinuousPlay). */
+  continuousPlayLoop?: boolean;
   locale?: Locale;
 };
 
@@ -215,6 +219,8 @@ export type CueState = PersistSlice & {
   deleteArtist: (artistId: string) => void;
   banUser: (authorId: string) => void;
   setAccountKind: (accountId: string, kind: Exclude<AccountKind, "admin">) => void;
+  setAllowContinuousPlay: (accountId: string, allow: boolean) => void;
+  setContinuousPlayLoop: (loop: boolean) => void;
   deleteEvent: (id: string) => void;
   submitEvent: (input: {
     title: string;
@@ -249,6 +255,8 @@ function fromAuth(acc: AuthAccount): Account {
     whatsapp: acc.whatsapp,
     artistId: acc.artistId,
     acceptedUploadTerms: acc.acceptedUploadTerms,
+    allowContinuousPlay: acc.allowContinuousPlay,
+    continuousPlayLoop: acc.continuousPlayLoop,
     locale: acc.locale,
   };
 }
@@ -1191,6 +1199,9 @@ export const useCue = create<CueState>((set, get) => {
                 kind,
                 artistId: kind === "artist" ? artistId : a.artistId,
                 role: kind === "artist" ? artist?.role || "Artist" : KIND_LABEL[kind],
+                ...(kind !== "business"
+                  ? { allowContinuousPlay: false, continuousPlayLoop: false }
+                  : {}),
               }
             : a,
         ),
@@ -1198,6 +1209,34 @@ export const useCue = create<CueState>((set, get) => {
       });
       persist();
       pushAction({ type: "setAccountKind", accountId, kind });
+    },
+
+    setAllowContinuousPlay: (accountId, allow) => {
+      const acc = get().accounts.find((a) => a.id === accountId);
+      if (!acc || acc.kind !== "business") return;
+      set({
+        accounts: get().accounts.map((a) =>
+          a.id === accountId
+            ? {
+                ...a,
+                allowContinuousPlay: allow,
+                ...(allow ? {} : { continuousPlayLoop: false }),
+              }
+            : a,
+        ),
+      });
+      persist();
+      pushAction({ type: "setAllowContinuousPlay", accountId, allow });
+    },
+
+    setContinuousPlayLoop: (loop) => {
+      const acc = currentAccount(get());
+      if (!acc || acc.kind !== "business" || !acc.allowContinuousPlay) return;
+      set({
+        accounts: get().accounts.map((a) => (a.id === acc.id ? { ...a, continuousPlayLoop: loop } : a)),
+      });
+      persist();
+      pushAction({ type: "patchMe", continuousPlayLoop: loop });
     },
 
     banUser: (authorId) => {

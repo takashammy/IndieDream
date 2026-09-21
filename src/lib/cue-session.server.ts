@@ -24,6 +24,8 @@ export type CueAccountRow = {
   whatsapp: string;
   artistId?: string;
   acceptedUploadTerms?: boolean;
+  allowContinuousPlay?: boolean;
+  continuousPlayLoop?: boolean;
   locale?: "en" | "zh";
 };
 
