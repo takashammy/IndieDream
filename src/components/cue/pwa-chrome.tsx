@@ -28,7 +28,7 @@ export function OfflineBanner() {
 
   if (online) return null;
   return (
-    <div className="border-b border-line bg-elevated px-5 py-2 text-center text-sm text-muted">
+    <div className="shrink-0 border-b border-line bg-elevated px-5 py-2 text-center text-sm text-muted">
       {t("offlineBanner")}
     </div>
   );
@@ -86,7 +86,7 @@ export function InstallBanner() {
   return (
     <>
       {hidden ? null : (
-        <div className="border-t border-line bg-bg px-5 py-3">
+        <div className="shrink-0 border-t border-line bg-bg px-5 py-3">
           <p className="cue-name font-display text-xl leading-tight">{t("installApp")}</p>
           <p className="mt-1 text-sm leading-5 text-muted">{t("installHint", { app: APP_NAME })}</p>
           <div className="mt-3 flex gap-2">

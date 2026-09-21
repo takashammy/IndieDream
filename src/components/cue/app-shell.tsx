@@ -153,9 +153,9 @@ export function AppShell() {
   }, []);
 
   return (
-    <div className="flex min-h-dvh flex-col bg-bg text-fg">
+    <div className="flex h-dvh max-h-dvh flex-col overflow-hidden bg-bg text-fg pt-[env(safe-area-inset-top)]">
       {masthead ? (
-        <header className="sticky top-0 z-30 bg-bg/95 px-5 pt-3 backdrop-blur-md">
+        <header className="z-30 shrink-0 bg-bg/95 px-5 pt-3 backdrop-blur-md">
           <div className="flex items-start justify-between gap-3">
             <p className="font-display text-2xl leading-none tracking-tight">Dreamin' Indie</p>
             <PoweredBy />
@@ -166,7 +166,7 @@ export function AppShell() {
           </div>
         </header>
       ) : (
-        <header className="sticky top-0 z-30 border-b border-line bg-bg/95 px-5 py-3 backdrop-blur-md">
+        <header className="z-30 shrink-0 border-b border-line bg-bg/95 px-5 py-3 backdrop-blur-md">
           <div className="flex items-center justify-between gap-3">
             <button type="button" className="font-display text-xl leading-none tracking-tight" onClick={() => setTab("home")}>
               Dreamin' Indie
@@ -175,13 +175,13 @@ export function AppShell() {
           </div>
         </header>
       )}
-      <div className="sticky top-0 z-40">
+      <div className="z-40 shrink-0">
         <Player />
       </div>
       <OfflineBanner />
 
-      <main className="relative mx-auto flex min-h-0 w-full max-w-lg flex-1 flex-col">
-        <div ref={scrollerRef} className="flex-1 overflow-y-auto pb-2">
+      <main className="relative mx-auto flex min-h-0 w-full max-w-lg flex-1 flex-col overflow-hidden">
+        <div ref={scrollerRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-2">
           {tab === "home" ? <HomeScreen /> : null}
           {tab === "artists" && artistId ? <ArtistProfile id={artistId} /> : null}
           {tab === "artists" && !artistId ? <ArtistsScreen /> : null}
@@ -206,7 +206,7 @@ export function AppShell() {
         ) : null}
 
         <nav
-          className="sticky bottom-0 z-40 border-t border-line bg-bg/95 pb-[max(0.4rem,env(safe-area-inset-bottom))] pt-1 backdrop-blur-md"
+          className="z-40 shrink-0 border-t border-line bg-bg/95 pb-[max(0.4rem,env(safe-area-inset-bottom))] pt-1 backdrop-blur-md"
           aria-label="Primary"
           style={{ display: "grid", gridTemplateColumns: `repeat(${TABS.length}, minmax(0, 1fr))` }}
         >

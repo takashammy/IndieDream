@@ -118,62 +118,61 @@ export function Player() {
 
   return (
     <div className="border-b border-line bg-bg/95 px-5 py-3 backdrop-blur-md">
-      <div className="mx-auto flex max-w-lg flex-col gap-2">
-        <div className="flex items-center gap-3 rounded-lg bg-elevated p-3">
-          {shown ? (
-            <button
-              type="button"
-              onClick={() => setOpenTrack(true)}
-              className="flex min-w-0 flex-1 items-center gap-3 text-left"
-              aria-label={`${t("lyricsFor")} ${shown.song.title}`}
-            >
-              <img src={coverImage(shown.song.cover)} alt="" className="size-14 shrink-0 rounded-md object-cover" />
-              <div className="min-w-0 flex-1">
-                <p className="cue-kicker text-xs text-muted">{playing ? t("nowPlaying") : t("randomRoster")}</p>
-                <p className="truncate font-medium leading-tight">{shown.song.title}</p>
-                <p className="truncate text-xs text-muted">{shown.artistName}</p>
-              </div>
-            </button>
-          ) : (
-            <>
-              <div className="size-14 shrink-0 rounded-md bg-surface" />
-              <div className="min-w-0 flex-1">
-                <p className="cue-kicker text-xs text-muted">{t("randomRoster")}</p>
-                <p className="truncate font-medium leading-tight">{t("nothingLive")}</p>
-                <p className="truncate text-xs text-muted">Inner Soul Records</p>
-              </div>
-            </>
-          )}
+      <div className="mx-auto flex max-w-lg items-center gap-3 rounded-lg bg-elevated p-3">
+        {shown ? (
           <button
             type="button"
-            onClick={onPlayPause}
-            disabled={!shown}
-            className="flex size-11 shrink-0 items-center justify-center rounded-md bg-accent text-accent-fg disabled:opacity-40"
-            aria-label={playing ? t("pause") : t("play")}
+            onClick={() => setOpenTrack(true)}
+            className="flex min-w-0 flex-1 items-center gap-3 text-left"
+            aria-label={`${t("lyricsFor")} ${shown.song.title}`}
           >
-            {playing ? <Pause className="size-4" fill="currentColor" /> : <Play className="size-4 translate-x-px" fill="currentColor" />}
+            <img src={coverImage(shown.song.cover)} alt="" className="size-14 shrink-0 rounded-md object-cover" />
+            <div className="min-w-0 flex-1">
+              <p className="cue-kicker text-xs text-muted">{playing ? t("nowPlaying") : t("randomRoster")}</p>
+              <p className="truncate font-medium leading-tight">{shown.song.title}</p>
+              <p className="truncate text-xs text-muted">{shown.artistName}</p>
+            </div>
           </button>
-          <button
-            type="button"
-            onClick={onNext}
-            disabled={!shown}
-            className="flex size-11 shrink-0 items-center justify-center text-fg transition-transform active:scale-90 disabled:opacity-40"
-            aria-label={t("nextTrack")}
-          >
-            <SkipForward className="size-4" />
-          </button>
-        </div>
+        ) : (
+          <>
+            <div className="size-14 shrink-0 rounded-md bg-surface" />
+            <div className="min-w-0 flex-1">
+              <p className="cue-kicker text-xs text-muted">{t("randomRoster")}</p>
+              <p className="truncate font-medium leading-tight">{t("nothingLive")}</p>
+              <p className="truncate text-xs text-muted">Inner Soul Records</p>
+            </div>
+          </>
+        )}
         {canLoop ? (
-          <label className="flex items-center gap-2 px-1 text-xs text-muted">
+          <label className="flex max-w-[4.25rem] shrink-0 cursor-pointer flex-col items-center gap-0.5 text-center text-[0.625rem] leading-tight text-muted">
             <input
               type="checkbox"
               className="size-3.5 accent-current"
               checked={loopOn}
               onChange={(e) => setContinuousPlayLoop(e.target.checked)}
+              aria-label={t("continuousPlayLoop")}
             />
-            <span>{t("continuousPlayLoop")}</span>
+            <span className="line-clamp-2">{t("continuousPlayLoop")}</span>
           </label>
         ) : null}
+        <button
+          type="button"
+          onClick={onPlayPause}
+          disabled={!shown}
+          className="flex size-11 shrink-0 items-center justify-center rounded-md bg-accent text-accent-fg disabled:opacity-40"
+          aria-label={playing ? t("pause") : t("play")}
+        >
+          {playing ? <Pause className="size-4" fill="currentColor" /> : <Play className="size-4 translate-x-px" fill="currentColor" />}
+        </button>
+        <button
+          type="button"
+          onClick={onNext}
+          disabled={!shown}
+          className="flex size-11 shrink-0 items-center justify-center text-fg transition-transform active:scale-90 disabled:opacity-40"
+          aria-label={t("nextTrack")}
+        >
+          <SkipForward className="size-4" />
+        </button>
       </div>
       {nowPlaying ? (
         <audio
