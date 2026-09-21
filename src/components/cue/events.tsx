@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ChevronLeft, Clock, MapPin, Plus } from "lucide-react";
-import { APP_NAME, catalogVisible, type LocationArea, LOCATIONS } from "@/lib/data";
+import { APP_NAME, catalogVisible, liveEvents, type LocationArea, LOCATIONS } from "@/lib/data";
 import { currentAccount, currentArtist, useCue } from "@/lib/store";
 import { photoImage } from "@/lib/r2";
 import { Button } from "@/components/ui/button";
@@ -21,10 +21,8 @@ export function EventsScreen() {
   const t = useT();
   const { locale } = useLocale();
 
-  const selected = events.find((e) => e.id === eventId && e.status === "approved");
-  const live = events
-    .filter((e) => e.status === "approved")
-    .sort((a, b) => a.isoDate.localeCompare(b.isoDate));
+  const live = liveEvents(events);
+  const selected = live.find((e) => e.id === eventId);
 
   if (selected) {
     const lineup = artists.filter((a) => selected.artistIds.includes(a.id));

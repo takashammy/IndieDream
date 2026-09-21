@@ -4,8 +4,8 @@ import {
   APP_NAME,
   isListedArtist,
   isPostExpired,
+  pastEvents,
   upcomingEvents,
-  todayISO,
   whatsappHref,
   type AccountKind,
   type Artist,
@@ -84,10 +84,7 @@ export function AdminMe({ artistPanel }: { artistPanel?: ReactNode }) {
       .filter((e) => e.status === "pending")
       .sort((a, b) => a.isoDate.localeCompare(b.isoDate));
     const upcoming = upcomingEvents(events, 12);
-    const today = todayISO();
-    const past = events
-      .filter((e) => e.status === "approved" && e.isoDate < today)
-      .sort((a, b) => b.isoDate.localeCompare(a.isoDate));
+    const past = pastEvents(events);
     return {
       queue,
       bookingsOpen,

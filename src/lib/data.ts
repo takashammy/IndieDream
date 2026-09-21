@@ -236,8 +236,8 @@ export function artistsByGenre(genre: string, list: Artist[] = ARTISTS) {
   return list.filter((a) => isListedArtist(a) && a.genres.includes(genre));
 }
 
-export function eventsForArtist(artistId: string, events: CueEvent[] = EVENTS) {
-  return events.filter((e) => e.status === "approved" && e.artistIds.includes(artistId));
+export function eventsForArtist(artistId: string, events: CueEvent[] = EVENTS, now = new Date()) {
+  return liveEvents(events, now).filter((e) => e.artistIds.includes(artistId));
 }
 
 export function shufflePick<T>(items: T[], n: number) {
@@ -291,12 +291,24 @@ export function randomLiveTrack(list: Artist[]): TrackHit | null {
   return hits[Math.floor(Math.random() * hits.length)] ?? null;
 }
 
-export function upcomingEvents(events: CueEvent[], n = 3, now = new Date()) {
+/** Approved events still on or after Hong Kong today — public listing. */
+export function liveEvents(events: CueEvent[], now = new Date()) {
   const today = todayISO(now);
   return events
     .filter((e) => e.status === "approved" && e.isoDate >= today)
-    .sort((a, b) => a.isoDate.localeCompare(b.isoDate))
-    .slice(0, n);
+    .sort((a, b) => a.isoDate.localeCompare(b.isoDate));
+}
+
+/** Approved events before Hong Kong today — Desk archive, not deleted. */
+export function pastEvents(events: CueEvent[], now = new Date()) {
+  const today = todayISO(now);
+  return events
+    .filter((e) => e.status === "approved" && e.isoDate < today)
+    .sort((a, b) => b.isoDate.localeCompare(a.isoDate));
+}
+
+export function upcomingEvents(events: CueEvent[], n = 3, now = new Date()) {
+  return liveEvents(events, now).slice(0, n);
 }
 
 export function validEmail(value: string) {
