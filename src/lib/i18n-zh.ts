@@ -208,7 +208,7 @@ export const ZH: Record<string, string> = {
   cardCustomTitle: "訂製樂器",
   cardCustomBody: "為視覺衝擊而訂製的結他。",
   cardShopKicker: "店舖",
-  cardShopTitle: "Inner Soul Instruments",
+  cardShopTitle: "Inner Soul Vibes",
   cardShopBody: "樂器店舖暫時休息。Ukulele 到貨後會再上架。",
   bookings: "預訂",
   adminBookingsNote: "購買、預訂及查詢將送至此處。每則均附對方 WhatsApp。開啟即可查看完整內容。",

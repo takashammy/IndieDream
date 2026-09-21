@@ -208,7 +208,7 @@ export const EN = {
   cardCustomTitle: "Custom instruments",
   cardCustomBody: "Custom guitars for maximum visual impact.",
   cardShopKicker: "Shop",
-  cardShopTitle: "Inner Soul Instruments",
+  cardShopTitle: "Inner Soul Vibes",
   cardShopBody: "The instrument shop is closed for now. We will list ukuleles when they are in.",
   bookings: "Bookings",
   adminBookingsNote: "Purchases, bookings, and enquiries land here. Each one includes the sender\u2019s WhatsApp. Open one to read the full brief.",
