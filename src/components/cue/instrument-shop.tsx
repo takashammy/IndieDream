@@ -3,7 +3,7 @@ import { INNER_SOUL_INSTRUMENTS, type ShopInstrument } from "@/lib/instruments";
 import { currentAccount, useCue } from "@/lib/store";
 import { scrollMainToTop } from "@/lib/scroll-main";
 import { Button } from "@/components/ui/button";
-import { AreaInput, Field, Sheet, TextInput } from "./chrome";
+import { AreaInput, Field, SelectInput, Sheet, TextInput } from "./chrome";
 import { useT } from "@/lib/i18n";
 
 export function InstrumentShop({ onBack }: { onBack?: () => void }) {
@@ -31,9 +31,13 @@ export function InstrumentShop({ onBack }: { onBack?: () => void }) {
               <img src={item.photo} alt="" className="size-full object-cover" />
             </div>
             <div className="p-3">
-              <p className="cue-kicker text-xs text-accent">{item.kind}</p>
+              <p className="cue-kicker text-xs text-accent">{item.series ?? item.kind}</p>
               <p className="cue-name mt-1 font-display text-xl leading-tight">{item.name}</p>
-              <p className="mt-1 text-xs italic text-muted">{item.woods}</p>
+              {item.colours?.length ? (
+                <p className="mt-1 text-xs text-muted">{item.colours.join(" · ")}</p>
+              ) : item.woods ? (
+                <p className="mt-1 text-xs italic text-muted">{item.woods}</p>
+              ) : null}
               <p className="mt-2 font-display text-lg text-accent">{item.price}</p>
             </div>
           </button>
@@ -51,13 +55,20 @@ function ShopEnquire({ item, onClose }: { item: ShopInstrument; onClose: () => v
   const setGate = useCue((s) => s.setGate);
   const [whatsapp, setWhatsapp] = useState(session?.whatsapp ?? "");
   const [note, setNote] = useState("");
+  const [colour, setColour] = useState(item.colours?.[0] ?? "");
   const [sent, setSent] = useState(false);
   const t = useT();
+  const colours = item.colours ?? [];
   return (
-    <Sheet title={item.name} kicker={item.kind} onClose={onClose}>
+    <Sheet title={item.name} kicker={item.series ?? item.kind} onClose={onClose}>
         <img src={item.photo} alt="" className="h-40 w-full rounded-md object-cover" />
         <p className="mt-3 font-display text-2xl text-accent">{item.price}</p>
-        <p className="mt-2 text-sm text-muted">{item.woods}</p>
+        {item.series ? <p className="mt-2 text-sm text-muted">{item.series}</p> : null}
+        {colours.length ? (
+          <p className="mt-1 text-sm text-muted">{t("colours")}: {colours.join(" · ")}</p>
+        ) : item.woods ? (
+          <p className="mt-2 text-sm text-muted">{item.woods}</p>
+        ) : null}
         <p className="mt-2 text-sm leading-6 text-fg">{item.blurb}</p>
         {sent ? (
           <p className="mt-5 text-sm text-muted">{t("enquirySent")}</p>
@@ -69,6 +80,8 @@ function ShopEnquire({ item, onClose }: { item: ShopInstrument; onClose: () => v
               submitEnquiry(`Shop — ${item.name}`, note.trim() || item.blurb, {
                 Instrument: item.name,
                 Kind: item.kind,
+                ...(item.series ? { Series: item.series } : {}),
+                ...(colour ? { Colour: colour } : {}),
                 Price: item.price,
                 WhatsApp: whatsapp,
                 From: session.name,
@@ -76,6 +89,15 @@ function ShopEnquire({ item, onClose }: { item: ShopInstrument; onClose: () => v
               setSent(true);
             }}
           >
+            {colours.length ? (
+              <Field label={t("colour")}>
+                <SelectInput value={colour} onChange={(e) => setColour(e.target.value)} required>
+                  {colours.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </SelectInput>
+              </Field>
+            ) : null}
             <Field label={t("whatsapp")}>
               <TextInput type="tel" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} required />
             </Field>
