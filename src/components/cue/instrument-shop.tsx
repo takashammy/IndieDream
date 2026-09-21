@@ -61,7 +61,11 @@ function ShopEnquire({ item, onClose }: { item: ShopInstrument; onClose: () => v
   const colours = item.colours ?? [];
   return (
     <Sheet title={item.name} kicker={item.series ?? item.kind} onClose={onClose}>
-        <img src={item.photo} alt="" className="h-40 w-full rounded-md object-cover" />
+        <img
+          src={item.photo}
+          alt=""
+          className="mx-auto block max-h-[min(70vh,28rem)] w-full rounded-md object-contain"
+        />
         <p className="mt-3 font-display text-2xl text-accent">{item.price}</p>
         {item.series ? <p className="mt-2 text-sm text-muted">{item.series}</p> : null}
         {colours.length ? (
