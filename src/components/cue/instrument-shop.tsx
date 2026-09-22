@@ -35,8 +35,8 @@ export function InstrumentShop({ onBack }: { onBack?: () => void }) {
             <div className="aspect-[3/4] shrink-0 overflow-hidden bg-surface">
               <img src={item.photo} alt="" className="size-full object-contain" />
             </div>
-            <div className="flex min-h-[7.5rem] flex-1 flex-col p-3">
-              <p className="cue-kicker line-clamp-1 text-xs text-accent">{item.series ?? item.kind}</p>
+            <div className="flex min-h-[8rem] flex-1 flex-col p-3">
+              <p className="cue-kicker line-clamp-2 min-h-[2rem] text-xs leading-4 text-accent">{item.series ?? item.kind}</p>
               <p className="cue-name mt-1 line-clamp-2 min-h-[2.5rem] font-display text-xl leading-tight">{item.name}</p>
               {item.colours?.length ? (
                 <p className="mt-1 line-clamp-2 min-h-[2rem] text-xs leading-4 text-muted">{item.colours.join(" · ")}</p>
