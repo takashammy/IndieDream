@@ -32,7 +32,7 @@ export function InstrumentShop({ onBack }: { onBack?: () => void }) {
             onClick={() => setPicked(item)}
             className="flex h-full flex-col bg-bg text-left"
           >
-            <div className="aspect-[3/4] shrink-0 overflow-hidden bg-surface">
+            <div className="aspect-[3/4] w-full shrink-0 overflow-hidden bg-surface">
               <img src={item.photo} alt="" className="size-full object-contain" />
             </div>
             <div className="flex min-h-[8rem] flex-1 flex-col p-3">
