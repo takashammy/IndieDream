@@ -24,21 +24,28 @@ export function InstrumentShop({ onBack }: { onBack?: () => void }) {
       {INNER_SOUL_INSTRUMENTS.length === 0 ? (
         <p className="mt-8 px-5 text-sm leading-6 text-muted">{t("shopEmpty")}</p>
       ) : (
-      <div className="mt-5 grid grid-cols-2 gap-px bg-line">
+      <div className="mt-5 grid grid-cols-2 items-stretch gap-px bg-line">
         {INNER_SOUL_INSTRUMENTS.map((item) => (
-          <button key={item.id} type="button" onClick={() => setPicked(item)} className="bg-bg text-left">
-            <div className="aspect-[3/4] overflow-hidden">
-              <img src={item.photo} alt="" className="size-full object-cover" />
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => setPicked(item)}
+            className="flex h-full flex-col bg-bg text-left"
+          >
+            <div className="aspect-[3/4] shrink-0 overflow-hidden bg-surface">
+              <img src={item.photo} alt="" className="size-full object-contain" />
             </div>
-            <div className="p-3">
-              <p className="cue-kicker text-xs text-accent">{item.series ?? item.kind}</p>
-              <p className="cue-name mt-1 font-display text-xl leading-tight">{item.name}</p>
+            <div className="flex min-h-[7.5rem] flex-1 flex-col p-3">
+              <p className="cue-kicker line-clamp-1 text-xs text-accent">{item.series ?? item.kind}</p>
+              <p className="cue-name mt-1 line-clamp-2 min-h-[2.5rem] font-display text-xl leading-tight">{item.name}</p>
               {item.colours?.length ? (
-                <p className="mt-1 text-xs text-muted">{item.colours.join(" · ")}</p>
+                <p className="mt-1 line-clamp-2 min-h-[2rem] text-xs leading-4 text-muted">{item.colours.join(" · ")}</p>
               ) : item.woods ? (
-                <p className="mt-1 text-xs italic text-muted">{item.woods}</p>
-              ) : null}
-              <p className="mt-2 font-display text-lg text-accent">{item.price}</p>
+                <p className="mt-1 line-clamp-2 min-h-[2rem] text-xs italic leading-4 text-muted">{item.woods}</p>
+              ) : (
+                <p className="mt-1 min-h-[2rem]" aria-hidden />
+              )}
+              <p className="mt-auto pt-2 font-display text-lg text-accent">{item.price}</p>
             </div>
           </button>
         ))}
