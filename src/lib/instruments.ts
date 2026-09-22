@@ -22,4 +22,15 @@ export const INNER_SOUL_INSTRUMENTS: ShopInstrument[] = [
     blurb: "Electric-acoustic ukulele from the Ghost series. Translucent body in Pink Ghost, White Ghost, or Blue Ghost — pick a colour when you enquire.",
     photo: "/media/shop/ghost-ukulele.jpg",
   },
+  {
+    id: "ukumeowmeow-uke",
+    name: "Ukulele (Ukumeowmeow)",
+    kind: "Concert ukulele",
+    series: "Ukumeowmeow series",
+    colours: ["Midnight Glitter", "Moondust Marble"],
+    price: "$550",
+    woods: "Cat-ear headstock",
+    blurb: "Concert ukulele from the Ukumeowmeow series. Cat-ear headstock in Midnight Glitter or Moondust Marble — pick a colour when you enquire.",
+    photo: "/media/shop/ukumeowmeow.jpg",
+  },
 ];
