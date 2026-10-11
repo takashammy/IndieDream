@@ -37,7 +37,8 @@ function rateLimitKey(action: AuthRateLimitAction, ip: string, identifier?: stri
     return `login:${ip}:${user}`;
   }
   if (action === "register") return `register:${ip}`;
-  if (action === "resetMartin") return `reset-martin:${ip}`;
+  // v2 key clears prior lockouts from failed secret attempts during recovery.
+  if (action === "resetMartin") return `reset-martin-v2:${ip}`;
   return `bootstrap:${ip}`;
 }
 

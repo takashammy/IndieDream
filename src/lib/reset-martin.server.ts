@@ -79,20 +79,25 @@ export async function handleResetMartin(request: Request): Promise<Response> {
     const rate = await import("@/lib/auth-rate-limit.server");
     const sql = await sessionMod.getSqlSafe();
 
-    // Pass `request` so Nitro mirrors (no TanStack ALS) still rate-limit by IP.
-    const limited = await rate.checkAuthRateLimit(sql, "resetMartin", undefined, request);
-    if (!limited.ok) {
-      return jsonError(429, limited.error);
-    }
-
+    // Check the secret first. A correct secret must always unlock recovery, even
+    // if earlier wrong attempts tripped the IP rate limit (Martin got stuck on 429).
     const given = secretFromRequest(request);
     if (!secretOk(given)) {
+      const limited = await rate.checkAuthRateLimit(sql, "resetMartin", undefined, request);
+      if (!limited.ok) {
+        return jsonError(429, limited.error);
+      }
       const blocked = await rate.recordAuthFailure(sql, "resetMartin", undefined, request);
       if (blocked) {
         return jsonError(429, blocked.error);
       }
-      return jsonError(403, "Forbidden.");
+      return jsonError(
+        403,
+        "Forbidden. The secret in the URL does not match MARTIN_PASSWORD_RESET_SECRET. Use the exact Production value (no quotes), redeploy after changing it, and URL-encode special characters.",
+      );
     }
+
+    await rate.clearAuthRateLimit(sql, "resetMartin", undefined, request);
 
     const { withStudioTx } = await import("@/lib/db");
     const result = await withStudioTx(async (tx) => {
