@@ -9,8 +9,20 @@ const BLOCK_MS = 60 * 60 * 1000;
 
 export type AuthRateLimitAction = "login" | "register" | "createFirstAdmin" | "resetMartin";
 
-export function clientIp(): string {
-  const request = getRequest();
+/**
+ * Resolve client IP. Prefer an explicit `Request` (Nitro mirrors and tests);
+ * fall back to TanStack Start ALS. Never throw — missing ALS is normal when
+ * `server/routes/*` H3 handlers call shared auth helpers.
+ */
+export function clientIp(fromRequest?: Request): string {
+  let request = fromRequest;
+  if (!request) {
+    try {
+      request = getRequest();
+    } catch {
+      return "unknown";
+    }
+  }
   if (!request) return "unknown";
   const forwarded = request.headers.get("x-forwarded-for");
   if (forwarded) return forwarded.split(",")[0]?.trim() || "unknown";
@@ -44,9 +56,10 @@ export async function checkAuthRateLimit(
   sql: RateLimitSql,
   action: AuthRateLimitAction,
   identifier?: string,
+  request?: Request,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   await ensureTable(sql);
-  const key = rateLimitKey(action, clientIp(), identifier);
+  const key = rateLimitKey(action, clientIp(request), identifier);
   const rows = await sql.query<{ failures: number; blocked_until: string | null }>(
     `select failures, blocked_until from cue_auth_attempts where key = $1`,
     [key],
@@ -66,9 +79,10 @@ export async function recordAuthFailure(
   sql: RateLimitSql,
   action: AuthRateLimitAction,
   identifier?: string,
+  request?: Request,
 ): Promise<{ ok: false; error: string } | null> {
   await ensureTable(sql);
-  const key = rateLimitKey(action, clientIp(), identifier);
+  const key = rateLimitKey(action, clientIp(request), identifier);
   const rows = await sql.query<{ failures: number }>(
     `select failures from cue_auth_attempts where key = $1`,
     [key],
@@ -100,8 +114,9 @@ export async function clearAuthRateLimit(
   sql: RateLimitSql,
   action: AuthRateLimitAction,
   identifier?: string,
+  request?: Request,
 ): Promise<void> {
   await ensureTable(sql);
-  const key = rateLimitKey(action, clientIp(), identifier);
+  const key = rateLimitKey(action, clientIp(request), identifier);
   await sql.query(`delete from cue_auth_attempts where key = $1`, [key]).catch(() => {});
 }

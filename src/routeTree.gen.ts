@@ -12,6 +12,11 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StyleIdRouteImport } from './routes/$styleId'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as ApiBackupRouteImport } from './routes/api/backup'
+import { Route as ApiImageUploadRouteImport } from './routes/api/image-upload'
+import { Route as ApiR2ImageRouteImport } from './routes/api/r2-image'
+import { Route as ApiResetMartinRouteImport } from './routes/api/reset-martin'
+import { Route as ApiTrackUploadRouteImport } from './routes/api/track-upload'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -28,35 +33,105 @@ const TermsRoute = TermsRouteImport.update({
   path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiBackupRoute = ApiBackupRouteImport.update({
+  id: '/api/backup',
+  path: '/api/backup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiImageUploadRoute = ApiImageUploadRouteImport.update({
+  id: '/api/image-upload',
+  path: '/api/image-upload',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiR2ImageRoute = ApiR2ImageRouteImport.update({
+  id: '/api/r2-image',
+  path: '/api/r2-image',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiResetMartinRoute = ApiResetMartinRouteImport.update({
+  id: '/api/reset-martin',
+  path: '/api/reset-martin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTrackUploadRoute = ApiTrackUploadRouteImport.update({
+  id: '/api/track-upload',
+  path: '/api/track-upload',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$styleId': typeof StyleIdRoute
   '/terms': typeof TermsRoute
+  '/api/backup': typeof ApiBackupRoute
+  '/api/image-upload': typeof ApiImageUploadRoute
+  '/api/r2-image': typeof ApiR2ImageRoute
+  '/api/reset-martin': typeof ApiResetMartinRoute
+  '/api/track-upload': typeof ApiTrackUploadRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$styleId': typeof StyleIdRoute
   '/terms': typeof TermsRoute
+  '/api/backup': typeof ApiBackupRoute
+  '/api/image-upload': typeof ApiImageUploadRoute
+  '/api/r2-image': typeof ApiR2ImageRoute
+  '/api/reset-martin': typeof ApiResetMartinRoute
+  '/api/track-upload': typeof ApiTrackUploadRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/$styleId': typeof StyleIdRoute
   '/terms': typeof TermsRoute
+  '/api/backup': typeof ApiBackupRoute
+  '/api/image-upload': typeof ApiImageUploadRoute
+  '/api/r2-image': typeof ApiR2ImageRoute
+  '/api/reset-martin': typeof ApiResetMartinRoute
+  '/api/track-upload': typeof ApiTrackUploadRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/$styleId' | '/terms'
+  fullPaths:
+    | '/'
+    | '/$styleId'
+    | '/terms'
+    | '/api/backup'
+    | '/api/image-upload'
+    | '/api/r2-image'
+    | '/api/reset-martin'
+    | '/api/track-upload'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/$styleId' | '/terms'
-  id: '__root__' | '/' | '/$styleId' | '/terms'
+  to:
+    | '/'
+    | '/$styleId'
+    | '/terms'
+    | '/api/backup'
+    | '/api/image-upload'
+    | '/api/r2-image'
+    | '/api/reset-martin'
+    | '/api/track-upload'
+  id:
+    | '__root__'
+    | '/'
+    | '/$styleId'
+    | '/terms'
+    | '/api/backup'
+    | '/api/image-upload'
+    | '/api/r2-image'
+    | '/api/reset-martin'
+    | '/api/track-upload'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   StyleIdRoute: typeof StyleIdRoute
   TermsRoute: typeof TermsRoute
+  ApiBackupRoute: typeof ApiBackupRoute
+  ApiImageUploadRoute: typeof ApiImageUploadRoute
+  ApiR2ImageRoute: typeof ApiR2ImageRoute
+  ApiResetMartinRoute: typeof ApiResetMartinRoute
+  ApiTrackUploadRoute: typeof ApiTrackUploadRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -82,6 +157,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/backup': {
+      id: '/api/backup'
+      path: '/api/backup'
+      fullPath: '/api/backup'
+      preLoaderRoute: typeof ApiBackupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/image-upload': {
+      id: '/api/image-upload'
+      path: '/api/image-upload'
+      fullPath: '/api/image-upload'
+      preLoaderRoute: typeof ApiImageUploadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/r2-image': {
+      id: '/api/r2-image'
+      path: '/api/r2-image'
+      fullPath: '/api/r2-image'
+      preLoaderRoute: typeof ApiR2ImageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/reset-martin': {
+      id: '/api/reset-martin'
+      path: '/api/reset-martin'
+      fullPath: '/api/reset-martin'
+      preLoaderRoute: typeof ApiResetMartinRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/track-upload': {
+      id: '/api/track-upload'
+      path: '/api/track-upload'
+      fullPath: '/api/track-upload'
+      preLoaderRoute: typeof ApiTrackUploadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -89,6 +199,11 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   StyleIdRoute: StyleIdRoute,
   TermsRoute: TermsRoute,
+  ApiBackupRoute: ApiBackupRoute,
+  ApiImageUploadRoute: ApiImageUploadRoute,
+  ApiR2ImageRoute: ApiR2ImageRoute,
+  ApiResetMartinRoute: ApiResetMartinRoute,
+  ApiTrackUploadRoute: ApiTrackUploadRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
