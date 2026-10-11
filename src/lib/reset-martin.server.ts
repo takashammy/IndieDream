@@ -17,8 +17,20 @@ function resetSecretConfigured() {
   return Boolean(env("MARTIN_PASSWORD_RESET_SECRET") && env("MARTIN_TEMP_PASSWORD"));
 }
 
+/** Trim and strip accidental wrapping quotes from Vercel env pastes. */
+function cleanSecret(value: string) {
+  let v = value.trim();
+  if (
+    (v.startsWith('"') && v.endsWith('"')) ||
+    (v.startsWith("'") && v.endsWith("'"))
+  ) {
+    v = v.slice(1, -1).trim();
+  }
+  return v;
+}
+
 function expectedSecret() {
-  return env("MARTIN_PASSWORD_RESET_SECRET") ?? "";
+  return cleanSecret(env("MARTIN_PASSWORD_RESET_SECRET") ?? "");
 }
 
 function tempPassword() {
@@ -27,8 +39,9 @@ function tempPassword() {
 
 function secretOk(given: string) {
   const expected = expectedSecret();
-  if (!expected || !given) return false;
-  const a = Buffer.from(given);
+  const got = cleanSecret(given);
+  if (!expected || !got) return false;
+  const a = Buffer.from(got);
   const b = Buffer.from(expected);
   if (a.length !== b.length) return false;
   return timingSafeEqual(a, b);
