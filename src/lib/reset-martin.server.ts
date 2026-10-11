@@ -76,28 +76,16 @@ export async function handleResetMartin(request: Request): Promise<Response> {
     }
 
     const sessionMod = await import("@/lib/cue-session.server");
-    const rate = await import("@/lib/auth-rate-limit.server");
-    const sql = await sessionMod.getSqlSafe();
 
-    // Check the secret first. A correct secret must always unlock recovery, even
-    // if earlier wrong attempts tripped the IP rate limit (Martin got stuck on 429).
+    // No IP rate limit on this recovery URL — wrong secrets still fail closed;
+    // lockouts were blocking Martin from completing recovery.
     const given = secretFromRequest(request);
     if (!secretOk(given)) {
-      const limited = await rate.checkAuthRateLimit(sql, "resetMartin", undefined, request);
-      if (!limited.ok) {
-        return jsonError(429, limited.error);
-      }
-      const blocked = await rate.recordAuthFailure(sql, "resetMartin", undefined, request);
-      if (blocked) {
-        return jsonError(429, blocked.error);
-      }
       return jsonError(
         403,
         "Forbidden. The secret in the URL does not match MARTIN_PASSWORD_RESET_SECRET. Use the exact Production value (no quotes), redeploy after changing it, and URL-encode special characters.",
       );
     }
-
-    await rate.clearAuthRateLimit(sql, "resetMartin", undefined, request);
 
     const { withStudioTx } = await import("@/lib/db");
     const result = await withStudioTx(async (tx) => {
@@ -111,7 +99,6 @@ export async function handleResetMartin(request: Request): Promise<Response> {
       const hashed = await sessionMod.hashPassword(plain);
       const next = accounts.map((a, i) => (i === idx ? { ...a, password: hashed } : a));
       await sessionMod.writeStudioAccounts(tx, next);
-      await rate.clearAuthRateLimit(tx, "resetMartin", undefined, request);
       return {
         ok: true as const,
         username: accounts[idx].username,
