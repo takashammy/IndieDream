@@ -28,4 +28,4 @@ Vercel calls `/api/backup` every night at 00:00 Hong Kong time. That copies the 
 
 A signed-in admin can take a snapshot immediately with GET or POST to `/api/backup`. Set `CRON_SECRET` (or `BACKUP_SECRET`) on Vercel so the nightly job can authenticate (`Authorization: Bearer …`). Production deploys **require** one of those secrets — the cron header alone is not accepted when `DATABASE_URL` or `GROK_PROJECT_ID` is set.
 
-Set `MARTIN_ACCOUNT_IDS` to a comma-separated list of account IDs (e.g. `acc-martin`) so signup push alerts only go to Martin's real account — not anyone who registers the username `martin`.
+Set `MARTIN_ACCOUNT_IDS` to a comma-separated list of account IDs (e.g. `acc-martin`) so signup push alerts only go to Martin's real account — not anyone who registers the username `martin`. Service enquiry pushes go to every Desk admin (and Martin via that list / username match) who has armed alerts.

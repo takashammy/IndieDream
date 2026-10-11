@@ -10,18 +10,19 @@ export function MartinPushCard() {
   const t = useT();
   const [status, setStatus] = useState<"idle" | "on" | "denied" | "unsupported" | "need-install" | "error">("idle");
   const [busy, setBusy] = useState(false);
+  const canArm = Boolean(acc && (acc.kind === "admin" || isMartinAccount(acc)));
 
   useEffect(() => {
-    if (!isMartinAccount(acc)) return;
+    if (!canArm) return;
     if (typeof Notification === "undefined") return;
     if (Notification.permission === "granted") {
       void armMartinPush().then((next) => {
         if (next === "on") setStatus("on");
       });
     }
-  }, [acc]);
+  }, [acc, canArm]);
 
-  if (!isMartinAccount(acc)) return null;
+  if (!canArm) return null;
 
   async function on() {
     setBusy(true);

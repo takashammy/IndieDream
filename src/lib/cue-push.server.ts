@@ -41,32 +41,36 @@ export async function saveMartinSub(
   );
 }
 
-export async function notifyMartinOfSignup(
-  sql: Sql,
-  who: { name: string; kind: string },
-) {
+async function adminAndMartinIds(sql: Sql): Promise<Set<string>> {
   const sessionMod = await import("@/lib/cue-session.server");
   const accounts = await sessionMod.readStudioAccounts(sql);
-  const martinIds = new Set(accounts.filter((a) => isMartinAccount(a)).map((a) => String(a.id)));
-  if (martinIds.size === 0) return;
+  return new Set(
+    accounts
+      .filter((a) => a.kind === "admin" || isMartinAccount(a))
+      .map((a) => String(a.id)),
+  );
+}
+
+async function sendPushToAccounts(
+  sql: Sql,
+  accountIds: Set<string>,
+  payload: { title: string; body: string; url: string },
+) {
+  if (accountIds.size === 0) return;
   const subs = await sql.query<{ endpoint: string; p256dh: string; auth: string; account_id: string }>(
     `select endpoint, p256dh, auth, account_id from cue_push_subs`,
   );
-  const mine = subs.filter((s) => martinIds.has(String(s.account_id)));
+  const mine = subs.filter((s) => accountIds.has(String(s.account_id)));
   if (mine.length === 0) return;
   const keys = await ensureKeys(sql);
   webpush.setVapidDetails("mailto:Martinsham8888@msn.com", keys.public_key, keys.private_key);
-  const payload = JSON.stringify({
-    title: "Dreamin' Indie",
-    body: `${who.name} joined as ${who.kind}.`,
-    url: "/",
-  });
+  const body = JSON.stringify(payload);
   await Promise.all(
     mine.map(async (s) => {
       try {
         await webpush.sendNotification(
           { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
-          payload,
+          body,
           { TTL: 60 * 60 * 12 },
         );
       } catch (err) {
@@ -77,4 +81,34 @@ export async function notifyMartinOfSignup(
       }
     }),
   );
+}
+
+export async function notifyMartinOfSignup(
+  sql: Sql,
+  who: { name: string; kind: string },
+) {
+  const sessionMod = await import("@/lib/cue-session.server");
+  const accounts = await sessionMod.readStudioAccounts(sql);
+  const martinIds = new Set(accounts.filter((a) => isMartinAccount(a)).map((a) => String(a.id)));
+  await sendPushToAccounts(sql, martinIds, {
+    title: "Dreamin' Indie",
+    body: `${who.name} joined as ${who.kind}.`,
+    url: "/",
+  });
+}
+
+export async function notifyAdminsOfEnquiry(
+  sql: Sql,
+  enquiry: { title: string; fields?: Record<string, string> },
+) {
+  const fields = enquiry.fields ?? {};
+  const who = fields.From || fields.Name || fields.Account || "Someone";
+  const contact = fields.WhatsApp || fields.Email || fields.Account || "";
+  const body = contact ? `${enquiry.title} — ${who} · ${contact}` : `${enquiry.title} — ${who}`;
+  const ids = await adminAndMartinIds(sql);
+  await sendPushToAccounts(sql, ids, {
+    title: "Dreamin' Indie",
+    body,
+    url: "/",
+  });
 }

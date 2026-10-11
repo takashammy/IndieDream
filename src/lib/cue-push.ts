@@ -25,8 +25,12 @@ export const savePushSubscription = createServerFn({ method: "POST" })
     assertCueSessionSafeRequest();
     const sessionMod = await import("@/lib/cue-session.server");
     const session = await sessionMod.readCueSession();
-    if (!session?.account || !isMartinAccount({ ...session.account, id: session.accountId })) {
-      return { ok: false as const, error: "Only Martin can turn on these alerts." };
+    if (!session?.account) {
+      return { ok: false as const, error: "Only Desk admins can turn on these alerts." };
+    }
+    const acc = { ...session.account, id: session.accountId };
+    if (session.kind !== "admin" && !isMartinAccount(acc)) {
+      return { ok: false as const, error: "Only Desk admins can turn on these alerts." };
     }
     const sql = await sessionMod.getSqlSafe();
     const push = await import("@/lib/cue-push.server");

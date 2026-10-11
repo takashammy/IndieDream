@@ -170,6 +170,7 @@ export const applyStudioAction = createServerFn({ method: "POST" })
     };
 
     const action: Action = data;
+    let enquiryNotify: { title: string; fields?: Record<string, string> } | null = null;
     switch (action.type) {
       case "addPost": {
         if (posts.some((p) => p.id === action.post.id)) break;
@@ -238,7 +239,13 @@ export const applyStudioAction = createServerFn({ method: "POST" })
         break;
       }
       case "submitEnquiry": {
-        if (!notices.some((n) => n.id === action.notice.id)) notices = [action.notice, ...notices];
+        if (!notices.some((n) => n.id === action.notice.id)) {
+          notices = [action.notice, ...notices];
+          enquiryNotify = {
+            title: String(action.notice.title ?? "Service enquiry"),
+            fields: action.notice.fields,
+          };
+        }
         break;
       }
       case "resolveNotice": {
@@ -522,6 +529,14 @@ export const applyStudioAction = createServerFn({ method: "POST" })
         JSON.stringify(bannedUserIds),
       ],
     );
+    if (enquiryNotify) {
+      try {
+        const push = await import("@/lib/cue-push.server");
+        await push.notifyAdminsOfEnquiry(sql, enquiryNotify);
+      } catch {
+        /* enquiry still succeeds if the alert cannot send */
+      }
+    }
     return { ok: true };
     });
   });
