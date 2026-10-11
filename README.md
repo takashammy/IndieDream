@@ -29,3 +29,7 @@ Vercel calls `/api/backup` every night at 00:00 Hong Kong time. That copies the 
 A signed-in admin can take a snapshot immediately with GET or POST to `/api/backup`. Set `CRON_SECRET` (or `BACKUP_SECRET`) on Vercel so the nightly job can authenticate (`Authorization: Bearer …`). Production deploys **require** one of those secrets — the cron header alone is not accepted when `DATABASE_URL` or `GROK_PROJECT_ID` is set.
 
 Set `MARTIN_ACCOUNT_IDS` to a comma-separated list of account IDs (e.g. `acc-martin`) so signup push alerts only go to Martin's real account — not anyone who registers the username `martin`.
+
+## Haven Group dashboard
+
+The Haven management dashboard reads studio notifications via `GET /api/haven/notifications`. Set `HAVEN_DASHBOARD_SECRET` on Production and send `Authorization: Bearer …` from the dashboard server. The response includes pending queue/booking stats and notice deep links into the admin desk.

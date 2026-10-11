@@ -12,3 +12,8 @@ export function env(key: string): string | undefined {
 export function isWorkspacePreview(): boolean {
   return !env("GROK_PROJECT_ID");
 }
+
+/** Shared secret for the Haven Group management dashboard read API. */
+export function havenDashboardSecret(): string | undefined {
+  return env("HAVEN_DASHBOARD_SECRET");
+}
