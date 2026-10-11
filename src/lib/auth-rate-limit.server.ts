@@ -7,7 +7,7 @@ type RateLimitSql = {
 const MAX_ATTEMPTS = 5;
 const BLOCK_MS = 60 * 60 * 1000;
 
-export type AuthRateLimitAction = "login" | "register" | "createFirstAdmin";
+export type AuthRateLimitAction = "login" | "register" | "createFirstAdmin" | "resetMartin";
 
 export function clientIp(): string {
   const request = getRequest();
@@ -25,6 +25,7 @@ function rateLimitKey(action: AuthRateLimitAction, ip: string, identifier?: stri
     return `login:${ip}:${user}`;
   }
   if (action === "register") return `register:${ip}`;
+  if (action === "resetMartin") return `reset-martin:${ip}`;
   return `bootstrap:${ip}`;
 }
 
