@@ -64,18 +64,20 @@
 }
 
 :root {
-  --bg: #f3eadb;
-  --surface: #fff8ee;
-  --elevated: #efe4d2;
-  --fg: #1c1612;
-  --muted: #6b5e52;
-  --subtle: #8a7b6d;
-  --accent: #9a3b2f;
-  --accent-fg: #fff8ee;
-  --line: color-mix(in oklab, var(--fg) 14%, transparent);
-  --ink: #1c1612;
-  --font-display-family: "Fraunces", serif;
-  --font-body-family: "Source Serif 4", serif;
+  /* Japandi dark / high contrast — preview branch only */
+  --bg: #0b0a09;
+  --surface: #161310;
+  --elevated: #1f1b17;
+  --fg: #f4f0e6;
+  --muted: #b8ae9c;
+  --subtle: #8f8576;
+  --accent: #d4c4a8;
+  --accent-fg: #0b0a09;
+  --emphasis: #c45a3a;
+  --line: color-mix(in oklab, var(--fg) 16%, transparent);
+  --ink: #050403;
+  --font-display-family: "Shippori Mincho", serif;
+  --font-body-family: "Zen Kaku Gothic New", sans-serif;
   --r-sm: 2px;
   --r-md: 2px;
   --r-lg: 4px;
@@ -85,9 +87,34 @@
   --name-transform: none;
   --name-tracking: -0.02em;
   --shadow-border:
-    0px 0px 0px 1px rgba(28, 22, 18, 0.08),
-    0px 1px 2px -1px rgba(28, 22, 18, 0.06),
-    0px 2px 4px 0px rgba(28, 22, 18, 0.04);
+    0px 0px 0px 1px rgba(244, 240, 230, 0.08),
+    0px 1px 2px -1px rgba(0, 0, 0, 0.35),
+    0px 2px 4px 0px rgba(0, 0, 0, 0.25);
+  --washi-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.95 0 0 0 0 0.92 0 0 0 0 0.86 0 0 0 0.045 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+@layer base {
+  body {
+    background-color: var(--bg);
+    background-image:
+      radial-gradient(
+        ellipse 120% 70% at 50% -15%,
+        color-mix(in oklab, #d4c4a8 14%, transparent),
+        transparent 58%
+      ),
+      radial-gradient(
+        ellipse 70% 45% at 100% 110%,
+        color-mix(in oklab, #c45a3a 10%, transparent),
+        transparent 55%
+      ),
+      radial-gradient(
+        ellipse 55% 40% at 0% 80%,
+        color-mix(in oklab, #1f1b17 80%, transparent),
+        transparent 60%
+      ),
+      var(--washi-grain);
+    background-attachment: fixed;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
