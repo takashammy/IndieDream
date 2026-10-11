@@ -87,6 +87,11 @@ export async function handleResetMartin(request: Request): Promise<Response> {
       );
     }
 
+    // Wipe login + reset lockouts so Me login works immediately after recovery.
+    const rate = await import("@/lib/auth-rate-limit.server");
+    const sql = await sessionMod.getSqlSafe();
+    await rate.clearAllAuthAttempts(sql);
+
     const { withStudioTx } = await import("@/lib/db");
     const result = await withStudioTx(async (tx) => {
       const accounts = await sessionMod.readStudioAccounts(tx);
@@ -99,6 +104,7 @@ export async function handleResetMartin(request: Request): Promise<Response> {
       const hashed = await sessionMod.hashPassword(plain);
       const next = accounts.map((a, i) => (i === idx ? { ...a, password: hashed } : a));
       await sessionMod.writeStudioAccounts(tx, next);
+      await rate.clearAllAuthAttempts(tx);
       return {
         ok: true as const,
         username: accounts[idx].username,

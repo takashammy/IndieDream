@@ -34,11 +34,11 @@ export function clientIp(fromRequest?: Request): string {
 function rateLimitKey(action: AuthRateLimitAction, ip: string, identifier?: string) {
   if (action === "login") {
     const user = (identifier ?? "").trim().toLowerCase();
-    return `login:${ip}:${user}`;
+    // v3 drops prior login lockouts from the Martin recovery attempts.
+    return `login-v3:${ip}:${user}`;
   }
   if (action === "register") return `register:${ip}`;
-  // v2 key clears prior lockouts from failed secret attempts during recovery.
-  if (action === "resetMartin") return `reset-martin-v2:${ip}`;
+  if (action === "resetMartin") return `reset-martin-v3:${ip}`;
   return `bootstrap:${ip}`;
 }
 
@@ -120,4 +120,10 @@ export async function clearAuthRateLimit(
   await ensureTable(sql);
   const key = rateLimitKey(action, clientIp(request), identifier);
   await sql.query(`delete from cue_auth_attempts where key = $1`, [key]).catch(() => {});
+}
+
+/** Wipe every auth lockout row (recovery use only). */
+export async function clearAllAuthAttempts(sql: RateLimitSql): Promise<void> {
+  await ensureTable(sql);
+  await sql.query(`delete from cue_auth_attempts`).catch(() => {});
 }
