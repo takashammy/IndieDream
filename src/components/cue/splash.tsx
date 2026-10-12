@@ -52,15 +52,15 @@ export function Splash() {
       aria-label={APP_NAME}
       aria-live="polite"
       className={cn(
-        "fixed inset-0 z-[80] flex flex-col items-center justify-center px-8 text-fg transition-opacity duration-500 ease-out",
+        "fixed inset-0 z-[80] flex flex-col items-center justify-center px-8 text-center text-fg transition-opacity duration-500 ease-out",
         phase === "out" && "pointer-events-none opacity-0",
       )}
       style={{ backgroundColor: "var(--bg)" }}
     >
-      <p className="cue-name splash-line font-display text-5xl leading-none tracking-tight sm:text-6xl">
+      <p className="cue-name splash-line w-full text-center font-display text-5xl leading-none tracking-tight sm:text-6xl">
         {APP_NAME}
       </p>
-      <div className="splash-line splash-line-2 mt-12 flex flex-col items-center">
+      <div className="splash-line splash-line-2 mt-12 flex w-full flex-col items-center text-center">
         <p className="cue-kicker text-xs text-fg/55">{t("poweredBy")}</p>
         <img
           src="/media/inner-soul-logo.png"
